@@ -10,8 +10,11 @@ product owner for this solo-maintainer phase.
    including agent-authored changes. `main` never moves without a PR.
 2. **Required checks green**: both CI jobs — `Quality gates (no services)`
    and `Database and e2e gates (isolated local stack)` — must pass. They run
-   the exact same scripts as local development (`pnpm verify`, `test:rls`,
-   `test:integration`, `test:e2e`); never weaken or fork them.
+   the exact same scripts as the local pre-merge gate, **`pnpm verify:full`**
+   (which chains `pnpm verify` + `test:rls` + `test:integration` + `test:e2e`);
+   never weaken or fork them. Run `pnpm verify:full` locally before requesting
+   merge — this is the single required validation command named in the PR
+   template.
 3. **All conversations resolved** before merge.
 4. **Reviews recorded in the PR body** (template sections):
    - _Claude Code review_: the read-only `implementation-reviewer` (every PR)
