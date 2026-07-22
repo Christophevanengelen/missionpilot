@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://missionpilot.local/schemas/loop-run.schema.json",
+  "title": "LoopRun",
+  "description": "Trace of one development task loop (Discover → … → Stop). Development-time only: product runtime traces live in the agent_runs/agent_steps tables, not here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "goal",
+    "status",
+    "acceptanceCriteria",
+    "constraints",
+    "attempt",
+    "maxAttempts",
+    "actions",
+    "evidence",
+    "checks",
+    "reviewFindings",
+    "nextAction",
+    "requiresHumanApproval",
+    "stopReason",
+    "startedAt",
+    "completedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "taskId": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["in_progress", "completed", "failed", "escalated"]
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "maxAttempts": { "type": "integer", "minimum": 1 },
+    "actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "result"],
+        "properties": {
+          "name": { "type": "string" },
+          "command": { "type": "string" },
+          "result": {
+            "type": "string",
+            "enum": ["passed", "failed", "skipped"]
+          }
+        }
+      }
+    },
+    "reviewFindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reviewer", "severity", "finding", "resolution"],
+        "properties": {
+          "reviewer": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["blocker", "major", "minor", "info"]
+          },
+          "finding": { "type": "string" },
+          "resolution": {
+            "type": "string",
+            "enum": ["fixed", "accepted", "escalated", "open"]
+          }
+        }
+      }
+    },
+    "nextAction": { "type": "string" },
+    "requiresHumanApproval": { "type": "boolean" },
+    "stopReason": { "type": ["string", "null"] },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "in_progress" } }
+      },
+      "else": {
+        "properties": {
+          "stopReason": { "type": "string", "minLength": 1 },
+          "completedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  ]
+}

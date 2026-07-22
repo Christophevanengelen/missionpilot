@@ -1,0 +1,8 @@
+-- Local development seed.
+--
+-- Intentionally empty of data: the development user is provisioned through the
+-- supported admin API (scripts/create-dev-user.ts, run after `db reset`), which
+-- also exercises the on_auth_user_created trigger. Never INSERT into auth.*
+-- here, and never put real personal data or credentials in this file — any
+-- future fixture data must be clearly synthetic (ENGINEERING_PRINCIPLES.md,
+-- CLAUDE.md).

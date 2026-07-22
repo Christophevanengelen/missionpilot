@@ -1,0 +1,22 @@
+# Build-script decisions, declarative (pnpm 11 allowBuilds): none of these
+# packages may run install scripts (supply-chain hardening). esbuild works
+# without its postinstall — the platform binary ships via optionalDependencies.
+# Recorded here so FRESH clones install non-interactively (dry-run finding, J7).
+allowBuilds:
+  esbuild: false
+  protobufjs: false
+  sharp: false
+  unrs-resolver: false
+minimumReleaseAgeExclude:
+  - "@next/env@16.2.11"
+  - "@next/eslint-plugin-next@16.2.11"
+  - "@next/swc-darwin-arm64@16.2.11"
+  - "@next/swc-darwin-x64@16.2.11"
+  - "@next/swc-linux-arm64-gnu@16.2.11"
+  - "@next/swc-linux-arm64-musl@16.2.11"
+  - "@next/swc-linux-x64-gnu@16.2.11"
+  - "@next/swc-linux-x64-musl@16.2.11"
+  - "@next/swc-win32-arm64-msvc@16.2.11"
+  - "@next/swc-win32-x64-msvc@16.2.11"
+  - eslint-config-next@16.2.11
+  - next@16.2.11

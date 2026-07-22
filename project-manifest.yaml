@@ -1,0 +1,28 @@
+project:
+  name: MissionPilot
+  stage: specification
+  deployment_target: Vercel
+  initial_mode: single_user_private_beta
+
+stack:
+  web: Next.js App Router + TypeScript
+  ui: Tailwind CSS + shadcn/ui
+  data: Supabase Postgres
+  auth: Supabase Auth
+  storage: Supabase Storage
+  workflows: Inngest
+  ai: provider-neutral OpenAI/Anthropic adapters
+  validation: Zod
+  tests:
+    unit: Vitest
+    e2e: Playwright
+
+constraints:
+  - no restricted-source scraping
+  - no fabricated candidate claims
+  - no autonomous external application submission
+  - human approval required for external actions
+  - hard constraints evaluated before soft scoring
+  - all model outputs schema-validated and audited
+
+active_task: tasks/PHASE_0_BOOTSTRAP.md

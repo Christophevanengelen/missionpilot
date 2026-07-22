@@ -1,0 +1,111 @@
+# MissionPilot CI — mirrors the LOCAL quality gates with zero divergent logic:
+#   job "quality" runs `pnpm verify` (the exact local gate script);
+#   job "stack" runs the remaining verify:full gates (test:rls,
+#   test:integration, test:e2e) against a DISPOSABLE runner-local Supabase
+#   stack. No hosted database, no preview/production resource, no secret is
+#   ever used: the exported values below are the Supabase CLI's public
+#   local-development defaults for a stack that lives and dies inside the
+#   runner, and the CI dev-user password is generated per run.
+#
+# Actions pinned to their MAJOR tags; the majors below were the current
+# stable releases per the GitHub API on 2026-07-22 (checkout v7 · pnpm/
+# action-setup v6 · setup-node v7 · cache v6 · upload-artifact v7). Floating
+# majors are acceptable here — zero secrets, read-only token, ephemeral
+# runner; switch to SHA pinning before this repository ever holds a secret.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: read-only token for every job; nothing here writes to the
+# repository, and no job consumes repository secrets (safe for untrusted PRs).
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality gates (no services)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm version comes from package.json "packageManager" — single source.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Same entry point as local development: format:check, lint, typecheck,
+      # unit tests, production build.
+      - run: pnpm verify
+
+  stack:
+    name: Database and e2e gates (isolated local stack)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start disposable Supabase stack (runner-local Docker)
+        run: pnpm exec supabase start
+
+      - name: Export stack configuration for the app and tests
+        # Values come from the runner-local stack (CLI public dev defaults),
+        # never from a hosted project; the dev-user password is generated
+        # fresh for this run and never stored anywhere.
+        run: |
+          eval "$(pnpm exec supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=')"
+          {
+            echo "NEXT_PUBLIC_APP_URL=http://localhost:3000"
+            echo "APP_ENV=local"
+            echo "NEXT_PUBLIC_SUPABASE_URL=${API_URL}"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY}"
+            echo "SUPABASE_SECRET_KEY=${SECRET_KEY}"
+            echo "INNGEST_DEV=1"
+            echo "AI_DEFAULT_PROVIDER=mock"
+            echo "AI_DEFAULT_MODEL=mock-v1"
+            echo "DEV_USER_EMAIL=dev@missionpilot.local"
+            echo "DEV_USER_PASSWORD=ci-$(uuidgen)"
+          } >> "$GITHUB_ENV"
+
+      - name: Provision the synthetic development user
+        run: pnpm exec tsx scripts/create-dev-user.ts
+
+      - name: RLS policy tests (pgTAP)
+        run: pnpm test:rls
+
+      - name: Deterministic workflow tests
+        run: pnpm test:integration
+
+      - name: End-to-end tests (production build)
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Tear down the stack (always)
+        if: always()
+        run: pnpm exec supabase stop --no-backup
