@@ -7,11 +7,10 @@
 #   local-development defaults for a stack that lives and dies inside the
 #   runner, and the CI dev-user password is generated per run.
 #
-# Actions pinned to their MAJOR tags; the majors below were the current
-# stable releases per the GitHub API on 2026-07-22 (checkout v7 · pnpm/
-# action-setup v6 · setup-node v7 · cache v6 · upload-artifact v7). Floating
-# majors are acceptable here — zero secrets, read-only token, ephemeral
-# runner; switch to SHA pinning before this repository ever holds a secret.
+# Actions pinned to full commit SHAs (tag-hijack hardening), resolved from
+# the GitHub API on 2026-07-22 against the then-current stable majors
+# (checkout v7 · pnpm/action-setup v6 · setup-node v7 · cache v6 ·
+# upload-artifact v7). Renovate/dependabot may bump them later via PR.
 name: CI
 
 on:
@@ -33,10 +32,10 @@ jobs:
     name: Quality gates (no services)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # pnpm version comes from package.json "packageManager" — single source.
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -49,16 +48,16 @@ jobs:
     name: Database and e2e gates (isolated local stack)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -100,7 +99,7 @@ jobs:
 
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: playwright-report
           path: playwright-report/
