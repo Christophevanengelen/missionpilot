@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseConfig } from "@/lib/db/config";
 
-const PUBLIC_PATHS = new Set(["/", "/login"]);
+// "/ux-preview" is a public, mock-only design artifact (no auth, no real
+// data); everything else non-public stays gated by the DAL.
+const PUBLIC_PATHS = new Set(["/", "/login", "/ux-preview"]);
 
 /**
  * Proxy-level session refresh + OPTIMISTIC redirect (Next 16 proxy.ts).

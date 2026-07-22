@@ -120,16 +120,21 @@ export default async function DiagnosticsPage() {
                     </thead>
                     <tbody>
                       {run.agent_steps.map((step) => (
-                        <tr key={`${step.step_name}-${step.attempt}`}>
-                          <td className="py-1 pr-4">{step.step_name}</td>
-                          <td className="py-1 pr-4">{step.attempt}</td>
-                          <td className="py-1 pr-4">{step.status}</td>
-                          <td className="py-1 pr-4">
+                        <tr
+                          key={`${step.step_name}-${step.attempt}`}
+                          className="border-border/50 border-t"
+                        >
+                          <td className="py-1.5 pr-4">{step.step_name}</td>
+                          <td className="py-1.5 pr-4 font-mono text-xs tabular-nums">
+                            {step.attempt}
+                          </td>
+                          <td className="py-1.5 pr-4">{step.status}</td>
+                          <td className="py-1.5 pr-4 font-mono text-xs tabular-nums">
                             {step.latency_ms != null
                               ? `${step.latency_ms} ms`
                               : "—"}
                           </td>
-                          <td className="py-1">{step.error ?? "—"}</td>
+                          <td className="py-1.5">{step.error ?? "—"}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { verifySession } from "@/lib/auth/dal";
 import { signOut } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
+import { NavLink } from "@/components/nav-link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Primary navigation from docs/UX_SPEC.md. Only routes that exist are links;
 // the rest are announced as "coming soon" so the shell stays honest.
@@ -23,15 +24,16 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-border flex items-center justify-between gap-4 border-b px-6 py-3">
-        <span className="font-semibold">MissionPilot</span>
-        <div className="flex items-center gap-3">
+      <header className="border-border bg-surface-raised flex items-center justify-between gap-4 border-b px-6 py-3">
+        <span className="font-semibold tracking-tight">MissionPilot</span>
+        <div className="flex items-center gap-2">
           <span
-            className="text-muted-foreground text-sm"
+            className="text-muted-foreground hidden text-sm sm:inline"
             data-testid="session-email"
           >
             {session.email ?? "Signed in"}
           </span>
+          <ThemeToggle />
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">
               Sign out
@@ -40,17 +42,15 @@ export default async function DashboardLayout({
         </div>
       </header>
       <div className="flex flex-1">
-        <nav aria-label="Primary" className="border-border w-56 border-r p-4">
+        <nav
+          aria-label="Primary"
+          className="border-border bg-surface-raised w-56 border-r p-4"
+        >
           <ul className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.label}>
                 {item.href ? (
-                  <Link
-                    href={item.href}
-                    className="hover:bg-accent focus-visible:ring-ring block rounded-md px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
-                  >
-                    {item.label}
-                  </Link>
+                  <NavLink href={item.href}>{item.label}</NavLink>
                 ) : (
                   <span
                     aria-disabled="true"
