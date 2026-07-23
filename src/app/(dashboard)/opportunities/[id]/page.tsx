@@ -6,10 +6,17 @@ import {
   countSnapshots,
   getLatestSnapshot,
   getOpportunity,
+  getOwnProfile,
 } from "@/lib/opportunity/logic";
+import { loadPreferences } from "@/lib/profile/logic";
+import {
+  evaluateHardConstraints,
+  opportunityFactsFromRow,
+} from "@/lib/matching/hard-constraints";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
+import { GateBadge } from "@/components/matching/gate-badge";
 
 export const metadata: Metadata = { title: "Opportunité" };
 
@@ -41,12 +48,19 @@ export default async function OpportunityDetailPage({
     return <NotFound />;
   }
 
-  const [opportunity, snapshot, seenCount] = await Promise.all([
+  const profile = await getOwnProfile(client);
+  const [opportunity, snapshot, seenCount, preferences] = await Promise.all([
     getOpportunity(client, id),
     getLatestSnapshot(client, id),
     countSnapshots(client, id),
+    loadPreferences(client, profile.id),
   ]);
   if (!opportunity) return <NotFound />;
+
+  const report = evaluateHardConstraints(
+    preferences,
+    opportunityFactsFromRow(opportunity),
+  );
 
   const remote = opportunity.remote_type
     ? copy.remoteTypes[opportunity.remote_type as keyof typeof copy.remoteTypes]
@@ -94,6 +108,43 @@ export default async function OpportunityDetailPage({
           {copy.unverifiedBanner}
         </p>
       </header>
+
+      <section
+        aria-label={copy.hardConstraints.section}
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-5"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {copy.hardConstraints.section}
+          </h2>
+          <GateBadge gate={report.gate} />
+        </div>
+        <p className="text-muted-foreground text-xs">
+          {copy.hardConstraints.note}
+        </p>
+        <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+          {report.checks.map((c) => (
+            <div
+              key={c.key}
+              className="flex items-baseline justify-between gap-2 border-b border-dashed py-1 last:border-0"
+            >
+              <dt className="text-muted-foreground text-xs">
+                {copy.hardConstraints.checks[c.key]}
+              </dt>
+              <dd className="text-right text-xs">
+                {copy.hardConstraints.verdicts[c.verdict]}
+                {c.key === "hard_exclusions" &&
+                c.verdict === "violated" &&
+                c.detail ? (
+                  <span className="text-foreground/80 block">
+                    {copy.hardConstraints.excludedTerm(c.detail)}
+                  </span>
+                ) : null}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <section
         aria-label={copy.sections.normalized}

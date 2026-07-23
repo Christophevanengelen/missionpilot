@@ -3,8 +3,14 @@ import Link from "next/link";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { getOwnProfile, listOpportunities } from "@/lib/opportunity/logic";
+import { loadPreferences } from "@/lib/profile/logic";
+import {
+  evaluateHardConstraints,
+  opportunityFactsFromRow,
+} from "@/lib/matching/hard-constraints";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
+import { GateBadge } from "@/components/matching/gate-badge";
 import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Opportunités" };
@@ -17,7 +23,10 @@ export default async function OpportunitiesPage() {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const opportunities = await listOpportunities(client, profile.id);
+  const [opportunities, preferences] = await Promise.all([
+    listOpportunities(client, profile.id),
+    loadPreferences(client, profile.id),
+  ]);
   const copy = t().opportunities;
 
   return (
@@ -38,9 +47,19 @@ export default async function OpportunitiesPage() {
               <li key={o.id}>
                 <article className="border-border bg-card flex flex-col gap-1 rounded-xl border p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-sm font-semibold">
-                      {o.title ?? copy.none}
-                    </h2>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <h2 className="truncate text-sm font-semibold">
+                        {o.title ?? copy.none}
+                      </h2>
+                      <GateBadge
+                        gate={
+                          evaluateHardConstraints(
+                            preferences,
+                            opportunityFactsFromRow(o),
+                          ).gate
+                        }
+                      />
+                    </div>
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/opportunities/${o.id}`}>
                         {copy.openDetail}

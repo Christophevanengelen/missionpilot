@@ -86,8 +86,13 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
   ).toBeVisible();
   // Seen exactly once so far.
   await expect(page.getByText("Vue 1 fois")).toBeVisible();
-  // Honesty: the unverified banner is present.
-  await expect(page.getByText("non vérifiées", { exact: false })).toBeVisible();
+  // Deterministic hard-constraint gate renders (no preferences set ⇒ Éligible).
+  const constraints = page.getByRole("region", { name: "Contraintes dures" });
+  await expect(constraints).toBeVisible();
+  await expect(constraints.getByText("Éligible")).toBeVisible();
+  // Honesty: the unverified banner is present (scoped to the note landmark —
+  // the hard-constraints section also mentions "non vérifiées").
+  await expect(page.getByRole("note")).toContainText("non vérifiées");
   // Normalized fields extracted from the source (scoped to the normalized
   // section — the same words also appear in the frozen source capture).
   const normalized = page.getByRole("region", {

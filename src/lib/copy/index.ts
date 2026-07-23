@@ -253,6 +253,32 @@ export const copy = {
       viewOpportunity: "Voir l'opportunité",
       importAnother: "Importer une autre annonce",
       seenCount: (n: number) => (n === 1 ? "Vue 1 fois" : `Vue ${n} fois`),
+      gate: { eligible: "Éligible", review: "À vérifier", excluded: "Exclu" },
+      gateHint: {
+        eligible:
+          "Aucune contrainte dure enfreinte d'après les données connues.",
+        review:
+          "Des données manquent pour trancher certaines contraintes dures.",
+        excluded: "Enfreint au moins une de vos contraintes dures.",
+      },
+      hardConstraints: {
+        section: "Contraintes dures",
+        note: "Pré-filtre déterministe à partir de vos contraintes dures et des données extraites (non vérifiées) — ce n'est pas une recommandation.",
+        checks: {
+          remote: "Télétravail",
+          engagement_type: "Type d'engagement",
+          minimum_day_rate: "TJM minimum",
+          hard_exclusions: "Exclusions",
+          allowed_regions: "Zones de travail autorisées",
+        },
+        verdicts: {
+          pass: "OK",
+          violated: "Enfreint",
+          unknown: "Indéterminé",
+          not_constrained: "Non contraint",
+        },
+        excludedTerm: (term: string) => `Terme exclu détecté : « ${term} »`,
+      },
       listEmpty:
         "Aucune opportunité pour le moment. Importez une première annonce ci-dessus.",
       unknownsNote: (n: number) =>
@@ -581,6 +607,30 @@ export const copy = {
       viewOpportunity: "View opportunity",
       importAnother: "Import another listing",
       seenCount: (n: number) => (n === 1 ? "Seen once" : `Seen ${n} times`),
+      gate: { eligible: "Eligible", review: "To check", excluded: "Excluded" },
+      gateHint: {
+        eligible: "No hard constraint broken, based on known data.",
+        review: "Some data is missing to decide certain hard constraints.",
+        excluded: "Breaks at least one of your hard constraints.",
+      },
+      hardConstraints: {
+        section: "Hard constraints",
+        note: "A deterministic pre-filter from your hard constraints and the extracted (unverified) data — not a recommendation.",
+        checks: {
+          remote: "Remote",
+          engagement_type: "Engagement type",
+          minimum_day_rate: "Minimum day rate",
+          hard_exclusions: "Exclusions",
+          allowed_regions: "Allowed work regions",
+        },
+        verdicts: {
+          pass: "OK",
+          violated: "Broken",
+          unknown: "Undetermined",
+          not_constrained: "Not constrained",
+        },
+        excludedTerm: (term: string) => `Excluded term found: “${term}”`,
+      },
       listEmpty: "No opportunities yet. Import a first listing above.",
       unknownsNote: (n: number) =>
         n === 0
