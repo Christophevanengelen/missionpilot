@@ -64,8 +64,10 @@ begin
       select 1 from public.profile_claims c
       where c.id = new.previous_claim_id
         and c.profile_id = new.profile_id
+        and c.kind = new.kind
     ) then
-      raise exception 'previous_claim_id must reference the same profile';
+      raise exception
+        'previous_claim_id must reference the same profile and kind';
     end if;
   end if;
   if new.superseded_by_claim_id is not null then
@@ -73,8 +75,10 @@ begin
       select 1 from public.profile_claims c
       where c.id = new.superseded_by_claim_id
         and c.profile_id = new.profile_id
+        and c.kind = new.kind
     ) then
-      raise exception 'superseded_by_claim_id must reference the same profile';
+      raise exception
+        'superseded_by_claim_id must reference the same profile and kind';
     end if;
   end if;
   if tg_op = 'UPDATE' then
@@ -424,6 +428,8 @@ declare
   v_last record;
   v_next integer;
   v_id uuid;
+  v_claim jsonb;
+  v_ev jsonb;
 begin
   v_uid := (select auth.uid());
   if v_uid is null then
@@ -444,6 +450,48 @@ begin
   if pg_column_size(p_content) > 262144 then
     raise exception 'content too large';
   end if;
+
+  -- Structural honesty validation: a snapshot is the durable, immutable
+  -- record future phases will trust — the RPC boundary must refuse forged
+  -- content even when the caller bypasses the app layer. In particular a
+  -- user can NEVER smuggle an `externally_verified` badge into their own
+  -- published history.
+  if jsonb_typeof(p_content->'claims') <> 'array' then
+    raise exception 'invalid content: claims must be an array';
+  end if;
+  if jsonb_array_length(p_content->'claims') > 500 then
+    raise exception 'invalid content: too many claims';
+  end if;
+  for v_claim in
+    select value from jsonb_array_elements(p_content->'claims')
+  loop
+    if coalesce(v_claim->>'kind', '') not in
+       ('role', 'seniority', 'summary', 'years_experience', 'skill',
+        'achievement') then
+      raise exception 'invalid content: unknown claim kind';
+    end if;
+    if jsonb_typeof(v_claim->'value') <> 'object' then
+      raise exception 'invalid content: claim value must be an object';
+    end if;
+    if v_claim ? 'evidence' then
+      if jsonb_typeof(v_claim->'evidence') <> 'array' then
+        raise exception 'invalid content: evidence must be an array';
+      end if;
+      for v_ev in
+        select value from jsonb_array_elements(v_claim->'evidence')
+      loop
+        if coalesce(v_ev->>'verification_status', '') not in
+           ('imported', 'user_confirmed') then
+          raise exception
+            'invalid content: forged or missing verification status';
+        end if;
+        if coalesce(v_ev->>'source_type', '') not in
+           ('user_stated', 'document', 'url', 'import') then
+          raise exception 'invalid content: unknown evidence source type';
+        end if;
+      end loop;
+    end if;
+  end loop;
   if p_content_hash !~ '^[0-9a-f]{64}$' then
     raise exception 'invalid content hash';
   end if;

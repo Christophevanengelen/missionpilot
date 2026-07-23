@@ -4,8 +4,8 @@
 - **taskId**: P1A-data-foundation
 - **goal**: Data foundation for the versioned professional profile and evidence library — migration, RLS and minimal grants, atomic publish/restore SQL functions, domain state machine, Zod validation, DAL-verified Server Actions, and the unit/integration/pgTAP proofs. No business UI in this PR.
 - **status**: completed
-- **attempt**: 3 / **maxAttempts**: 3 (1 = build; 2 = Claude review repairs;
-  3 = Codex review repairs)
+- **attempt**: 4 (1 build + 3 repair rounds — the repair budget's hard cap;
+  a further FAIL would have stopped the loop for owner arbitration)
 - **startedAt** / **completedAt**: 2026-07-23T15:30:00+02:00 / 2026-07-23T18:30:00+02:00
 
 ## Specification (owner-approved plan + mandatory corrections)
@@ -84,7 +84,7 @@ policies (`with check` incl. profile-ownership join) are the second barrier.
 
 Migration `supabase/migrations/20260723115606_phase1_profile_evidence.sql`
 (4 tables, chain-integrity trigger, 3 SQL functions, RLS + minimal grants);
-pgTAP `supabase/tests/profile_rls.test.sql` (56); domain
+pgTAP `supabase/tests/profile_rls.test.sql` (59); domain
 `src/domain/profile.ts`; `src/lib/profile/{version-content,change-summary,
 logic,actions}.ts`; unit tests ×3; integration
 `tests/integration/profile-foundation.test.ts`; regenerated
@@ -95,7 +95,7 @@ logic,actions}.ts`; unit tests ×3; integration
 | Check                                               | Result                                                                                                                                                                                                           |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `supabase db reset` (both migrations apply cleanly) | passed                                                                                                                                                                                                           |
-| pgTAP `pnpm test:rls`                               | **84/84** (28 phase-0 + 56 new)                                                                                                                                                                                  |
+| pgTAP `pnpm test:rls`                               | **87/87** (28 phase-0 + 59 new)                                                                                                                                                                                  |
 | Unit `pnpm test`                                    | **56/56** (21 new: state machine, canonicalization/hash incl. total-order determinism, FR summaries)                                                                                                             |
 | Integration `pnpm test:integration`                 | **14/14** (correction chain, illegal transition, idempotent double submit, SAME-content race → 1 row, DIFFERENT-content race → n+1/n+2, restore with links + traceability, cross-user lockout via real sessions) |
 | `pnpm verify:full`                                  | fully green (see PR)                                                                                                                                                                                             |
@@ -128,7 +128,15 @@ Both reviewers: **PASS** (0 blocker, 0 major).
 | minor    | evidence-change summary sensitive to array order                                        | **fixed**: order-insensitive comparison                                                                                                                                                                                         |
 | minor    | `rejected → proposed` transition questioned                                             | **rebutted, intentional**: the explicit «Restaurer» action on an ignored statement (owner-approved UX); app-enforced by the state machine                                                                                       |
 
-**Codex pass 2 verdict: recorded in the PR.**
+**Codex pass 2: FAIL (0 blocker) — resolutions:**
+
+| Severity | Finding                                                                                                                             | Resolution                                                                                                                                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| major    | publish trusts caller content: a user could forge their OWN immutable snapshot (e.g. an `externally_verified` badge) via direct RPC | **fixed (repair 3)**: structural honesty validation inside the function — claim kinds, object values, evidence verification/source enums enforced at the RPC boundary; forged badges refused (+2 pgTAP) |
+| major    | restore materializes stored content into confirmed claims                                                                           | **mitigated by the same fix** (only validated content can be stored) + DB CHECKs on insert; residual: self-scoped only                                                                                  |
+| minor    | successor could cross kinds via direct column update                                                                                | **fixed**: chain trigger now requires same profile AND same kind for both chain references (+1 pgTAP)                                                                                                   |
+
+**Codex pass 3 verdict: recorded in the PR.**
 
 ## Stop
 

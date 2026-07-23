@@ -6,7 +6,7 @@
 
 begin;
 
-select plan(56);
+select plan(59);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: users C and D (the signup trigger creates their profiles).
@@ -142,6 +142,20 @@ select throws_ok(
             'role', '{"title":"Second"}'::jsonb)$$,
   '23505', null, 'a second ACTIVE single-valued claim is rejected');
 
+-- Chain integrity: a successor must share the claim's kind — no nonsensical
+-- role-superseded-by-skill chains, even via direct API access.
+select throws_ok(
+  $$update public.profile_claims
+      set superseded_by_claim_id =
+        (select c.id from public.profile_claims c
+          join public.candidate_profiles p on p.id = c.profile_id
+          where p.user_id = '33333333-3333-3333-3333-333333333333'
+            and c.kind = 'role' and c.superseded_at is null),
+          superseded_at = now()
+      where kind = 'skill' and superseded_at is null
+        and value->>'name' = 'UX'$$,
+  'P0001', null, 'a cross-kind successor is refused by the chain trigger');
+
 -- ---------------------------------------------------------------------------
 -- 3) user C: evidence honesty + links traceability.
 
@@ -234,7 +248,9 @@ select is(
          'evidence', jsonb_build_array(jsonb_build_object(
            'evidence_id',
            (select id from public.evidence_items
-             where title = 'Refonte du checkout'))))
+             where title = 'Refonte du checkout'),
+           'verification_status', 'user_confirmed',
+           'source_type', 'user_stated')))
      )),
      repeat('1', 64), 'Première version publiée du profil.')
    ->> 'created')::boolean,
@@ -280,6 +296,27 @@ select throws_ok(
         where user_id = '33333333-3333-3333-3333-333333333333'),
       '{}'::jsonb, 'not-a-hash', 'x')$$,
   'P0001', null, 'a malformed hash is refused');
+
+-- Forged-snapshot refusals: the RPC boundary itself upholds honesty, even
+-- when a caller bypasses the app layer entirely.
+select throws_ok(
+  $$select public.publish_profile_version(
+      (select id from public.candidate_profiles
+        where user_id = '33333333-3333-3333-3333-333333333333'),
+      '{"schema_version":1,"claims":[{"kind":"role","value":{"title":"x"},
+        "evidence":[{"verification_status":"externally_verified",
+                     "source_type":"user_stated"}]}]}'::jsonb,
+      repeat('7', 64), 'forge')$$,
+  'P0001', null,
+  'a forged externally_verified badge in the snapshot is refused');
+
+select throws_ok(
+  $$select public.publish_profile_version(
+      (select id from public.candidate_profiles
+        where user_id = '33333333-3333-3333-3333-333333333333'),
+      '{"schema_version":1,"claims":[{"kind":"invented","value":{}}]}'::jsonb,
+      repeat('8', 64), 'forge')$$,
+  'P0001', null, 'an unknown claim kind in the snapshot is refused');
 
 select throws_ok(
   $$select public.publish_profile_version(
