@@ -29,6 +29,7 @@ export function stepQuestion(step: InterviewStep): string | null {
     case "suggest_evidence":
       return copy.suggestEvidence(claimValueLabel(step.claim));
     case "complete":
+    case "paused":
       return null;
   }
 }
@@ -95,6 +96,14 @@ export function buildTurns(state: LivingState, step: InterviewStep): Turn[] {
       role: "assistant",
       id: `t-evidence-${step.claim.id}`,
       text: copy.suggestEvidence(claimValueLabel(step.claim)),
+    });
+  } else if (step.type === "paused") {
+    // Honest terminal: no enrichment chips — the way forward is the explicit
+    // Restaurer action on the set-aside elements (panel).
+    turns.push({
+      role: "assistant",
+      id: "t-paused",
+      text: copy.pausedIncomplete(step.progress.done, step.progress.total),
     });
   } else {
     turns.push({

@@ -93,6 +93,10 @@ export const copy = {
         `Voulez-vous appuyer « ${title} » par une preuve concrète ?`,
       complete:
         "Votre socle de profil est en place. Vous pouvez l'enrichir ou corriger ce qui a évolué.",
+      pausedIncomplete: (done: number, total: number) =>
+        `Il ne reste rien à demander pour le moment. ${done} ${
+          done > 1 ? "éléments" : "élément"
+        } sur ${total} ${done > 1 ? "sont confirmés" : "est confirmé"}. Vous pouvez restaurer les éléments écartés pour compléter votre socle.`,
       correctPrompt: "Reformulez, je remplacerai la version précédente.",
       claimCardTitle: "Ce que j'ai compris",
       kindLabels: {
@@ -213,6 +217,10 @@ export const copy = {
         `Would you like to back “${title}” with concrete proof?`,
       complete:
         "Your profile foundation is in place. Enrich it or correct anything that changed.",
+      pausedIncomplete: (done: number, total: number) =>
+        `Nothing left to ask for now. ${done} of ${total} ${
+          done > 1 ? "elements are" : "element is"
+        } confirmed. Restore the set-aside elements to complete your foundation.`,
       correctPrompt: "Rephrase it — I'll replace the previous version.",
       claimCardTitle: "What I understood",
       kindLabels: {

@@ -64,8 +64,12 @@ export type InterviewStep =
   | { type: "ask"; kind: ClaimKind }
   /** A confirmed achievement has no active evidence — suggest proof. */
   | { type: "suggest_evidence"; claim: LivingClaim }
-  /** Foundation complete — open enrichment. */
-  | { type: "complete" };
+  /** Foundation complete (6/6 confirmed) — open enrichment. */
+  | { type: "complete" }
+  /** Nothing left to ask, but the foundation is INCOMPLETE because elements
+   *  were rejected — honest terminal: restore is the way forward. Rejected
+   *  elements are never re-asked automatically. */
+  | { type: "paused"; progress: FoundationProgress };
 
 function activeOf(state: LivingState, kind: ClaimKind): LivingClaim[] {
   return state.claims.filter((c) => c.kind === kind);
@@ -126,6 +130,12 @@ export function nextStep(state: LivingState): InterviewStep {
   );
   if (unsupported) return { type: "suggest_evidence", claim: unsupported };
 
+  // `complete` is RESERVED for 6/6 confirmed; anything less (rejected
+  // elements) ends in the honest `paused` terminal.
+  const progress = foundationProgress(state);
+  if (progress.done < progress.total) {
+    return { type: "paused", progress };
+  }
   return { type: "complete" };
 }
 

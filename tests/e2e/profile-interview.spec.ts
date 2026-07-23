@@ -142,7 +142,7 @@ test.describe.serial("Entretien de profil guidé", () => {
     await answer(page, "Refonte du checkout e-commerce");
     await page.getByRole("button", { name: "Ignorer" }).click();
     // The engine moves on without nagging; the rejected item is restorable.
-    await expect(page.getByText("Écartés")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Écartés" })).toBeVisible();
     await page.getByRole("button", { name: "Restaurer" }).click();
     await expect(
       page.getByRole("heading", { name: "Ce que j'ai compris" }),
@@ -264,6 +264,68 @@ test.describe.serial("Entretien de profil guidé", () => {
       "comment résumeriez-vous votre parcours",
     ]) {
       await expect(page.getByText(asked, { exact: false })).toHaveCount(0);
+    }
+  });
+
+  test("an incomplete foundation with rejected elements shows the HONEST terminal message", async ({
+    browser,
+  }) => {
+    // Dedicated second synthetic user: reject role and achievement, confirm
+    // the other four — nothing left to ask, foundation 4/6.
+    const admin = createClient(url, secretKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const email2 = `p1b-e2e-paused-${randomUUID()}@test.local`;
+    const password2 = `synthetic-${randomUUID()}`;
+    const created = await admin.auth.admin.createUser({
+      email: email2,
+      password: password2,
+      email_confirm: true,
+    });
+    if (created.error || !created.data.user) {
+      throw new Error(`fixture user failed: ${created.error?.message}`);
+    }
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(email2);
+      await page.getByLabel("Password").fill(password2);
+      await page.getByRole("button", { name: "Sign in" }).click();
+      await page.waitForURL(/\/dashboard/);
+      await page.goto("/profile");
+
+      await answer(page, "Rôle que je préfère taire");
+      await page.getByRole("button", { name: "Ignorer" }).click();
+      for (const value of [
+        "Senior",
+        "15 ans",
+        "Parcours produit complet.",
+        "UX",
+      ]) {
+        await answer(page, value);
+        await page.getByRole("button", { name: "Confirmer" }).click();
+      }
+      await answer(page, "Réalisation écartée");
+      await page.getByRole("button", { name: "Ignorer" }).click();
+
+      // Honest terminal: never «socle en place» below 6/6 — the exact
+      // owner-mandated wording, with Restaurer still available.
+      await expect(
+        page.getByText(
+          "Il ne reste rien à demander pour le moment. 4 éléments sur 6 sont confirmés.",
+          { exact: false },
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Votre socle de profil est en place"),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Restaurer" }).first(),
+      ).toBeVisible();
+    } finally {
+      await ctx.close();
+      await admin.auth.admin.deleteUser(created.data.user.id);
     }
   });
 

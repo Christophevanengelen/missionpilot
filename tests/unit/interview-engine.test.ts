@@ -120,6 +120,46 @@ describe("nextStep — deterministic priority", () => {
     }
   });
 
+  it("stays HONEST when a foundation element was rejected: paused, not complete", () => {
+    // Skill rejected, everything else confirmed and the achievement backed:
+    // nothing left to ask, but the foundation is 5/6 — `complete` (and its
+    // «socle en place» copy) must never fire.
+    const withoutSkill = CONFIRMED_FOUNDATION.filter((c) => c.kind !== "skill");
+    const achievement = withoutSkill.find((c) => c.kind === "achievement")!;
+    const s = state([...withoutSkill, claim("skill", "rejected")], {
+      evidence: [
+        {
+          id: "e-1",
+          title: "t",
+          statement: "s",
+          role_played: null,
+          verification_status: "user_confirmed",
+          state: "confirmed",
+        },
+      ],
+      links: [{ id: "l-1", claim_id: achievement.id, evidence_id: "e-1" }],
+    });
+    expect(nextStep(s)).toEqual({
+      type: "paused",
+      progress: { done: 5, total: 6 },
+    });
+  });
+
+  it("an interview where everything was rejected pauses at 0/6", () => {
+    const allRejected = state([
+      claim("role", "rejected"),
+      claim("seniority", "rejected"),
+      claim("years_experience", "rejected"),
+      claim("summary", "rejected"),
+      claim("skill", "rejected"),
+      claim("achievement", "rejected"),
+    ]);
+    expect(nextStep(allRejected)).toEqual({
+      type: "paused",
+      progress: { done: 0, total: 6 },
+    });
+  });
+
   it("is complete when the achievement is backed by confirmed proof", () => {
     const achievement = CONFIRMED_FOUNDATION.find(
       (c) => c.kind === "achievement",
