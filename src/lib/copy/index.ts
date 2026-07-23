@@ -140,6 +140,7 @@ export const copy = {
         detach: "Détacher",
         empty: "Votre profil se construira ici au fil de l'entretien.",
         history: "Historique",
+        preferences: "Préférences & contraintes",
         versions: {
           title: "Versions",
           current: (n: number) => `Version actuelle : ${n}`,
@@ -222,6 +223,58 @@ export const copy = {
         unknown:
           "La connexion a été interrompue pendant la restauration : son résultat est incertain. Rouvrez l'historique pour vérifier l'état réel avant de réessayer.",
       },
+    },
+    preferences: {
+      title: "Préférences & contraintes",
+      subtitle:
+        "Vos critères de mission. Facultatifs — ils orienteront plus tard les recommandations, jamais votre profil lui-même.",
+      backToProfile: "Revenir au profil",
+      sections: {
+        targeting: "Ciblage",
+        conditions: "Conditions",
+        exclusions: "Exclusions",
+      },
+      fields: {
+        targetRoleFamilies: "Familles de rôles visées",
+        preferredEngagementTypes: "Types d'engagement préférés",
+        languages: "Langues de travail",
+        allowedWorkRegions: "Régions de travail autorisées",
+        hardExclusions: "Exclusions absolues",
+        targetDayRate: "TJM visé",
+        minimumDayRate: "TJM plancher",
+        baseCurrency: "Devise",
+        remotePolicy: "Politique de télétravail",
+        timezoneOverlap: "Chevauchement horaire attendu",
+        travelTolerance: "Tolérance aux déplacements",
+      },
+      hints: {
+        list: "Séparez par des virgules (20 max).",
+        rateFloor: "Le TJM plancher ne peut pas dépasser le TJM visé.",
+        timezoneOverlap:
+          "Ex. « CET ±3 h » ou « 4 h de recouvrement avec Paris ».",
+      },
+      engagementTypes: {
+        freelance: "Freelance",
+        part_time: "Temps partiel",
+        interim: "Intérim",
+        permanent: "Permanent",
+      },
+      remotePolicies: {
+        remote_only: "100 % à distance",
+        remote_first: "À distance en priorité",
+        hybrid: "Hybride",
+        onsite_ok: "Sur site accepté",
+      },
+      travelTolerances: {
+        none: "Aucun déplacement",
+        occasional: "Occasionnels",
+        frequent: "Fréquents",
+      },
+      none: "Non précisé",
+      save: "Enregistrer les préférences",
+      saved: "Préférences enregistrées.",
+      error:
+        "Les préférences n'ont pas pu être enregistrées — vérifiez les valeurs et réessayez.",
     },
   },
   en: {
@@ -346,6 +399,7 @@ export const copy = {
         detach: "Detach",
         empty: "Your profile will build here as the interview goes.",
         history: "History",
+        preferences: "Preferences & constraints",
         versions: {
           title: "Versions",
           current: (n: number) => `Current version: ${n}`,
@@ -423,6 +477,56 @@ export const copy = {
         unknown:
           "The connection dropped during the restore: its outcome is uncertain. Reopen the history to check the real state before trying again.",
       },
+    },
+    preferences: {
+      title: "Preferences & constraints",
+      subtitle:
+        "Your mission criteria. Optional — they will later steer recommendations, never your profile itself.",
+      backToProfile: "Back to profile",
+      sections: {
+        targeting: "Targeting",
+        conditions: "Conditions",
+        exclusions: "Exclusions",
+      },
+      fields: {
+        targetRoleFamilies: "Target role families",
+        preferredEngagementTypes: "Preferred engagement types",
+        languages: "Working languages",
+        allowedWorkRegions: "Allowed work regions",
+        hardExclusions: "Hard exclusions",
+        targetDayRate: "Target day rate",
+        minimumDayRate: "Minimum day rate",
+        baseCurrency: "Currency",
+        remotePolicy: "Remote policy",
+        timezoneOverlap: "Expected timezone overlap",
+        travelTolerance: "Travel tolerance",
+      },
+      hints: {
+        list: "Comma-separated (20 max).",
+        rateFloor: "The minimum day rate cannot exceed the target day rate.",
+        timezoneOverlap: "e.g. “CET ±3h” or “4h overlap with Paris”.",
+      },
+      engagementTypes: {
+        freelance: "Freelance",
+        part_time: "Part-time",
+        interim: "Interim",
+        permanent: "Permanent",
+      },
+      remotePolicies: {
+        remote_only: "Remote only",
+        remote_first: "Remote first",
+        hybrid: "Hybrid",
+        onsite_ok: "Onsite OK",
+      },
+      travelTolerances: {
+        none: "No travel",
+        occasional: "Occasional",
+        frequent: "Frequent",
+      },
+      none: "Not set",
+      save: "Save preferences",
+      saved: "Preferences saved.",
+      error: "Preferences could not be saved — check the values and try again.",
     },
   },
 } as const;

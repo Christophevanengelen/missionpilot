@@ -535,14 +535,18 @@ export function ProfileInterview({
             {versionNotice}
           </p>
         ) : null}
-        <p>
-          <Link
-            href="/profile/history"
-            className="text-sm font-medium underline-offset-4 hover:underline"
-          >
-            {copy.panel.history}
-          </Link>
-        </p>
+        <Link
+          href="/profile/history"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+        >
+          {copy.panel.history}
+        </Link>
+        <Link
+          href="/profile/preferences"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+        >
+          {copy.panel.preferences}
+        </Link>
       </section>
     </div>
   );

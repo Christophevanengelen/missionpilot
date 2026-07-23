@@ -9,8 +9,10 @@ import {
   getOwnProfile,
   getVersionByNumber,
   listVersions,
+  loadPreferences,
   publishVersion,
   restoreVersion,
+  savePreferences,
   setClaimState,
   submitClaim,
 } from "@/lib/profile/logic";
@@ -375,5 +377,67 @@ describe("isolation: another user is fully locked out", () => {
       .select("id")
       .eq("profile_id", aliceProfileId);
     expect(versions).toEqual([]);
+  });
+});
+
+describe("preferences & hard constraints (PR E)", () => {
+  it("round-trips a full preference set through the session client", async () => {
+    await savePreferences(alice, aliceProfileId, {
+      targetRoleFamilies: ["Design produit", "Design systems"],
+      preferredEngagementTypes: ["freelance", "interim"],
+      languages: ["Français", "Anglais"],
+      allowedWorkRegions: ["UE"],
+      hardExclusions: ["Défense"],
+      targetDayRate: 800,
+      minimumDayRate: 650,
+      baseCurrency: "EUR",
+      remotePolicy: "remote_first",
+      timezoneOverlap: "CET ±3 h",
+      travelTolerance: "occasional",
+    });
+    const loaded = await loadPreferences(alice, aliceProfileId);
+    expect(loaded.targetDayRate).toBe(800);
+    expect(loaded.minimumDayRate).toBe(650);
+    expect(loaded.preferredEngagementTypes).toEqual(["freelance", "interim"]);
+    expect(loaded.remotePolicy).toBe("remote_first");
+    expect(loaded.hardExclusions).toEqual(["Défense"]);
+  });
+
+  it("clearing back to defaults is allowed (all optional)", async () => {
+    await savePreferences(alice, aliceProfileId, {
+      targetRoleFamilies: [],
+      preferredEngagementTypes: [],
+      languages: [],
+      allowedWorkRegions: [],
+      hardExclusions: [],
+      targetDayRate: null,
+      minimumDayRate: null,
+      baseCurrency: null,
+      remotePolicy: null,
+      timezoneOverlap: null,
+      travelTolerance: null,
+    });
+    const loaded = await loadPreferences(alice, aliceProfileId);
+    expect(loaded.targetDayRate).toBeNull();
+    expect(loaded.languages).toEqual([]);
+  });
+
+  it("the DB rejects an incoherent rate floor even past the app", async () => {
+    // Bypass the Zod boundary to prove the DB is the real guard.
+    const { error } = await alice
+      .from("candidate_profiles")
+      .update({ target_day_rate: 500, minimum_day_rate: 900 })
+      .eq("id", aliceProfileId);
+    expect(error).not.toBeNull();
+  });
+
+  it("another user cannot write Alice's preferences", async () => {
+    const { data } = await mallory
+      .from("candidate_profiles")
+      .update({ remote_policy: "onsite_ok" })
+      .eq("id", aliceProfileId)
+      .select("id");
+    // RLS hides the row: the update matches nothing (no rows returned).
+    expect(data).toEqual([]);
   });
 });

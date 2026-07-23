@@ -132,3 +132,65 @@ export const evidenceInputSchema = z
   });
 
 export type EvidenceInput = z.infer<typeof evidenceInputSchema>;
+
+// ---------------------------------------------------------------------------
+// Target preferences & hard constraints (PR E). These live on the profile
+// itself (DOMAIN_MODEL.md): the user's CURRENT positioning, read live by the
+// Phase 3 matching engine. Every field is optional — stating preferences is
+// never required. The Zod bounds mirror the DB CHECK constraints exactly.
+
+export const ENGAGEMENT_TYPES = [
+  "freelance",
+  "part_time",
+  "interim",
+  "permanent",
+] as const;
+export type EngagementType = (typeof ENGAGEMENT_TYPES)[number];
+
+export const REMOTE_POLICIES = [
+  "remote_only",
+  "remote_first",
+  "hybrid",
+  "onsite_ok",
+] as const;
+export type RemotePolicy = (typeof REMOTE_POLICIES)[number];
+
+export const TRAVEL_TOLERANCES = ["none", "occasional", "frequent"] as const;
+export type TravelTolerance = (typeof TRAVEL_TOLERANCES)[number];
+
+export const BASE_CURRENCIES = ["EUR", "USD", "GBP", "CHF"] as const;
+export type BaseCurrency = (typeof BASE_CURRENCIES)[number];
+
+const stringList = (max: number) => z.array(trimmed(max)).max(20).default([]);
+const dayRate = z.number().int().min(0).max(20000);
+
+export const profilePreferencesSchema = z
+  .object({
+    targetRoleFamilies: stringList(120),
+    preferredEngagementTypes: z
+      .array(z.enum(ENGAGEMENT_TYPES))
+      .max(20)
+      .default([]),
+    languages: stringList(120),
+    allowedWorkRegions: stringList(120),
+    hardExclusions: stringList(120),
+    targetDayRate: dayRate.nullable().default(null),
+    minimumDayRate: dayRate.nullable().default(null),
+    baseCurrency: z.enum(BASE_CURRENCIES).nullable().default(null),
+    remotePolicy: z.enum(REMOTE_POLICIES).nullable().default(null),
+    timezoneOverlap: trimmed(120).nullable().default(null),
+    travelTolerance: z.enum(TRAVEL_TOLERANCES).nullable().default(null),
+  })
+  .strict()
+  .refine(
+    (p) =>
+      p.minimumDayRate === null ||
+      p.targetDayRate === null ||
+      p.minimumDayRate <= p.targetDayRate,
+    {
+      message: "minimumDayRate must not exceed targetDayRate",
+      path: ["minimumDayRate"],
+    },
+  );
+
+export type ProfilePreferences = z.infer<typeof profilePreferencesSchema>;
