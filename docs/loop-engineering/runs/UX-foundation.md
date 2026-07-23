@@ -46,9 +46,55 @@ Docs: `docs/ux/{UX_PRINCIPLES,DESIGN_SYSTEM,CONVERSATION_FRAMEWORK,USER_FLOWS,CO
 
 Composants prop-driven réutilisables par les vraies features (pas de jetable) ; inventaire limité à ce que les Phases 1-2 consomment (reste marqué _deferred_) ; copy centralisée sans bibliothèque i18n ; wireframes = structure, pas de pixel ; Radix non remplacé, zéro composant Tailwind Plus copié.
 
+## Refinement pass — hiérarchie visuelle premium (2026-07-23, approved by owner)
+
+Owner visual validation found the preview functional but flat/generic. Approved
+refinement (visual only, no functional/architecture change, no new dependency)
+with 4 explicit guards: hero card discreet (typography/space first, very
+discreet `--shadow-raised` < `--shadow-floating`); approval card neutral-solemn
+(warning styling reserved to real risk / `blocked`); rejected state recessed via
+compactness + dashed border, never sub-AA contrast; sticky composer proven to
+never mask the last card (dedicated e2e assertion + safe-area padding).
+Delivered: card registers `quiet/document/hero/ceremonial/instrument/recessed`
+in `CardShell`; label-over-value field grid (no rule lines) + chips; one filled
+action max per card (approval = documented equal-outline exception);
+conversation dominant (context aside demoted to hairline margin); demo state
+switcher collapsed by default behind a labelled « Démo » disclosure; premium
+composer (`rounded-2xl`, floating shadow, focus-within ring); `gap-8` rhythm;
+vendored button transition put behind `motion-safe:`. Checks: verify green,
+e2e 18/18 (axe all states light + dark, reduced motion, keyboard, composer-mask
+test). Implementation-reviewer: **PASS** (2 info findings — dangling
+`aria-controls` fixed; evidence accent rail confirmed rendering). Visual proof:
+Playwright full-page captures light + dark + mobile.
+
+## Refinement pass 2 — présence desktop (2026-07-23, approved by owner)
+
+Second owner pass: product read as too small/timid on large screens. Approved
+values applied: thread `max-w-3xl`, context aside `w-72` (breakpoint moved
+lg→xl so the panel folds into the mobile sheet before the composition
+compresses), `gap-12`; conversational text 16px, active question 18px, opening
+assistant turn as lead (`text-2xl`, data-driven `lead` flag), user bubble 16px
+capped ~78%; hero role 20px, score numeral 36px; composer min 56px; instrument
+zones untouched; width alternation = utility cards capped `max-w-[44rem]`,
+important moments full width. Mobile header decrowded (icon-only Démo/Contexte
+buttons below `sm`, accessible names kept). Checks: verify green, e2e 18/18;
+4 Playwright captures (desktop clair/sombre 1440, mobile clair/sombre 390).
+
+## Access change — /ux-preview protégée (2026-07-23, owner-mandated)
+
+Final owner validation granted; design frozen. Before push, `/ux-preview` was
+put behind authentication so a future production deployment can never expose
+the internal demo publicly: real enforcement via `verifySession()` (DAL) in
+the route's server component + removal of `/ux-preview` from the proxy's
+optimistic PUBLIC_PATHS. UX untouched. e2e updated: a dedicated test proves
+anonymous visitors are redirected to /login; all other preview tests
+authenticate with the local dev user (same pattern as the shell smoke tests).
+
 ## Next action
 
-Open PR `feat/ux-foundation`, run final Codex review (read-only), record all reviews, STOP before merge for product-owner approval. Phase 1 remains gated.
+Push `feat/ux-foundation` to PR #3, await green CI, final read-only Codex
+review, record all reviews honestly in the PR, STOP before merge. Phase 1
+remains gated.
 
 - **requiresHumanApproval**: yes
-- **stopReason**: UX Foundation built and verified (docs + tokens + real mock preview), all review findings fixed; awaiting green PR CI, final Codex verdict and explicit merge approval — Phase 1 not started
+- **stopReason**: refinement pass implemented, gates green, impl review PASS; awaiting owner visual validation before Codex and any push/merge — Phase 1 not started

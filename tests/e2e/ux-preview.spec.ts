@@ -1,10 +1,25 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-// The UX Preview is a public, mock-only design artifact. It is held to the
-// same accessibility bar as the rest of the app (docs/ux/ACCESSIBILITY.md):
+// The UX Preview is an auth-protected, mock-only design artifact (an internal
+// demo that must never become public in a deployment). It is held to the same
+// accessibility bar as the rest of the app (docs/ux/ACCESSIBILITY.md):
 // axe-clean on every thread state, keyboard-operable, usable with reduced
-// motion. No auth, no backend, no network.
+// motion. No backend, no persistence, no network.
+
+const DEV_EMAIL = process.env.DEV_USER_EMAIL ?? "dev@missionpilot.local";
+const DEV_PASSWORD = process.env.DEV_USER_PASSWORD ?? "";
+
+/** Sign in with the local dev user, then open the preview. */
+async function gotoPreviewAuthenticated(page: Page) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(DEV_EMAIL);
+  await page.getByLabel("Password").fill(DEV_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL(/\/dashboard/);
+  await page.goto("/ux-preview");
+  await expect(page).toHaveURL(/\/ux-preview$/);
+}
 
 async function expectNoSeriousAxeViolations(page: Page, context: string) {
   const results = await new AxeBuilder({ page }).analyze();
@@ -19,24 +34,54 @@ async function expectNoSeriousAxeViolations(page: Page, context: string) {
 
 const STATE_LABELS = ["Peuplé", "Chargement", "Vide", "Erreur", "Hors ligne"];
 
+/** The demo scaffolding is collapsed by default — open it to switch states. */
+async function openDemoPanel(page: Page) {
+  await page.getByRole("button", { name: "Démo", exact: true }).click();
+  await expect(
+    page.getByRole("group", {
+      name: "Panneau de démonstration — états simulés",
+    }),
+  ).toBeVisible();
+}
+
 test.describe("UX Preview", () => {
-  test("loads without auth and shows the conversational surface", async ({
+  test.beforeEach(() => {
+    test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
+  });
+
+  test("is auth-protected: anonymous visitors are sent to login", async ({
     page,
   }) => {
     await page.goto("/ux-preview");
-    await expect(page).toHaveURL(/\/ux-preview$/); // not redirected to /login
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("authenticated, it shows the conversational surface", async ({
+    page,
+  }) => {
+    await gotoPreviewAuthenticated(page);
     await expect(page.getByText("UX Preview · données fictives")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Ce que j'ai compris" }),
     ).toBeVisible();
+    // Demo scaffolding is collapsed by default — clearly apart from the product.
+    await expect(
+      page.getByRole("button", { name: "Peuplé", exact: true }),
+    ).toHaveCount(0);
   });
 
   test("has no serious/critical axe violations across thread states", async ({
     page,
   }) => {
-    await page.goto("/ux-preview");
+    await gotoPreviewAuthenticated(page);
+    await openDemoPanel(page);
     for (const label of STATE_LABELS) {
-      await page.getByRole("button", { name: label, exact: true }).click();
+      const btn = page.getByRole("button", { name: label, exact: true });
+      await btn.click();
+      await expect(btn).toHaveAttribute("aria-pressed", "true");
+      // Let the button's motion-safe color transition settle so axe never
+      // samples a mid-transition blend (--duration-base is 160ms).
+      await page.waitForTimeout(250);
       await expectNoSeriousAxeViolations(page, `state ${label}`);
     }
   });
@@ -44,7 +89,8 @@ test.describe("UX Preview", () => {
   test("thread states are switchable by keyboard and expose pressed state", async ({
     page,
   }) => {
-    await page.goto("/ux-preview");
+    await gotoPreviewAuthenticated(page);
+    await openDemoPanel(page);
     const errorBtn = page.getByRole("button", { name: "Erreur", exact: true });
     await errorBtn.focus();
     await expect(errorBtn).toBeFocused();
@@ -56,7 +102,7 @@ test.describe("UX Preview", () => {
   test("core cards render: understanding, evidence (needs review), score, approval", async ({
     page,
   }) => {
-    await page.goto("/ux-preview");
+    await gotoPreviewAuthenticated(page);
     // Understanding card + its four core actions.
     await expect(
       page.getByRole("button", { name: "Confirmer" }).first(),
@@ -83,7 +129,8 @@ test.describe("UX Preview", () => {
 
   test("remains usable with reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/ux-preview");
+    await gotoPreviewAuthenticated(page);
+    await openDemoPanel(page);
     await page.getByRole("button", { name: "Vide", exact: true }).click();
     await expect(page.getByText(/La conversation démarrera ici/)).toBeVisible();
     await expectNoSeriousAxeViolations(page, "reduced-motion");
@@ -91,17 +138,34 @@ test.describe("UX Preview", () => {
 
   test("is axe-clean in dark mode too", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await page.goto("/ux-preview");
+    await gotoPreviewAuthenticated(page);
     // next-themes defaultTheme=system → dark tokens applied.
     await expectNoSeriousAxeViolations(page, "dark populated");
+    await openDemoPanel(page);
     await page.getByRole("button", { name: "Erreur", exact: true }).click();
     await expectNoSeriousAxeViolations(page, "dark error");
+  });
+
+  test("sticky composer never masks the last card", async ({ page }) => {
+    await gotoPreviewAuthenticated(page);
+    const lastCard = page.getByRole("region", { name: "Validation requise" });
+    await lastCard.scrollIntoViewIfNeeded();
+    const cardBox = await lastCard.boundingBox();
+    const composerBox = await page
+      .getByRole("form", { name: "Composer un message" })
+      .boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(composerBox).not.toBeNull();
+    // Fully scrolled, the approval card sits entirely above the composer.
+    expect(cardBox!.y + cardBox!.height).toBeLessThanOrEqual(
+      composerBox!.y + 1,
+    );
   });
 
   test("shows the rejected lifecycle state with a restore action", async ({
     page,
   }) => {
-    await page.goto("/ux-preview");
+    await gotoPreviewAuthenticated(page);
     await expect(
       page.getByRole("heading", { name: "Preuve — Certification" }),
     ).toBeVisible();
