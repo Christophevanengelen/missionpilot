@@ -67,6 +67,16 @@ async function expectNoSeriousAxeViolations(page: Page, context: string) {
 }
 
 test.describe.serial("Entretien de profil guidé", () => {
+  // Proof harness: simulate a slow CPU (CI-like) via env — never active by
+  // default, never in CI config. E2E_CPU_THROTTLE=4 ≈ 4x slower main thread.
+  test.beforeEach(async ({ page }) => {
+    const rate = Number(process.env.E2E_CPU_THROTTLE ?? "0");
+    if (rate > 1) {
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+    }
+  });
+
   test("anonymous visitors are sent to login", async ({ page }) => {
     await page.goto("/profile");
     await expect(page).toHaveURL(/\/login/);
@@ -91,9 +101,10 @@ test.describe.serial("Entretien de profil guidé", () => {
       page.getByLabel("Conversation").getByText("Product Designer senior"),
     ).toBeVisible();
 
-    // Double-submit protection: the confirm button disables while pending —
-    // two rapid clicks must not double-fire (state machine would reject the
-    // second transition anyway; the UI must not surface an error).
+    // Double-submit protection: the synchronous in-flight lock (aria-busy +
+    // pointer-events-none, no native disabled) drops extra clicks before any
+    // server call — two rapid clicks must not double-fire and must not
+    // surface an error.
     const confirm = page.getByRole("button", { name: "Confirmer" });
     await confirm.click();
 
@@ -266,6 +277,35 @@ test.describe.serial("Entretien de profil guidé", () => {
     ).toBeVisible();
   });
 
+  test("a manual reload lands on EXACTLY the same state (client ≡ database)", async ({
+    page,
+  }) => {
+    await signInAndOpen(page);
+    const before = {
+      socle: await page
+        .getByText(/Socle du profil : \d éléments? sur 6/)
+        .first()
+        .textContent(),
+      facts: await page
+        .getByLabel("Panneau de contexte")
+        .locator("li, div")
+        .allTextContents(),
+    };
+    await page.reload();
+    await expect(page.getByText("Reprenons.")).toBeVisible();
+    await expect(
+      page.getByText(/Socle du profil : \d éléments? sur 6/).first(),
+    ).toHaveText(before.socle ?? "");
+    const after = await page
+      .getByLabel("Panneau de contexte")
+      .locator("li, div")
+      .allTextContents();
+    expect(after).toEqual(before.facts);
+    // Both renders derive from the database (owner rule: no client-side
+    // state survives a real reload) — their agreement proves the projection
+    // is a pure recomputation with no hidden flow state.
+  });
+
   test("resume NEVER re-asks a confirmed element (dedicated assertion)", async ({
     page,
   }) => {
@@ -361,14 +401,26 @@ test.describe.serial("Entretien de profil guidé", () => {
     await expectNoSeriousAxeViolations(page, "profile dark");
   });
 
-  test("no horizontal overflow at 320 and 390px; composer never masks content", async ({
+  test("no horizontal overflow at 390 and 414px; composer never masks content", async ({
     page,
   }) => {
     await signInAndOpen(page);
-    for (const width of [320, 390]) {
+    // Product rule (owner, 2026-07-23): 320px is no longer a blocking MVP
+    // criterion — the supported floor is 390px (414 as the common large
+    // phone width).
+    for (const width of [390, 414]) {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/profile");
       await expect(page).toHaveURL(/\/profile$/);
+      // Measure AFTER the layout settles (content painted + two frames):
+      // under CPU throttling an early scrollWidth reads a mid-layout DOM.
+      await page.getByText("Reprenons.").waitFor();
+      await page.evaluate(
+        () =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ),
+      );
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth,
       );

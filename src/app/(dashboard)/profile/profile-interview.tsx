@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Thread } from "@/components/conversation/thread";
@@ -56,7 +55,6 @@ export function ProfileInterview({
   links: LivingLink[];
 }) {
   const copy = t().interview;
-  const router = useRouter();
   // Synchronous lock (ref) + UI mirror (state): the ref is authoritative and
   // immune to stale closures — two near-simultaneous submits can never both
   // enter a mutation, even before React re-renders the disabled state.
@@ -77,10 +75,23 @@ export function ProfileInterview({
   const [contextOpen, setContextOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const living: LivingState = useMemo(
-    () => ({ claims, evidence, links }),
-    [claims, evidence, links],
-  );
+  // Action-return protocol: the DISPLAYED state comes from the Server
+  // Action's own return (the canonical living snapshot re-read after the
+  // mutation) — user feedback never depends on an RSC patch being
+  // committed. Props only SEED the state at mount (a real return to the
+  // page remounts and re-reads from the database).
+  const [living, setLiving] = useState<LivingState>({
+    claims,
+    evidence,
+    links,
+  });
+  // The action-returned snapshot is AUTHORITATIVE while mounted: a late RSC
+  // patch (from a previous mutation's revalidation) can only carry data
+  // OLDER than or equal to the newest action return, so re-syncing from
+  // props here would let a stale patch clobber fresher state — the exact
+  // regression this protocol eliminates (reproduced 10/10 under 4x CPU
+  // throttle before this guard). A real return to the page remounts the
+  // component and re-reads from the database.
   const step = useMemo(() => nextStep(living), [living]);
   const turns = useMemo(() => buildTurns(living, step), [living, step]);
   const facts = useMemo(() => buildFacts(living), [living]);
@@ -93,11 +104,21 @@ export function ProfileInterview({
   // possible stale-snapshot commit.
   const busy = inFlight;
 
+  // aria-busy instead of native `disabled` on every mutation control: a
+  // disabled attribute landing in a re-render between hit-test and dispatch
+  // swallows the click natively (dead click, reproduced 10/10 under 4x CPU
+  // throttle). The synchronous ref lock already serializes — an extra click
+  // is dropped before any server call, with no misleading message.
+  const busyProps = {
+    "aria-busy": busy || undefined,
+    className: busy ? "pointer-events-none opacity-60" : undefined,
+  } as const;
+
   async function run(
     op: () => Promise<{
       ok: boolean;
       error?: string;
-      revalidated?: boolean;
+      snapshot?: LivingState;
     }>,
   ) {
     if (!acquire()) return;
@@ -108,10 +129,9 @@ export function ProfileInterview({
         setFeedback(result.error ?? "Réessayez.");
         throw new Error("action failed");
       }
-      // SINGLE explicit fallback: only when the server revalidation step
-      // failed does the client refresh — never concurrently with it.
-      if (result.revalidated === false) {
-        router.refresh();
+      // Render the state the server just re-read — immediately.
+      if (result.snapshot) {
+        setLiving(result.snapshot);
       }
       // Keyboard/AT continuity: the decided card unmounts when the action
       // response lands — hand focus to the composer, which persists.
@@ -200,24 +220,24 @@ export function ProfileInterview({
         verificationStatus: "user_confirmed",
       });
       if (!created.ok) throw new Error(created.error);
-      let needsFallback = created.revalidated === false;
+      // Apply EACH successful sub-action's snapshot immediately: a failure
+      // later in the chain must still show what was committed — including
+      // the proposed evidence and its panel «Confirmer» recovery.
+      if (created.snapshot) setLiving(created.snapshot);
       // The form IS the user's explicit assertion — confirm it, then attach.
       const confirmed = await decideEvidenceAction({
         evidenceId: created.data.evidenceId,
         to: "confirmed",
       });
       if (!confirmed.ok) throw new Error(confirmed.error);
-      needsFallback ||= confirmed.revalidated === false;
+      if (confirmed.snapshot) setLiving(confirmed.snapshot);
       if (forClaim) {
         const linked = await attachEvidenceAction({
           claimId: forClaim.id,
           evidenceId: created.data.evidenceId,
         });
         if (!linked.ok) throw new Error(linked.error);
-        needsFallback ||= linked.revalidated === false;
-      }
-      if (needsFallback) {
-        router.refresh();
+        if (linked.snapshot) setLiving(linked.snapshot);
       }
       setMode({ type: "normal" });
     } catch (error) {
@@ -226,8 +246,8 @@ export function ProfileInterview({
           ? error.message
           : "L'opération n'a pas abouti. Réessayez.",
       );
-      // Partial records are already visible: each SUCCESSFUL sub-action
-      // revalidated the surface with its own response.
+      // Committed sub-actions already applied their snapshots above, so the
+      // surface shows exactly what exists — recovery happens in the panel.
     } finally {
       release();
     }
@@ -242,7 +262,9 @@ export function ProfileInterview({
   const renderCard = (turn: AssistantTurn) => {
     const card = turn.card;
     if (!card || card.kind !== "understanding") return null;
-    const claim = claims.find((c) => c.id === card.id);
+    // Resolve from the AUTHORITATIVE living state (action returns), never
+    // from possibly-stale props.
+    const claim = living.claims.find((c) => c.id === card.id);
     if (!claim) return null;
     const a = t().actions;
     return (
@@ -256,7 +278,7 @@ export function ProfileInterview({
               <Button
                 type="button"
                 size="sm"
-                disabled={busy}
+                {...busyProps}
                 onClick={() => decide(claim.id, "confirmed")}
               >
                 {a.confirm}
@@ -265,7 +287,7 @@ export function ProfileInterview({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={busy}
+                {...busyProps}
                 onClick={() => setMode({ type: "correct", claim })}
               >
                 {a.correct}
@@ -274,7 +296,7 @@ export function ProfileInterview({
                 type="button"
                 variant="ghost"
                 size="sm"
-                disabled={busy}
+                {...busyProps}
                 onClick={() => decide(claim.id, "rejected")}
               >
                 {a.ignore}
@@ -283,7 +305,7 @@ export function ProfileInterview({
                 type="button"
                 variant="ghost"
                 size="sm"
-                disabled={busy}
+                {...busyProps}
                 onClick={() => decide(claim.id, "needs_review")}
               >
                 {a.goDeeper}
@@ -297,7 +319,7 @@ export function ProfileInterview({
               type="button"
               variant="ghost"
               size="sm"
-              disabled={busy}
+              {...busyProps}
               onClick={() => decide(claim.id, "rejected")}
             >
               {a.ignore}
@@ -316,7 +338,7 @@ export function ProfileInterview({
     );
   };
 
-  const rejectedClaims = claims.filter((c) => c.state === "rejected");
+  const rejectedClaims = living.claims.filter((c) => c.state === "rejected");
   const showEvidenceForm =
     mode.type === "evidence_form" ||
     (step.type === "suggest_evidence" && suggestDismissed !== step.claim.id);
@@ -344,7 +366,7 @@ export function ProfileInterview({
                 type="button"
                 variant="ghost"
                 size="sm"
-                disabled={busy}
+                {...busyProps}
                 onClick={() => decide(c.id, "proposed")}
               >
                 {t().actions.restore}
@@ -358,11 +380,13 @@ export function ProfileInterview({
         <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           {copy.panel.evidence}
         </h3>
-        {evidence.length === 0 ? (
+        {living.evidence.length === 0 ? (
           <p className="text-muted-foreground text-xs">{copy.panel.empty}</p>
         ) : (
-          evidence.map((e) => {
-            const activeLinks = links.filter((l) => l.evidence_id === e.id);
+          living.evidence.map((e) => {
+            const activeLinks = living.links.filter(
+              (l) => l.evidence_id === e.id,
+            );
             return (
               <div key={e.id} className="flex flex-col gap-1 text-sm">
                 <div className="flex items-start justify-between gap-2">
@@ -383,7 +407,7 @@ export function ProfileInterview({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={busy}
+                    {...busyProps}
                     onClick={() =>
                       void run(() =>
                         decideEvidenceAction({
@@ -400,7 +424,9 @@ export function ProfileInterview({
                   <div key={l.id} className="flex items-center justify-between">
                     <span className="text-muted-foreground text-xs">
                       {(() => {
-                        const claim = claims.find((c) => c.id === l.claim_id);
+                        const claim = living.claims.find(
+                          (c) => c.id === l.claim_id,
+                        );
                         return claim
                           ? copy.panel.attachedTo(claimValueLabel(claim))
                           : copy.panel.attachedTo("…");
@@ -410,7 +436,7 @@ export function ProfileInterview({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      disabled={busy}
+                      {...busyProps}
                       onClick={() => detach(l.id)}
                     >
                       {copy.panel.detach}
@@ -425,7 +451,7 @@ export function ProfileInterview({
           type="button"
           variant="outline"
           size="sm"
-          disabled={busy}
+          {...busyProps}
           onClick={() => setMode({ type: "evidence_form" })}
         >
           {copy.panel.addEvidence}
@@ -435,8 +461,8 @@ export function ProfileInterview({
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl gap-12">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+    <div className="mx-auto flex w-full max-w-6xl min-w-0 gap-12">
+      <div className="mx-auto flex w-full max-w-3xl min-w-0 flex-1 flex-col">
         <div className="mb-4 flex justify-end xl:hidden">
           <Button
             type="button"

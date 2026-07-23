@@ -140,7 +140,7 @@ export function Thread({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="rounded-full"
+                      className="h-auto rounded-full whitespace-normal text-left"
                       disabled={state === "offline"}
                       onClick={onChip ? () => onChip(chip) : undefined}
                     >

@@ -19,14 +19,20 @@ import {
   CLAIM_KINDS,
   CLAIM_STATES,
   evidenceInputSchema,
+  type ClaimKind,
+  type ClaimState,
 } from "@/domain/profile";
+import type { LivingState } from "./interview";
 import * as profile from "./logic";
 
 export type ActionResult<T = undefined> =
-  /** `revalidated` is false when the business mutation SUCCEEDED but the
-   *  UI revalidation step failed — the client then (and only then) falls
-   *  back to a single explicit router.refresh(). */
-  { ok: true; data: T; revalidated?: boolean } | { ok: false; error: string };
+  /** After a successful mutation the action re-reads the CANONICAL living
+   *  state server-side and returns it (`snapshot`): the client renders
+   *  directly from this return — user feedback never depends on an RSC
+   *  patch being committed. `revalidated` reports the navigation-coherence
+   *  revalidation (diagnostic only). */
+  | { ok: true; data: T; snapshot?: LivingState; revalidated?: boolean }
+  | { ok: false; error: string };
 
 const GENERIC_ERROR =
   "L'opération n'a pas abouti. Vos données n'ont pas été modifiées — réessayez.";
@@ -53,6 +59,61 @@ function revalidateProfile(action: string): boolean {
     });
     return false;
   }
+}
+
+/**
+ * Serializable canonical projection of the living profile, re-read AFTER a
+ * successful mutation — the single source the client renders from.
+ */
+async function loadSnapshot(
+  client: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+  action: string,
+): Promise<LivingState | undefined> {
+  // Post-commit READ: like revalidation, a failure here must never disguise
+  // a committed mutation as ok:false — log it and return no snapshot; the
+  // client then keeps its last rendered state (a real reload re-reads the
+  // database).
+  try {
+    return await loadSnapshotInner(client, profileId);
+  } catch (error) {
+    logger.error("profile snapshot reload failed", {
+      action,
+      step: "loadSnapshot",
+      mutation: "committed",
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+async function loadSnapshotInner(
+  client: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+): Promise<LivingState> {
+  const living = await profile.loadLivingProfile(client, profileId);
+  return {
+    claims: living.claims.map((c) => ({
+      id: c.id,
+      kind: c.kind as ClaimKind,
+      value: c.value as Record<string, unknown>,
+      state: c.state as ClaimState,
+    })),
+    evidence: living.evidence.map((e) => ({
+      id: e.id,
+      title: e.title,
+      statement: e.statement,
+      role_played: e.role_played,
+      verification_status: e.verification_status,
+      state: e.state as ClaimState,
+    })),
+    links: living.links.map((l) => ({
+      id: l.id,
+      claim_id: l.claim_id,
+      evidence_id: l.evidence_id,
+    })),
+  };
 }
 
 async function ownProfileClient() {
@@ -93,8 +154,9 @@ export async function submitClaimAction(
       parsed.value,
       { origin: "user", claimToSupersede: parsed.claimToSupersede },
     );
+    const snapshot = await loadSnapshot(client, profileId, "submitClaim");
     const revalidated = revalidateProfile("submitClaim");
-    return { ok: true, data: { claimId }, revalidated };
+    return { ok: true, data: { claimId }, snapshot, revalidated };
   } catch (error) {
     return sanitize("submitClaim", error);
   }
@@ -110,10 +172,11 @@ export async function decideClaimAction(
 ): Promise<ActionResult> {
   try {
     const parsed = decideClaimSchema.parse(input);
-    const { client } = await ownProfileClient();
+    const { client, profileId } = await ownProfileClient();
     await profile.setClaimState(client, parsed.claimId, parsed.to);
+    const snapshot = await loadSnapshot(client, profileId, "decideClaim");
     const revalidated = revalidateProfile("decideClaim");
-    return { ok: true, data: undefined, revalidated };
+    return { ok: true, data: undefined, snapshot, revalidated };
   } catch (error) {
     return sanitize("decideClaim", error);
   }
@@ -126,8 +189,9 @@ export async function createEvidenceAction(
     const parsed = evidenceInputSchema.parse(input);
     const { client, profileId } = await ownProfileClient();
     const evidenceId = await profile.createEvidence(client, profileId, parsed);
+    const snapshot = await loadSnapshot(client, profileId, "createEvidence");
     const revalidated = revalidateProfile("createEvidence");
-    return { ok: true, data: { evidenceId }, revalidated };
+    return { ok: true, data: { evidenceId }, snapshot, revalidated };
   } catch (error) {
     return sanitize("createEvidence", error);
   }
@@ -143,10 +207,11 @@ export async function updateEvidenceAction(
 ): Promise<ActionResult> {
   try {
     const parsed = updateEvidenceSchema.parse(input);
-    const { client } = await ownProfileClient();
+    const { client, profileId } = await ownProfileClient();
     await profile.updateEvidence(client, parsed.evidenceId, parsed.input);
+    const snapshot = await loadSnapshot(client, profileId, "updateEvidence");
     const revalidated = revalidateProfile("updateEvidence");
-    return { ok: true, data: undefined, revalidated };
+    return { ok: true, data: undefined, snapshot, revalidated };
   } catch (error) {
     return sanitize("updateEvidence", error);
   }
@@ -162,10 +227,11 @@ export async function decideEvidenceAction(
 ): Promise<ActionResult> {
   try {
     const parsed = decideEvidenceSchema.parse(input);
-    const { client } = await ownProfileClient();
+    const { client, profileId } = await ownProfileClient();
     await profile.setEvidenceState(client, parsed.evidenceId, parsed.to);
+    const snapshot = await loadSnapshot(client, profileId, "decideEvidence");
     const revalidated = revalidateProfile("decideEvidence");
-    return { ok: true, data: undefined, revalidated };
+    return { ok: true, data: undefined, snapshot, revalidated };
   } catch (error) {
     return sanitize("decideEvidence", error);
   }
@@ -178,14 +244,15 @@ export async function attachEvidenceAction(
 ): Promise<ActionResult<{ linkId: string }>> {
   try {
     const parsed = linkSchema.parse(input);
-    const { client } = await ownProfileClient();
+    const { client, profileId } = await ownProfileClient();
     const linkId = await profile.attachEvidence(
       client,
       parsed.claimId,
       parsed.evidenceId,
     );
+    const snapshot = await loadSnapshot(client, profileId, "attachEvidence");
     const revalidated = revalidateProfile("attachEvidence");
-    return { ok: true, data: { linkId }, revalidated };
+    return { ok: true, data: { linkId }, snapshot, revalidated };
   } catch (error) {
     return sanitize("attachEvidence", error);
   }
@@ -201,10 +268,11 @@ export async function detachEvidenceAction(
 ): Promise<ActionResult> {
   try {
     const parsed = detachSchema.parse(input);
-    const { client } = await ownProfileClient();
+    const { client, profileId } = await ownProfileClient();
     await profile.detachEvidence(client, parsed.linkId, parsed.reason);
+    const snapshot = await loadSnapshot(client, profileId, "detachEvidence");
     const revalidated = revalidateProfile("detachEvidence");
-    return { ok: true, data: undefined, revalidated };
+    return { ok: true, data: undefined, snapshot, revalidated };
   } catch (error) {
     return sanitize("detachEvidence", error);
   }

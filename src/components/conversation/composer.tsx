@@ -64,7 +64,7 @@ export function Composer({
               }
             : undefined
         }
-        className="text-foreground placeholder:text-muted-foreground max-h-40 min-h-14 flex-1 resize-none bg-transparent px-2 py-1.5 text-base outline-none disabled:opacity-60"
+        className="text-foreground placeholder:text-muted-foreground max-h-40 min-h-14 min-w-0 flex-1 resize-none bg-transparent px-2 py-1.5 text-base outline-none disabled:opacity-60"
       />
       <Button
         type="submit"

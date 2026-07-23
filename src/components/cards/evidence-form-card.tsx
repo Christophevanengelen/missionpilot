@@ -68,6 +68,7 @@ export function EvidenceFormCard({
       </Label>
       <Input
         id={`evidence-${key}`}
+        className="min-w-0 w-full"
         value={values[key]}
         onChange={set(key)}
         disabled={busy}
@@ -121,9 +122,10 @@ export function EvidenceFormCard({
           <span className="text-muted-foreground text-xs">
             {copy.fields.period}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               aria-label={`${copy.fields.period} — début`}
+              className="min-w-0 w-full"
               type="date"
               value={values.periodStart}
               onChange={set("periodStart")}
@@ -131,6 +133,7 @@ export function EvidenceFormCard({
             />
             <Input
               aria-label={`${copy.fields.period} — fin`}
+              className="min-w-0 w-full"
               type="date"
               value={values.periodEnd}
               onChange={set("periodEnd")}
@@ -150,7 +153,12 @@ export function EvidenceFormCard({
           {t().interview.declaredBy} — {t().approval.reassure}
         </p>
         <div className="sm:col-span-2 flex flex-wrap gap-2">
-          <Button type="submit" size="sm" disabled={busy}>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={busy}
+            className="h-auto max-w-full text-left whitespace-normal"
+          >
             {attachToTitle ? copy.attach(attachToTitle) : copy.submit}
           </Button>
           {onCancel ? (

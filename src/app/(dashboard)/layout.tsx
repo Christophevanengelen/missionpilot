@@ -41,12 +41,15 @@ export default async function DashboardLayout({
           </form>
         </div>
       </header>
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
+        {/* Mobile (<sm): compact horizontal nav above the content — the fixed
+            224px column left only 48px of text at 320px (real overflow).
+            Same destinations, aria-current, keyboard and SR semantics. */}
         <nav
           aria-label="Primary"
-          className="border-border bg-surface-raised w-56 border-r p-4"
+          className="border-border bg-surface-raised w-full border-b p-2 sm:w-56 sm:border-r sm:border-b-0 sm:p-4"
         >
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-row flex-wrap gap-1 sm:flex-col sm:flex-nowrap">
             {NAV_ITEMS.map((item) => (
               <li key={item.label}>
                 {item.href ? (
@@ -64,7 +67,7 @@ export default async function DashboardLayout({
             ))}
           </ul>
         </nav>
-        <main id="main" tabIndex={-1} className="flex-1 p-6">
+        <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-6">
           {children}
         </main>
       </div>
