@@ -279,6 +279,11 @@ export const copy = {
         },
         excludedTerm: (term: string) => `Terme exclu détecté : « ${term} »`,
       },
+      inbox: {
+        all: "Tout",
+        empty: "Aucune opportunité dans ce filtre.",
+        filterLabel: "Filtrer par éligibilité",
+      },
       listEmpty:
         "Aucune opportunité pour le moment. Importez une première annonce ci-dessus.",
       unknownsNote: (n: number) =>
@@ -630,6 +635,11 @@ export const copy = {
           not_constrained: "Not constrained",
         },
         excludedTerm: (term: string) => `Excluded term found: “${term}”`,
+      },
+      inbox: {
+        all: "All",
+        empty: "No opportunity in this filter.",
+        filterLabel: "Filter by eligibility",
       },
       listEmpty: "No opportunities yet. Import a first listing above.",
       unknownsNote: (n: number) =>

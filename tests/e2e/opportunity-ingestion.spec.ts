@@ -119,6 +119,31 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
     page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
   ).toHaveCount(1);
 
+  // Inbox triage: the eligibility filter is present (accessible), and with no
+  // preferences set the opportunity is Éligible. Filtering to "Exclu (0)"
+  // shows the empty state; "Tout" brings it back.
+  const filterNav = page.getByRole("navigation", {
+    name: "Filtrer par éligibilité",
+  });
+  await expect(
+    filterNav.getByRole("link", { name: /Éligible \(1\)/ }),
+  ).toBeVisible();
+  const inboxAxe = await new AxeBuilder({ page }).analyze();
+  expect(
+    inboxAxe.violations.filter(
+      (v) => v.impact === "serious" || v.impact === "critical",
+    ),
+  ).toEqual([]);
+  await filterNav.getByRole("link", { name: /Exclu \(0\)/ }).click();
+  await expect(page).toHaveURL(/filter=excluded/);
+  await expect(
+    page.getByText("Aucune opportunité dans ce filtre."),
+  ).toBeVisible();
+  await filterNav.getByRole("link", { name: /Tout \(/ }).click();
+  await expect(
+    page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
+  ).toHaveCount(1);
+
   // Re-importing the same listing is reported as a DUPLICATE (honest status),
   // appends a snapshot, and does not create a second row.
   await page.getByLabel("Coller le texte d'une annonce").fill(LISTING);

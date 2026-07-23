@@ -7,6 +7,7 @@ import { loadPreferences } from "@/lib/profile/logic";
 import {
   evaluateHardConstraints,
   opportunityFactsFromRow,
+  type EligibilityGate,
 } from "@/lib/matching/hard-constraints";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,26 @@ import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Opportunités" };
 
+// Triage priority: the opportunities that clear every hard constraint first,
+// then those needing a manual check, then the excluded ones.
+const GATE_ORDER: Record<EligibilityGate, number> = {
+  eligible: 0,
+  review: 1,
+  excluded: 2,
+};
+const GATES: readonly EligibilityGate[] = ["eligible", "review", "excluded"];
+
 /**
- * Opportunity ingestion home: paste-import a listing, then inspect the
- * owned opportunities. Server-rendered from the database (RLS: own rows).
+ * Opportunity inbox: paste-import a listing, then triage owned opportunities by
+ * the deterministic hard-constraint gate (PR 1). Server-rendered from the
+ * database (RLS: own rows); the eligibility filter is a plain searchParam so it
+ * needs no client JS.
  */
-export default async function OpportunitiesPage() {
+export default async function OpportunitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string | string[] }>;
+}) {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
@@ -28,6 +44,30 @@ export default async function OpportunitiesPage() {
     loadPreferences(client, profile.id),
   ]);
   const copy = t().opportunities;
+
+  const evaluated = opportunities
+    .map((o) => ({
+      o,
+      gate: evaluateHardConstraints(preferences, opportunityFactsFromRow(o))
+        .gate,
+    }))
+    .sort((a, b) => GATE_ORDER[a.gate] - GATE_ORDER[b.gate]);
+
+  const counts: Record<EligibilityGate, number> = {
+    eligible: 0,
+    review: 0,
+    excluded: 0,
+  };
+  for (const e of evaluated) counts[e.gate]++;
+
+  const sp = await searchParams;
+  const filterParam = Array.isArray(sp.filter) ? sp.filter[0] : sp.filter;
+  const activeFilter = GATES.includes(filterParam as EligibilityGate)
+    ? (filterParam as EligibilityGate)
+    : null;
+  const shown = activeFilter
+    ? evaluated.filter((e) => e.gate === activeFilter)
+    : evaluated;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
@@ -38,59 +78,103 @@ export default async function OpportunitiesPage() {
 
       <ImportForm />
 
-      <section aria-label={copy.title} className="flex flex-col gap-3">
-        {opportunities.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{copy.listEmpty}</p>
-        ) : (
-          <ol className="flex flex-col gap-3">
-            {opportunities.map((o) => (
-              <li key={o.id}>
-                <article className="border-border bg-card flex flex-col gap-1 rounded-xl border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <h2 className="truncate text-sm font-semibold">
-                        {o.title ?? copy.none}
-                      </h2>
-                      <GateBadge
-                        gate={
-                          evaluateHardConstraints(
-                            preferences,
-                            opportunityFactsFromRow(o),
-                          ).gate
-                        }
-                      />
-                    </div>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/opportunities/${o.id}`}>
-                        {copy.openDetail}
-                      </Link>
-                    </Button>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {[
-                      o.organization,
-                      o.seniority,
-                      o.engagement_type
-                        ? copy.engagementTypes[
-                            o.engagement_type as keyof typeof copy.engagementTypes
-                          ]
-                        : null,
-                      o.remote_type
-                        ? copy.remoteTypes[
-                            o.remote_type as keyof typeof copy.remoteTypes
-                          ]
-                        : null,
-                      o.location_text,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || copy.none}
-                  </p>
-                </article>
-              </li>
+      {opportunities.length === 0 ? (
+        <p className="text-muted-foreground text-sm">{copy.listEmpty}</p>
+      ) : (
+        <section aria-label={copy.title} className="flex flex-col gap-3">
+          <nav
+            aria-label={copy.inbox.filterLabel}
+            className="flex flex-wrap gap-2"
+          >
+            <FilterChip
+              href="/opportunities"
+              label={`${copy.inbox.all} (${opportunities.length})`}
+              active={activeFilter === null}
+            />
+            {GATES.map((g) => (
+              <FilterChip
+                key={g}
+                href={`/opportunities?filter=${g}`}
+                label={`${copy.gate[g]} (${counts[g]})`}
+                active={activeFilter === g}
+              />
             ))}
-          </ol>
-        )}
-      </section>
+          </nav>
+
+          {shown.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{copy.inbox.empty}</p>
+          ) : (
+            <ol className="flex flex-col gap-3">
+              {shown.map(({ o, gate }) => (
+                <li key={o.id}>
+                  <article
+                    className={`border-border bg-card flex flex-col gap-1 rounded-xl border p-4 ${
+                      gate === "excluded" ? "opacity-70" : ""
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <h2 className="truncate text-sm font-semibold">
+                          {o.title ?? copy.none}
+                        </h2>
+                        <GateBadge gate={gate} />
+                      </div>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/opportunities/${o.id}`}>
+                          {copy.openDetail}
+                        </Link>
+                      </Button>
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                      {[
+                        o.organization,
+                        o.seniority,
+                        o.engagement_type
+                          ? copy.engagementTypes[
+                              o.engagement_type as keyof typeof copy.engagementTypes
+                            ]
+                          : null,
+                        o.remote_type
+                          ? copy.remoteTypes[
+                              o.remote_type as keyof typeof copy.remoteTypes
+                            ]
+                          : null,
+                        o.location_text,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || copy.none}
+                    </p>
+                  </article>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
     </div>
+  );
+}
+
+function FilterChip({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border text-muted-foreground hover:bg-muted"
+      }`}
+    >
+      {label}
+    </Link>
   );
 }
