@@ -26,7 +26,7 @@ export default async function LoginPage() {
       tabIndex={-1}
       className="flex flex-1 items-center justify-center p-6"
     >
-      <Card className="w-full max-w-sm">
+      <Card className="border-border/70 w-full max-w-sm shadow-floating">
         <CardHeader>
           <CardTitle>
             <h1 className="text-base leading-none font-semibold">
