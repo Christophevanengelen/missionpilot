@@ -11,6 +11,7 @@ import {
   contentHash,
   extractFromPastedText,
 } from "./extract";
+import { classifySource } from "./source-policy";
 
 type Client = SupabaseClient<Database>;
 
@@ -20,13 +21,26 @@ function fail(step: string, message: string): never {
   throw new Error(`${step}: ${message}`);
 }
 
+type ImportSource = {
+  retrievalMethod: "paste" | "url";
+  sourcePolicyDecision: "allowed" | "manual_only";
+  /** Provenance overrides (URL import records where the text came from). */
+  sourceUrl?: string | null;
+  sourceName?: string | null;
+};
+
 /**
- * Import pasted source text: normalize deterministically, then atomically
- * create-or-touch the canonical opportunity AND its immutable snapshot via
- * the SECURITY DEFINER RPC. Returns the ids + whether a new canonical row
- * was created (vs. a duplicate that only appended a snapshot).
+ * Normalize pasted text and atomically create-or-touch the canonical
+ * opportunity + its immutable snapshot via the SECURITY DEFINER RPC. The
+ * `source` describes provenance (paste, or a policy-gated URL). Returns the
+ * ids + whether a new canonical row was created (vs. a duplicate that only
+ * appended a snapshot) + the honest unknowns.
  */
-export async function importPastedText(client: Client, rawText: string) {
+async function runImport(
+  client: Client,
+  rawText: string,
+  source: ImportSource,
+) {
   const { normalized, unknowns } = extractFromPastedText(rawText);
   const fingerprint = canonicalFingerprint(normalized);
   const hash = contentHash(rawText);
@@ -35,9 +49,9 @@ export async function importPastedText(client: Client, rawText: string) {
     p_canonical_fingerprint: fingerprint,
     p_content_hash: hash,
     p_raw_text: rawText,
-    p_retrieval_method: "paste",
+    p_retrieval_method: source.retrievalMethod,
     p_parser_version: PARSER_VERSION,
-    p_source_policy_decision: "allowed",
+    p_source_policy_decision: source.sourcePolicyDecision,
     p_normalized: {
       title: normalized.title,
       organization: normalized.organization,
@@ -53,8 +67,8 @@ export async function importPastedText(client: Client, rawText: string) {
       compensation_max: normalized.compensationMax,
       compensation_currency: normalized.compensationCurrency,
       compensation_period: normalized.compensationPeriod,
-      source_name: normalized.sourceName,
-      source_url: normalized.sourceUrl,
+      source_name: source.sourceName ?? normalized.sourceName,
+      source_url: source.sourceUrl ?? normalized.sourceUrl,
     },
   });
   if (error) fail("import", error.message);
@@ -64,6 +78,37 @@ export async function importPastedText(client: Client, rawText: string) {
     created: boolean;
   };
   return { ...result, unknowns };
+}
+
+/** Import pasted source text (no stated origin). */
+export async function importPastedText(client: Client, rawText: string) {
+  return runImport(client, rawText, {
+    retrievalMethod: "paste",
+    sourcePolicyDecision: "allowed",
+  });
+}
+
+/**
+ * Import from a source URL: classify the URL by the source policy, then — for
+ * an accepted (manual_only) source — record it as provenance and normalize
+ * the user-pasted text. No server-side fetch happens (owner decision); a
+ * blocked URL throws a typed reason the action maps to an honest message.
+ */
+export async function importFromUrl(
+  client: Client,
+  url: string,
+  rawText: string,
+) {
+  const policy = classifySource(url);
+  if (policy.decision === "blocked") {
+    fail("source policy", `blocked:${policy.reason}`);
+  }
+  return runImport(client, rawText, {
+    retrievalMethod: "url",
+    sourcePolicyDecision: "manual_only",
+    sourceUrl: url.trim(),
+    sourceName: policy.host,
+  });
 }
 
 /** The caller's own opportunities, most-recently-seen first. */
