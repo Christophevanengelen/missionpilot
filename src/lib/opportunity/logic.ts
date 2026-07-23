@@ -135,6 +135,21 @@ export async function getOpportunity(client: Client, opportunityId: string) {
   return data;
 }
 
+/**
+ * How many immutable snapshots this opportunity has (RLS: own rows only).
+ * Equals the number of times the listing was imported — one snapshot per
+ * retrieval — so it is the truthful "seen N times" count. A `head` count
+ * fetches no rows.
+ */
+export async function countSnapshots(client: Client, opportunityId: string) {
+  const { count, error } = await client
+    .from("opportunity_snapshots")
+    .select("id", { count: "exact", head: true })
+    .eq("opportunity_id", opportunityId);
+  if (error) fail("snapshot count", error.message);
+  return count ?? 0;
+}
+
 /** The most recent immutable source snapshot for an opportunity. */
 export async function getLatestSnapshot(client: Client, opportunityId: string) {
   const { data, error } = await client

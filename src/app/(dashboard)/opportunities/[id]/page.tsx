@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
-import { getLatestSnapshot, getOpportunity } from "@/lib/opportunity/logic";
+import {
+  countSnapshots,
+  getLatestSnapshot,
+  getOpportunity,
+} from "@/lib/opportunity/logic";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
@@ -37,9 +41,10 @@ export default async function OpportunityDetailPage({
     return <NotFound />;
   }
 
-  const [opportunity, snapshot] = await Promise.all([
+  const [opportunity, snapshot, seenCount] = await Promise.all([
     getOpportunity(client, id),
     getLatestSnapshot(client, id),
+    countSnapshots(client, id),
   ]);
   if (!opportunity) return <NotFound />;
 
@@ -79,6 +84,9 @@ export default async function OpportunityDetailPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           {opportunity.title ?? copy.none}
         </h1>
+        <p className="text-muted-foreground text-xs">
+          {copy.seenCount(seenCount)}
+        </p>
         <p
           role="note"
           className="border-warning/40 bg-warning/10 text-foreground/80 rounded-lg border px-3 py-2 text-xs"

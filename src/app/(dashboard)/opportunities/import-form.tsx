@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { t } from "@/lib/copy";
 import {
   importFromUrlAction,
   importPastedTextAction,
+  type ImportOutcome,
 } from "@/lib/opportunity/actions";
 import type { SourceBlockedReason } from "@/lib/opportunity/source-policy";
 
@@ -18,22 +19,34 @@ import type { SourceBlockedReason } from "@/lib/opportunity/source-policy";
  * normalizes it structurally. A URL, if given, is classified by the source
  * policy (NO server-side fetch — owner decision); a blocked source shows a
  * specific honest reason. Same double-submit conventions as the rest of the
- * app (synchronous ref lock + aria-busy). On success the user is taken to the
- * new opportunity's inspection screen.
+ * app (synchronous ref lock + aria-busy).
+ *
+ * On success we do NOT auto-navigate: an import can be a duplicate (the
+ * canonical fingerprint already existed and only a new snapshot was appended),
+ * and that outcome is invisible if we jump straight to the detail screen. We
+ * report the status honestly and offer a link, per the app's inline-state
+ * convention. An error keeps the pasted text so the user can retry.
  */
 export function ImportForm() {
-  const router = useRouter();
   const copy = t().opportunities;
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ImportOutcome | null>(null);
   const inFlightRef = useRef(false);
 
   const busyProps = {
     "aria-busy": busy || undefined,
     className: busy ? "pointer-events-none opacity-60" : undefined,
   } as const;
+
+  function reset() {
+    setUrl("");
+    setText("");
+    setError(null);
+    setResult(null);
+  }
 
   async function submit() {
     if (inFlightRef.current) return;
@@ -45,23 +58,46 @@ export function ImportForm() {
     setBusy(true);
     setError(null);
     try {
-      const result = url.trim()
+      const outcome = url.trim()
         ? await importFromUrlAction({ url, rawText: text })
         : await importPastedTextAction({ rawText: text });
-      if (!result.ok) {
+      if (!outcome.ok) {
         // A blocked URL carries a specific reason; otherwise the generic msg.
-        const reason = (result as { blockedReason?: SourceBlockedReason })
+        const reason = (outcome as { blockedReason?: SourceBlockedReason })
           .blockedReason;
-        setError(reason ? copy.urlBlocked[reason] : result.error);
+        setError(reason ? copy.urlBlocked[reason] : outcome.error);
         return;
       }
-      router.push(`/opportunities/${result.data.opportunityId}`);
+      setResult(outcome.data);
     } catch {
       setError(copy.importError);
     } finally {
       inFlightRef.current = false;
       setBusy(false);
     }
+  }
+
+  if (result) {
+    return (
+      <div
+        role="status"
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+      >
+        <p className="text-sm font-medium">
+          {result.created ? copy.importedNew : copy.importedDuplicate}
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild size="sm">
+            <Link href={`/opportunities/${result.opportunityId}`}>
+              {copy.viewOpportunity}
+            </Link>
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={reset}>
+            {copy.importAnother}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

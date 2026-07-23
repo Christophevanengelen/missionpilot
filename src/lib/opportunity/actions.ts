@@ -11,6 +11,13 @@ import * as opportunity from "./logic";
 export type ActionResult<T = undefined> =
   { ok: true; data: T } | { ok: false; error: string };
 
+/**
+ * The outcome the client needs to report import status honestly. `created`
+ * is false when the canonical fingerprint matched an existing opportunity and
+ * only a new immutable snapshot was appended (duplicate detection).
+ */
+export type ImportOutcome = { opportunityId: string; created: boolean };
+
 const GENERIC_ERROR =
   "L'import n'a pas abouti. Vérifiez le texte collé et réessayez.";
 
@@ -32,7 +39,7 @@ function sanitize(step: string, error: unknown): { ok: false; error: string } {
  */
 export async function importPastedTextAction(
   input: unknown,
-): Promise<ActionResult<{ opportunityId: string }>> {
+): Promise<ActionResult<ImportOutcome>> {
   try {
     const parsed = pastedImportSchema.parse(input);
     await verifySession();
@@ -47,7 +54,10 @@ export async function importPastedTextAction(
         reason: error instanceof Error ? error.message : "unknown",
       });
     }
-    return { ok: true, data: { opportunityId: result.opportunity_id } };
+    return {
+      ok: true,
+      data: { opportunityId: result.opportunity_id, created: result.created },
+    };
   } catch (error) {
     return sanitize("importPastedText", error);
   }
@@ -60,7 +70,7 @@ export async function importPastedTextAction(
  * and the URL is recorded as provenance.
  */
 export type UrlImportResult =
-  | { ok: true; data: { opportunityId: string } }
+  | { ok: true; data: ImportOutcome }
   | { ok: false; error: string; blockedReason?: SourceBlockedReason };
 
 export async function importFromUrlAction(
@@ -89,7 +99,10 @@ export async function importFromUrlAction(
         reason: error instanceof Error ? error.message : "unknown",
       });
     }
-    return { ok: true, data: { opportunityId: result.opportunity_id } };
+    return {
+      ok: true,
+      data: { opportunityId: result.opportunity_id, created: result.created },
+    };
   } catch (error) {
     return sanitize("importFromUrl", error);
   }

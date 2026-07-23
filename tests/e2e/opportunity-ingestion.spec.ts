@@ -5,8 +5,9 @@ import { randomUUID } from "node:crypto";
 
 // Critical e2e for Phase 2 opportunity ingestion. Dedicated synthetic user
 // per run (admin API), cleaned up in afterAll. Proves: paste → import →
-// inspection (normalized data + unverified banner + frozen source) →
-// list → dedup on re-import.
+// status panel (created) → inspection (normalized data + unverified banner +
+// frozen source + "seen once") → list → re-import → duplicate status → "seen
+// twice" (dedup: still one row in the list).
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const secretKey = process.env.SUPABASE_SECRET_KEY ?? "";
@@ -61,7 +62,7 @@ async function signIn(page: Page) {
   await page.waitForURL(/\/dashboard/);
 }
 
-test("import d'une annonce collée : normalisation, bannière non vérifiée, source figée, dédup", async ({
+test("import d'une annonce collée : statut, normalisation, source figée, doublon, dédup", async ({
   page,
 }) => {
   await signIn(page);
@@ -70,15 +71,21 @@ test("import d'une annonce collée : normalisation, bannière non vérifiée, so
     page.getByRole("heading", { name: "Opportunités" }),
   ).toBeVisible();
 
-  // Paste + import.
+  // Paste + import → honest "created" status (no auto-navigation).
   await page.getByLabel("Coller le texte d'une annonce").fill(LISTING);
   await page.getByRole("button", { name: "Importer l'annonce" }).click();
+  const status = page.getByRole("status");
+  await expect(status.getByText("Opportunité importée.")).toBeVisible();
+  await expect(page).toHaveURL(/\/opportunities$/); // still on the import page
 
-  // Lands on the inspection screen for the new opportunity.
+  // Follow the explicit link to the inspection screen.
+  await page.getByRole("link", { name: "Voir l'opportunité" }).click();
   await expect(page).toHaveURL(/\/opportunities\/[0-9a-f-]{36}$/);
   await expect(
     page.getByRole("heading", { name: "Senior Platform Engineer" }),
   ).toBeVisible();
+  // Seen exactly once so far.
+  await expect(page.getByText("Vue 1 fois")).toBeVisible();
   // Honesty: the unverified banner is present.
   await expect(page.getByText("non vérifiées", { exact: false })).toBeVisible();
   // Normalized fields extracted from the source (scoped to the normalized
@@ -107,10 +114,18 @@ test("import d'une annonce collée : normalisation, bannière non vérifiée, so
     page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
   ).toHaveCount(1);
 
-  // Re-importing the same listing dedupes: still exactly one in the list.
+  // Re-importing the same listing is reported as a DUPLICATE (honest status),
+  // appends a snapshot, and does not create a second row.
   await page.getByLabel("Coller le texte d'une annonce").fill(LISTING);
   await page.getByRole("button", { name: "Importer l'annonce" }).click();
+  await expect(
+    page.getByRole("status").getByText(/Déjà importée/),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Voir l'opportunité" }).click();
   await expect(page).toHaveURL(/\/opportunities\/[0-9a-f-]{36}$/);
+  // Seen count reflects the second import.
+  await expect(page.getByText("Vue 2 fois")).toBeVisible();
+
   await page.getByRole("link", { name: "Retour aux opportunités" }).click();
   await expect(
     page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
@@ -142,6 +157,10 @@ test("import par URL : source bloquée refusée honnêtement, source publique en
     .getByLabel("Lien de l'annonce (facultatif)")
     .fill("https://jobs.example.com/data-eng");
   await page.getByRole("button", { name: "Importer l'annonce" }).click();
+  await expect(
+    page.getByRole("status").getByText("Opportunité importée."),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Voir l'opportunité" }).click();
   await expect(page).toHaveURL(/\/opportunities\/[0-9a-f-]{36}$/);
   // The source link is shown as provenance (plain text, never a live link).
   const normalized = page.getByRole("region", { name: "Données normalisées" });
