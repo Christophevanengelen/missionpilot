@@ -46,6 +46,12 @@ export default defineConfig({
           setupFiles: ["./tests/integration/setup.ts"],
           include: ["tests/integration/**/*.test.ts"],
           testTimeout: 30_000,
+          // Integration files all mutate the SAME local Supabase DB. Running
+          // them concurrently is inherently race-prone (a file's writes can
+          // perturb another's row-state assertions even across synthetic
+          // users). Run integration files serially for deterministic results;
+          // unit/dom projects stay parallel.
+          fileParallelism: false,
         },
       },
     ],

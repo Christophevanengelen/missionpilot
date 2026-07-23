@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 // the rest are announced as "coming soon" so the shell stays honest.
 const NAV_ITEMS: Array<{ label: string; href: string | null }> = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Opportunities", href: null },
+  { label: "Opportunities", href: "/opportunities" },
   { label: "Applications", href: null },
   { label: "Profil & Preuves", href: "/profile" },
   { label: "Runs & Quality", href: "/diagnostics" },
