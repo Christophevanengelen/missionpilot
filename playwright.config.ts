@@ -25,7 +25,10 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm build && pnpm start",
+    // Runtime stdout+stderr teed to a file so CI can upload the server output
+    // (action name, step, error type/message via the structured logger —
+    // no user content, no secret) — the GitHub log API truncates it.
+    command: "pnpm build && pnpm start 2>&1 | tee playwright-webserver.log",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

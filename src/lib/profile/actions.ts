@@ -23,14 +23,36 @@ import {
 import * as profile from "./logic";
 
 export type ActionResult<T = undefined> =
-  { ok: true; data: T } | { ok: false; error: string };
+  /** `revalidated` is false when the business mutation SUCCEEDED but the
+   *  UI revalidation step failed — the client then (and only then) falls
+   *  back to a single explicit router.refresh(). */
+  { ok: true; data: T; revalidated?: boolean } | { ok: false; error: string };
 
 const GENERIC_ERROR =
   "L'opération n'a pas abouti. Vos données n'ont pas été modifiées — réessayez.";
 
-/** Revalidate the profile surface after a SUCCESSFUL visible mutation. */
-function revalidateProfile() {
-  revalidatePath("/profile");
+/**
+ * Revalidate the profile surface after a SUCCESSFUL visible mutation.
+ * STRICTLY separated from the business mutation: once the mutation is
+ * committed, a revalidation exception must NEVER surface as a mutation
+ * failure. The exact failure is logged (action, step, error type/message,
+ * mutation status) with no user content and no secret; the caller receives
+ * `revalidated: false` so the client can fall back explicitly.
+ */
+function revalidateProfile(action: string): boolean {
+  try {
+    revalidatePath("/profile");
+    return true;
+  } catch (error) {
+    logger.error("profile revalidation failed", {
+      action,
+      step: "revalidatePath",
+      mutation: "committed",
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
 }
 
 async function ownProfileClient() {
@@ -71,8 +93,8 @@ export async function submitClaimAction(
       parsed.value,
       { origin: "user", claimToSupersede: parsed.claimToSupersede },
     );
-    revalidateProfile();
-    return { ok: true, data: { claimId } };
+    const revalidated = revalidateProfile("submitClaim");
+    return { ok: true, data: { claimId }, revalidated };
   } catch (error) {
     return sanitize("submitClaim", error);
   }
@@ -90,8 +112,8 @@ export async function decideClaimAction(
     const parsed = decideClaimSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.setClaimState(client, parsed.claimId, parsed.to);
-    revalidateProfile();
-    return { ok: true, data: undefined };
+    const revalidated = revalidateProfile("decideClaim");
+    return { ok: true, data: undefined, revalidated };
   } catch (error) {
     return sanitize("decideClaim", error);
   }
@@ -104,8 +126,8 @@ export async function createEvidenceAction(
     const parsed = evidenceInputSchema.parse(input);
     const { client, profileId } = await ownProfileClient();
     const evidenceId = await profile.createEvidence(client, profileId, parsed);
-    revalidateProfile();
-    return { ok: true, data: { evidenceId } };
+    const revalidated = revalidateProfile("createEvidence");
+    return { ok: true, data: { evidenceId }, revalidated };
   } catch (error) {
     return sanitize("createEvidence", error);
   }
@@ -123,8 +145,8 @@ export async function updateEvidenceAction(
     const parsed = updateEvidenceSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.updateEvidence(client, parsed.evidenceId, parsed.input);
-    revalidateProfile();
-    return { ok: true, data: undefined };
+    const revalidated = revalidateProfile("updateEvidence");
+    return { ok: true, data: undefined, revalidated };
   } catch (error) {
     return sanitize("updateEvidence", error);
   }
@@ -142,8 +164,8 @@ export async function decideEvidenceAction(
     const parsed = decideEvidenceSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.setEvidenceState(client, parsed.evidenceId, parsed.to);
-    revalidateProfile();
-    return { ok: true, data: undefined };
+    const revalidated = revalidateProfile("decideEvidence");
+    return { ok: true, data: undefined, revalidated };
   } catch (error) {
     return sanitize("decideEvidence", error);
   }
@@ -162,8 +184,8 @@ export async function attachEvidenceAction(
       parsed.claimId,
       parsed.evidenceId,
     );
-    revalidateProfile();
-    return { ok: true, data: { linkId } };
+    const revalidated = revalidateProfile("attachEvidence");
+    return { ok: true, data: { linkId }, revalidated };
   } catch (error) {
     return sanitize("attachEvidence", error);
   }
@@ -181,8 +203,8 @@ export async function detachEvidenceAction(
     const parsed = detachSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.detachEvidence(client, parsed.linkId, parsed.reason);
-    revalidateProfile();
-    return { ok: true, data: undefined };
+    const revalidated = revalidateProfile("detachEvidence");
+    return { ok: true, data: undefined, revalidated };
   } catch (error) {
     return sanitize("detachEvidence", error);
   }

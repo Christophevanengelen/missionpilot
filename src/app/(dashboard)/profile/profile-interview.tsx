@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Thread } from "@/components/conversation/thread";
@@ -55,6 +56,7 @@ export function ProfileInterview({
   links: LivingLink[];
 }) {
   const copy = t().interview;
+  const router = useRouter();
   // Synchronous lock (ref) + UI mirror (state): the ref is authoritative and
   // immune to stale closures — two near-simultaneous submits can never both
   // enter a mutation, even before React re-renders the disabled state.
@@ -91,7 +93,13 @@ export function ProfileInterview({
   // possible stale-snapshot commit.
   const busy = inFlight;
 
-  async function run(op: () => Promise<{ ok: boolean; error?: string }>) {
+  async function run(
+    op: () => Promise<{
+      ok: boolean;
+      error?: string;
+      revalidated?: boolean;
+    }>,
+  ) {
     if (!acquire()) return;
     setFeedback(null);
     try {
@@ -99,6 +107,11 @@ export function ProfileInterview({
       if (!result.ok) {
         setFeedback(result.error ?? "Réessayez.");
         throw new Error("action failed");
+      }
+      // SINGLE explicit fallback: only when the server revalidation step
+      // failed does the client refresh — never concurrently with it.
+      if (result.revalidated === false) {
+        router.refresh();
       }
       // Keyboard/AT continuity: the decided card unmounts when the action
       // response lands — hand focus to the composer, which persists.
@@ -187,18 +200,24 @@ export function ProfileInterview({
         verificationStatus: "user_confirmed",
       });
       if (!created.ok) throw new Error(created.error);
+      let needsFallback = created.revalidated === false;
       // The form IS the user's explicit assertion — confirm it, then attach.
       const confirmed = await decideEvidenceAction({
         evidenceId: created.data.evidenceId,
         to: "confirmed",
       });
       if (!confirmed.ok) throw new Error(confirmed.error);
+      needsFallback ||= confirmed.revalidated === false;
       if (forClaim) {
         const linked = await attachEvidenceAction({
           claimId: forClaim.id,
           evidenceId: created.data.evidenceId,
         });
         if (!linked.ok) throw new Error(linked.error);
+        needsFallback ||= linked.revalidated === false;
+      }
+      if (needsFallback) {
+        router.refresh();
       }
       setMode({ type: "normal" });
     } catch (error) {
