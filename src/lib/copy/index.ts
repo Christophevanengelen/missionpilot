@@ -249,10 +249,10 @@ export const copy = {
         "L'import n'a pas abouti. Vérifiez le texte collé et réessayez.",
       importedNew: "Opportunité importée.",
       importedDuplicate:
-        "Déjà importée — un nouveau snapshot a été ajouté à l'opportunité existante.",
+        "Déjà importée — une nouvelle capture a été ajoutée à l'opportunité existante.",
       viewOpportunity: "Voir l'opportunité",
       importAnother: "Importer une autre annonce",
-      seenCount: (n: number) => (n <= 1 ? "Vue 1 fois" : `Vue ${n} fois`),
+      seenCount: (n: number) => (n === 1 ? "Vue 1 fois" : `Vue ${n} fois`),
       listEmpty:
         "Aucune opportunité pour le moment. Importez une première annonce ci-dessus.",
       unknownsNote: (n: number) =>
@@ -580,7 +580,7 @@ export const copy = {
         "Already imported — a new snapshot was appended to the existing opportunity.",
       viewOpportunity: "View opportunity",
       importAnother: "Import another listing",
-      seenCount: (n: number) => (n <= 1 ? "Seen once" : `Seen ${n} times`),
+      seenCount: (n: number) => (n === 1 ? "Seen once" : `Seen ${n} times`),
       listEmpty: "No opportunities yet. Import a first listing above.",
       unknownsNote: (n: number) =>
         n === 0

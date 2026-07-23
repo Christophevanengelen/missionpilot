@@ -55,14 +55,26 @@
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **105/105 unit** · build                                                                                                                                           |
-| unit        | **105** (unchanged — no pure logic added; UI status is covered by e2e, dedup/count by integration)                                                                                                            |
-| integration | **30** (dedup test extended: `countSnapshots` equals the direct snapshot count = the "seen N times" source of truth)                                                                                          |
-| e2e         | **33/33** — created status panel + "Voir l'opportunité" link + "Vue 1 fois"; re-import ⇒ "Déjà importée" duplicate status + "Vue 2 fois"; dedup keeps one list row; URL path updated to the result-panel flow |
-| reviews     | (to fill after independent passes)                                                                                                                                                                            |
-| CI          | (to fill after push)                                                                                                                                                                                          |
+| Check       | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **105/105 unit** · build                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| unit        | **105** (unchanged — no pure logic added; UI status is covered by e2e, dedup/count by integration)                                                                                                                                                                                                                                                                                                                                                                                                      |
+| integration | **30** (dedup test extended: `countSnapshots` equals the direct snapshot count = the "seen N times" source of truth)                                                                                                                                                                                                                                                                                                                                                                                    |
+| e2e         | **33/33** — created status panel + "Voir l'opportunité" link + "Vue 1 fois"; re-import ⇒ "Déjà importée" duplicate status + "Vue 2 fois"; dedup keeps one list row; URL path updated to the result-panel flow                                                                                                                                                                                                                                                                                           |
+| reviews     | Implementation **PASS**, Security **PASS** — two independent read-only passes, each finding adversarially verified (refute-by-default); **0 confirmed findings**. Security validated: `countSnapshots` RLS-scoped (non-owned id ⇒ 0, no cross-owner count leak), uuid guard + `verifySession` run before the count, no untrusted value becomes HTML or a live link, no migration/grants in the diff. Two **nits** fixed pre-merge (below). Codex re-review deferred (quota) ≥ 2026-07-29, non-blocking. |
+| CI          | green — Quality gates + Database/e2e gates both SUCCESS on the first pushed commit; re-run after the nit fixes.                                                                                                                                                                                                                                                                                                                                                                                         |
+
+## Review nits (fixed before merge)
+
+- **FR terminology (honesty/consistency):** `importedDuplicate` said "snapshot"
+  (raw English) where the app localizes it as "capture" (`sections.source`
+  "Capture source", `capturedAt` "Capturée le…"). Now "une nouvelle **capture**
+  a été ajoutée à l'opportunité existante." EN keeps "snapshot".
+- **`seenCount(0)` honesty:** the `n <= 1` boundary would report "Vue 1 fois" /
+  "Seen once" for a count of 0. Unreachable at the only call site (the
+  opportunity exists ⇒ ≥ 1 snapshot under the same RLS scope), but the honesty
+  guarantee shouldn't rely on that: changed to `n === 1`, so 0 reads "Vue 0
+  fois" / "Seen 0 times". The live n=1 / n=2 e2e assertions are unaffected.
 
 ## Stop
 
