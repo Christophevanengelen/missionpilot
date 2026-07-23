@@ -116,7 +116,7 @@ export async function listOpportunities(client: Client, profileId: string) {
   const { data, error } = await client
     .from("opportunities")
     .select(
-      "id, title, organization, engagement_type, seniority, remote_type, location_text, status, last_seen_at",
+      "id, title, organization, engagement_type, seniority, remote_type, location_text, status, last_seen_at, description, skills, requirements, responsibilities, compensation_min, compensation_max, compensation_currency, compensation_period",
     )
     .eq("profile_id", profileId)
     .order("last_seen_at", { ascending: false });
