@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 import { PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Thread } from "@/components/conversation/thread";
@@ -56,8 +55,6 @@ export function ProfileInterview({
   links: LivingLink[];
 }) {
   const copy = t().interview;
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
   // Synchronous lock (ref) + UI mirror (state): the ref is authoritative and
   // immune to stale closures — two near-simultaneous submits can never both
   // enter a mutation, even before React re-renders the disabled state.
@@ -87,15 +84,12 @@ export function ProfileInterview({
   const facts = useMemo(() => buildFacts(living), [living]);
   const foundation = useMemo(() => foundationProgress(living), [living]);
 
-  const refresh = () =>
-    startTransition(() => {
-      router.refresh();
-    });
-
   // Every control gates on `busy`: the in-flight lock covers the WHOLE
-  // mutation round-trip (double-submit protection), the transition covers
-  // the refresh.
-  const busy = pending || inFlight;
+  // mutation round-trip (double-submit protection). The UI update itself
+  // arrives WITH the action response (revalidatePath in the actions) — no
+  // client-side refresh, hence no race with navigation prefetches and no
+  // possible stale-snapshot commit.
+  const busy = inFlight;
 
   async function run(op: () => Promise<{ ok: boolean; error?: string }>) {
     if (!acquire()) return;
@@ -106,9 +100,8 @@ export function ProfileInterview({
         setFeedback(result.error ?? "Réessayez.");
         throw new Error("action failed");
       }
-      refresh();
-      // Keyboard/AT continuity: the decided card unmounts on refresh — hand
-      // focus to the composer, which persists.
+      // Keyboard/AT continuity: the decided card unmounts when the action
+      // response lands — hand focus to the composer, which persists.
       document.getElementById("ux-composer")?.focus();
     } finally {
       release();
@@ -208,15 +201,14 @@ export function ProfileInterview({
         if (!linked.ok) throw new Error(linked.error);
       }
       setMode({ type: "normal" });
-      refresh();
     } catch (error) {
       setFeedback(
         error instanceof Error && error.message
           ? error.message
           : "L'opération n'a pas abouti. Réessayez.",
       );
-      // Surface any partially-created record honestly instead of hiding it.
-      refresh();
+      // Partial records are already visible: each SUCCESSFUL sub-action
+      // revalidated the surface with its own response.
     } finally {
       release();
     }

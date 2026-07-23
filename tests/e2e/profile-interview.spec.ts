@@ -103,6 +103,11 @@ test.describe.serial("Entretien de profil guidé", () => {
     ).toBeVisible();
 
     await answer(page, "Senior");
+    // Regression (refresh race): trigger simultaneous navigation prefetches
+    // right before confirming — the action-borne revalidation must win; a
+    // stale prefetched snapshot can never be restored.
+    await page.getByRole("link", { name: "Dashboard" }).hover();
+    await page.getByRole("link", { name: "Runs & Quality" }).hover();
     await page.getByRole("button", { name: "Confirmer" }).click();
 
     // 4. Years — invalid input is refused in plain French, input preserved.
@@ -147,7 +152,15 @@ test.describe.serial("Entretien de profil guidé", () => {
     await expect(
       page.getByRole("heading", { name: "Ce que j'ai compris" }),
     ).toBeVisible();
+    await expect(
+      page.getByText("Socle du profil : 5 éléments sur 6"),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Confirmer" }).click();
+    // The new state lands immediately with the action response: 6/6, and
+    // the surface is interactive again (nothing stuck disabled).
+    await expect(
+      page.getByText("Socle du profil : 6 éléments sur 6"),
+    ).toBeVisible();
 
     // 8. Evidence suggestion for the confirmed achievement → create + attach.
     await expect(
@@ -167,6 +180,9 @@ test.describe.serial("Entretien de profil guidé", () => {
     await expect(
       page.getByText("Socle du profil : 6 éléments sur 6"),
     ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Confirmer" })).toHaveCount(
+      0,
+    );
     await expect(page.getByText("appuyé par une preuve").first()).toBeVisible();
     await expect(page.getByText("déclarée par vous").first()).toBeVisible();
 

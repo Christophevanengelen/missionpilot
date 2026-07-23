@@ -10,6 +10,7 @@
  *
  * PR A ships the actions without any business UI; PR B binds them.
  */
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
@@ -26,6 +27,11 @@ export type ActionResult<T = undefined> =
 
 const GENERIC_ERROR =
   "L'opération n'a pas abouti. Vos données n'ont pas été modifiées — réessayez.";
+
+/** Revalidate the profile surface after a SUCCESSFUL visible mutation. */
+function revalidateProfile() {
+  revalidatePath("/profile");
+}
 
 async function ownProfileClient() {
   await verifySession();
@@ -65,6 +71,7 @@ export async function submitClaimAction(
       parsed.value,
       { origin: "user", claimToSupersede: parsed.claimToSupersede },
     );
+    revalidateProfile();
     return { ok: true, data: { claimId } };
   } catch (error) {
     return sanitize("submitClaim", error);
@@ -83,6 +90,7 @@ export async function decideClaimAction(
     const parsed = decideClaimSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.setClaimState(client, parsed.claimId, parsed.to);
+    revalidateProfile();
     return { ok: true, data: undefined };
   } catch (error) {
     return sanitize("decideClaim", error);
@@ -96,6 +104,7 @@ export async function createEvidenceAction(
     const parsed = evidenceInputSchema.parse(input);
     const { client, profileId } = await ownProfileClient();
     const evidenceId = await profile.createEvidence(client, profileId, parsed);
+    revalidateProfile();
     return { ok: true, data: { evidenceId } };
   } catch (error) {
     return sanitize("createEvidence", error);
@@ -114,6 +123,7 @@ export async function updateEvidenceAction(
     const parsed = updateEvidenceSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.updateEvidence(client, parsed.evidenceId, parsed.input);
+    revalidateProfile();
     return { ok: true, data: undefined };
   } catch (error) {
     return sanitize("updateEvidence", error);
@@ -132,6 +142,7 @@ export async function decideEvidenceAction(
     const parsed = decideEvidenceSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.setEvidenceState(client, parsed.evidenceId, parsed.to);
+    revalidateProfile();
     return { ok: true, data: undefined };
   } catch (error) {
     return sanitize("decideEvidence", error);
@@ -151,6 +162,7 @@ export async function attachEvidenceAction(
       parsed.claimId,
       parsed.evidenceId,
     );
+    revalidateProfile();
     return { ok: true, data: { linkId } };
   } catch (error) {
     return sanitize("attachEvidence", error);
@@ -169,6 +181,7 @@ export async function detachEvidenceAction(
     const parsed = detachSchema.parse(input);
     const { client } = await ownProfileClient();
     await profile.detachEvidence(client, parsed.linkId, parsed.reason);
+    revalidateProfile();
     return { ok: true, data: undefined };
   } catch (error) {
     return sanitize("detachEvidence", error);
