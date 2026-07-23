@@ -179,13 +179,23 @@ describe("minimum day rate (currency/period-aware)", () => {
       ),
     ).toBe("unknown"); // no base currency
   });
-  it("handles single-sided ranges", () => {
+  it("treats a genuinely single-sided range as unbounded on the unstated side", () => {
+    // max-only ≥ floor: the worst case is unbounded below ⇒ cannot claim pass.
     expect(
       verdictOf(p, facts({ ...day, compensationMax: 550 }), "minimum_day_rate"),
-    ).toBe("pass");
+    ).toBe("unknown");
+    // min-only < floor: the best case is unbounded above ⇒ cannot claim
+    // violated (that would wrongly EXCLUDE).
     expect(
       verdictOf(p, facts({ ...day, compensationMin: 450 }), "minimum_day_rate"),
-    ).toBe("violated");
+    ).toBe("unknown");
+    // A one-sided range still decides when the KNOWN side settles it.
+    expect(
+      verdictOf(p, facts({ ...day, compensationMax: 400 }), "minimum_day_rate"),
+    ).toBe("violated"); // best case already below floor
+    expect(
+      verdictOf(p, facts({ ...day, compensationMin: 600 }), "minimum_day_rate"),
+    ).toBe("pass"); // worst case already clears floor
   });
   it("is not a constraint when no floor is set", () => {
     expect(
@@ -260,6 +270,32 @@ describe("allowed work regions (never a false violation)", () => {
         "allowed_regions",
       ),
     ).toBe("unknown");
+  });
+  it("does not false-match a region token embedded in a larger word", () => {
+    // Word-boundary, not raw substring: "UK" must not match "Ukraine", nor
+    // "US" match "Toulouse" (that false pass would wrongly reassure).
+    expect(
+      verdictOf(
+        prefs({ allowedWorkRegions: ["UK"] }),
+        facts({ locationText: "Kyiv, Ukraine" }),
+        "allowed_regions",
+      ),
+    ).toBe("unknown");
+    expect(
+      verdictOf(
+        prefs({ allowedWorkRegions: ["US"] }),
+        facts({ locationText: "Toulouse, France" }),
+        "allowed_regions",
+      ),
+    ).toBe("unknown");
+    // …but a real boundary match still passes.
+    expect(
+      verdictOf(
+        prefs({ allowedWorkRegions: ["UK"] }),
+        facts({ locationText: "London, UK" }),
+        "allowed_regions",
+      ),
+    ).toBe("pass");
   });
   it("is unknown when the location is missing", () => {
     expect(verdictOf(p, baseFacts, "allowed_regions")).toBe("unknown");

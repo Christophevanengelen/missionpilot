@@ -89,14 +89,29 @@ travel — are scoring-layer concerns, not hard gates here):
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                                                         |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| verify      | passed — format:check · lint · typecheck · **129/129 unit** · build                                                                                                            |
-| unit        | **129** (+24 engine: each constraint × pass/violated/unknown/not_constrained, currency/period-aware rate, word-boundary exclusions, gate aggregation, row adapter)             |
-| integration | **32** (+2: through a real session + saved prefs + real extraction — a casino/onsite/low-rate listing ⇒ `excluded` with the named term; a clean remote listing ⇒ not excluded) |
-| e2e         | **33/33** — the deterministic gate renders on the detail page ("Contraintes dures" region, "Éligible" with no prefs); banner assertion scoped to the note landmark             |
-| reviews     | (to fill after independent passes)                                                                                                                                             |
-| CI          | (to fill after push)                                                                                                                                                           |
+| Check       | Result                                                                                                                                                                                                                                                                                                                |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **130/130 unit** · build                                                                                                                                                                                                                                                   |
+| unit        | **130** (+25 engine: each constraint × pass/violated/unknown/not_constrained, currency/period-aware rate incl. honest one-sided ranges, word-boundary exclusions & regions, gate aggregation, row adapter)                                                                                                            |
+| integration | **32** (+2: through a real session + saved prefs + real extraction — a casino/onsite/low-rate listing ⇒ `excluded` with the named term; a clean remote listing ⇒ not excluded)                                                                                                                                        |
+| e2e         | **33/33** — the deterministic gate renders on the detail page ("Contraintes dures" region, "Éligible" with no prefs); banner assertion scoped to the note landmark                                                                                                                                                    |
+| reviews     | Implementation **PASS**, Security **PASS** (0 findings — own-data-only RLS, no untrusted value compiled into a RegExp, no ReDoS/XSS, no migration/grant/LLM/fetch). Impl flagged **2 minor honesty edges**, both adversarially **CONFIRMED** and **repaired** (below). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit (Quality gates + Database/e2e gates SUCCESS); re-run after the honesty repairs.                                                                                                                                                                                                      |
+
+## Review repairs (before merge) — both uphold the honesty rule
+
+- **CONFIRMED minor — region substring false `pass`.** `checkRegions` used
+  `location.includes(region)`, so `"Kyiv, Ukraine"` matched `["UK"]` and
+  `"Toulouse, France"` matched `["US"]` → a false `pass` that could flip the
+  gate from the honest `review` to `eligible`. Fixed: reuse the Unicode
+  word-boundary `matchesTerm` helper. Regression test added.
+- **CONFIRMED minor (latent) — single-sided rate collapse.** `hi = max ?? min`
+  / `lo = min ?? max` collapsed a genuinely one-sided range to a point: a
+  min-only range below the floor returned `violated` (false EXCLUSION), a
+  max-only range above the floor returned `pass`. Not reachable from today's
+  extractor (single figures become min=max) but a live gap for the future LLM
+  extractor. Fixed: treat the unstated side as unbounded → `unknown` unless the
+  KNOWN side alone settles it. Test updated accordingly.
 
 ## Note — accessibility fix during implementation
 

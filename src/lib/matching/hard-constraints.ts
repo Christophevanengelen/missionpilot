@@ -107,12 +107,14 @@ function checkMinimumDayRate(
   if (prefs.baseCurrency === null) return "unknown";
   if (f.compensationPeriod !== "day") return "unknown";
   if (f.compensationCurrency !== prefs.baseCurrency) return "unknown";
-  const hi = f.compensationMax ?? f.compensationMin;
-  const lo = f.compensationMin ?? f.compensationMax;
-  if (hi === null || lo === null) return "unknown";
-  if (hi < prefs.minimumDayRate) return "violated"; // even best case below floor
-  if (lo >= prefs.minimumDayRate) return "pass";
-  return "unknown"; // the range straddles the floor
+  // The offered rate lies in [min (or -∞), max (or +∞)]. A genuinely one-sided
+  // range stays unbounded on the unstated side — never collapse it to a point,
+  // which would fabricate a pass or a violation (honesty rule).
+  const { compensationMin: min, compensationMax: max } = f;
+  if (min === null && max === null) return "unknown"; // no figure at all
+  if (max !== null && max < prefs.minimumDayRate) return "violated"; // best case below floor
+  if (min !== null && min >= prefs.minimumDayRate) return "pass"; // worst case clears floor
+  return "unknown"; // straddles, or unbounded on the deciding side
 }
 
 function escapeRegExp(s: string): string {
@@ -161,10 +163,12 @@ function checkExclusions(
 }
 
 /**
- * A region string appearing in the location ⇒ pass. Location present but no
- * match ⇒ `unknown`: free text cannot PROVE the location is OUTSIDE an allowed
- * region (e.g. "Lyon" vs ["France"]), so we never turn that into a violation.
- * The later LLM slice does real geographic reasoning.
+ * A region matched (word-boundary) in the location ⇒ pass. Location present but
+ * no match ⇒ `unknown`: free text cannot PROVE the location is OUTSIDE an
+ * allowed region (e.g. "Lyon" vs ["France"]), so we never turn that into a
+ * violation. Word-boundary (not raw substring) so "UK" does not match "Ukraine"
+ * nor "US" match "Toulouse" — a false `pass` would wrongly reassure. The later
+ * LLM slice does real geographic reasoning.
  */
 function checkRegions(
   prefs: ProfilePreferences,
@@ -172,10 +176,9 @@ function checkRegions(
 ): ConstraintVerdict {
   if (prefs.allowedWorkRegions.length === 0) return "not_constrained";
   if (!f.locationText || !f.locationText.trim()) return "unknown";
-  const loc = f.locationText.toLowerCase();
   for (const raw of prefs.allowedWorkRegions) {
-    const region = raw.trim().toLowerCase();
-    if (region && loc.includes(region)) return "pass";
+    const region = raw.trim();
+    if (region && matchesTerm(f.locationText, region)) return "pass";
   }
   return "unknown";
 }
