@@ -119,3 +119,15 @@ export const pastedImportSchema = z
   .strict();
 
 export type PastedImportInput = z.infer<typeof pastedImportSchema>;
+
+/** URL import: a bounded URL string (validated structurally by the source
+ *  policy, not z.url(), so the gate can return a specific honest reason) +
+ *  the user-pasted text (no server-side fetch in this PR). */
+export const urlImportSchema = z
+  .object({
+    url: z.string().trim().min(1).max(2000),
+    rawText: z.string().trim().min(1).max(100000),
+  })
+  .strict();
+
+export type UrlImportInput = z.infer<typeof urlImportSchema>;

@@ -116,3 +116,39 @@ test("import d'une annonce collée : normalisation, bannière non vérifiée, so
     page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
   ).toHaveCount(1);
 });
+
+test("import par URL : source bloquée refusée honnêtement, source publique enregistrée comme provenance", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/opportunities");
+
+  // A terms-forbidden source is refused with a specific, honest message —
+  // and nothing is fetched.
+  await page
+    .getByLabel("Lien de l'annonce (facultatif)")
+    .fill("https://www.linkedin.com/jobs/123");
+  await page
+    .getByLabel("Coller le texte d'une annonce")
+    .fill("Data Engineer\nchez Cyberdyne\nRemote");
+  await page.getByRole("button", { name: "Importer l'annonce" }).click();
+  await expect(
+    page.getByText(/conditions de ce site interdisent/),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/opportunities$/); // no navigation on block
+
+  // A public URL is accepted as provenance (still pasted, never fetched).
+  await page
+    .getByLabel("Lien de l'annonce (facultatif)")
+    .fill("https://jobs.example.com/data-eng");
+  await page.getByRole("button", { name: "Importer l'annonce" }).click();
+  await expect(page).toHaveURL(/\/opportunities\/[0-9a-f-]{36}$/);
+  // The source link is shown as provenance (plain text, never a live link).
+  const normalized = page.getByRole("region", { name: "Données normalisées" });
+  await expect(
+    normalized.getByText("https://jobs.example.com/data-eng"),
+  ).toBeVisible();
+  await expect(
+    normalized.getByRole("link", { name: /jobs\.example\.com/ }),
+  ).toHaveCount(0);
+});

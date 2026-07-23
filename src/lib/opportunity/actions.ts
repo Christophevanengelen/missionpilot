@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
-import { pastedImportSchema } from "@/domain/opportunity";
+import { pastedImportSchema, urlImportSchema } from "@/domain/opportunity";
+import { classifySource, type SourceBlockedReason } from "./source-policy";
 import * as opportunity from "./logic";
 
 export type ActionResult<T = undefined> =
@@ -49,5 +50,47 @@ export async function importPastedTextAction(
     return { ok: true, data: { opportunityId: result.opportunity_id } };
   } catch (error) {
     return sanitize("importPastedText", error);
+  }
+}
+
+/**
+ * Import from a source URL. The URL is classified by the source policy —
+ * a blocked source returns a SPECIFIC honest reason (not the generic error).
+ * NO server-side fetch happens (owner decision): the user pastes the text,
+ * and the URL is recorded as provenance.
+ */
+export type UrlImportResult =
+  | { ok: true; data: { opportunityId: string } }
+  | { ok: false; error: string; blockedReason?: SourceBlockedReason };
+
+export async function importFromUrlAction(
+  input: unknown,
+): Promise<UrlImportResult> {
+  try {
+    const parsed = urlImportSchema.parse(input);
+    const policy = classifySource(parsed.url);
+    if (policy.decision === "blocked") {
+      // A blocked source is an expected, user-facing outcome — not an error.
+      return { ok: false, error: "blocked", blockedReason: policy.reason };
+    }
+    await verifySession();
+    const client = await createClient();
+    const result = await opportunity.importFromUrl(
+      client,
+      parsed.url,
+      parsed.rawText,
+    );
+    try {
+      revalidatePath("/opportunities");
+    } catch (error) {
+      logger.error("opportunity revalidation failed", {
+        step: "revalidatePath",
+        mutation: "committed",
+        reason: error instanceof Error ? error.message : "unknown",
+      });
+    }
+    return { ok: true, data: { opportunityId: result.opportunity_id } };
+  } catch (error) {
+    return sanitize("importFromUrl", error);
   }
 }

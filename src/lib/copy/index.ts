@@ -233,6 +233,18 @@ export const copy = {
         "Collez ici le texte complet d'une offre de mission ou de poste…",
       importButton: "Importer l'annonce",
       importEmpty: "Collez le texte d'une annonce avant d'importer.",
+      urlLabel: "Lien de l'annonce (facultatif)",
+      urlPlaceholder: "https://…",
+      urlNote:
+        "Nous ne récupérons pas automatiquement le contenu du lien : collez le texte ci-dessous. Le lien est enregistré comme provenance.",
+      urlBlocked: {
+        invalid_url: "Ce lien n'est pas une URL valide.",
+        unsupported_scheme: "Seuls les liens http(s) sont acceptés.",
+        private_host:
+          "Ce lien pointe vers une adresse interne ou une IP — non accepté comme source.",
+        terms_forbid:
+          "Les conditions de ce site interdisent l'import de ses annonces. Vous pouvez toujours coller le texte sans indiquer de lien.",
+      },
       importError:
         "L'import n'a pas abouti. Vérifiez le texte collé et réessayez.",
       listEmpty:
@@ -543,6 +555,18 @@ export const copy = {
         "Paste the full text of a mission or job listing here…",
       importButton: "Import listing",
       importEmpty: "Paste a listing's text before importing.",
+      urlLabel: "Listing link (optional)",
+      urlPlaceholder: "https://…",
+      urlNote:
+        "We do not fetch the link's content automatically: paste the text below. The link is recorded as provenance.",
+      urlBlocked: {
+        invalid_url: "That link is not a valid URL.",
+        unsupported_scheme: "Only http(s) links are accepted.",
+        private_host:
+          "That link points to an internal address or IP — not accepted as a source.",
+        terms_forbid:
+          "This site's terms forbid importing its listings. You can still paste the text without a link.",
+      },
       importError:
         "The import did not go through. Check the text and try again.",
       listEmpty: "No opportunities yet. Import a first listing above.",

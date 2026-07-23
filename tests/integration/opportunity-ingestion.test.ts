@@ -6,6 +6,7 @@ import {
   getLatestSnapshot,
   getOpportunity,
   getOwnProfile,
+  importFromUrl,
   importPastedText,
   listOpportunities,
 } from "@/lib/opportunity/logic";
@@ -117,5 +118,39 @@ describe("pasted-text import", () => {
   it("another user reads none of Alice's opportunities", async () => {
     const list = await listOpportunities(mallory, aliceProfileId);
     expect(list).toEqual([]);
+  });
+});
+
+describe("URL import (source policy, no fetch)", () => {
+  it("records a public URL as provenance without fetching", async () => {
+    const result = await importFromUrl(
+      alice,
+      "https://jobs.example.com/staff-eng",
+      "Staff Engineer\nchez Umbrella\nRemote",
+    );
+    const opp = await getOpportunity(alice, result.opportunity_id);
+    expect(opp?.source_url).toBe("https://jobs.example.com/staff-eng");
+    expect(opp?.source_name).toBe("jobs.example.com");
+    const snap = await getLatestSnapshot(alice, result.opportunity_id);
+    expect(snap?.retrieval_method).toBe("url");
+    expect(snap?.source_policy_decision).toBe("manual_only");
+    // The captured content is the user's pasted text — nothing was fetched.
+    expect(snap?.raw_text).toContain("Staff Engineer");
+  });
+
+  it("refuses a blocked source (terms forbid) before any write", async () => {
+    await expect(
+      importFromUrl(
+        alice,
+        "https://www.linkedin.com/jobs/999",
+        "some pasted text",
+      ),
+    ).rejects.toThrow(/blocked:terms_forbid/);
+  });
+
+  it("refuses a private/internal host (SSRF hygiene)", async () => {
+    await expect(
+      importFromUrl(alice, "http://169.254.169.254/meta", "text"),
+    ).rejects.toThrow(/blocked:private_host/);
   });
 });
