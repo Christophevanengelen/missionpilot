@@ -36,6 +36,7 @@ import {
   decideClaimAction,
   decideEvidenceAction,
   detachEvidenceAction,
+  publishVersionAction,
   submitClaimAction,
 } from "@/lib/profile/actions";
 
@@ -50,10 +51,12 @@ export function ProfileInterview({
   claims,
   evidence,
   links,
+  latestVersionNumber,
 }: {
   claims: LivingClaim[];
   evidence: LivingEvidence[];
   links: LivingLink[];
+  latestVersionNumber: number | null;
 }) {
   const copy = t().interview;
   // Synchronous lock (ref) + UI mirror (state): the ref is authoritative and
@@ -75,6 +78,10 @@ export function ProfileInterview({
   const [suggestDismissed, setSuggestDismissed] = useState<string | null>(null);
   const [contextOpen, setContextOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  // Publication state: seeded server-side, then updated from the action's
+  // OWN return (same authority rule as the living snapshot).
+  const [latestVersion, setLatestVersion] = useState(latestVersionNumber);
+  const [versionNotice, setVersionNotice] = useState<string | null>(null);
 
   // Action-return protocol: the DISPLAYED state comes from the Server
   // Action's own return (the canonical living snapshot re-read after the
@@ -256,6 +263,41 @@ export function ProfileInterview({
 
   function detach(linkId: string) {
     void run(() => detachEvidenceAction({ linkId })).catch(() => undefined);
+  }
+
+  // Freeze the confirmed state into a version (PR A contract, unchanged).
+  // Honest outcomes: created / no-op (consecutive-difference rule) /
+  // transport-unknown (publication is idempotent, retrying is safe).
+  async function publishVersion() {
+    if (!acquire()) return;
+    setFeedback(null);
+    setVersionNotice(null);
+    try {
+      const result = await publishVersionAction();
+      if (!result.ok) {
+        setFeedback(result.error);
+        return;
+      }
+      if (result.data.created) {
+        setLatestVersion(result.data.versionNumber);
+        setVersionNotice(
+          copy.panel.versions.published(
+            result.data.versionNumber,
+            result.data.summary,
+          ),
+        );
+      } else {
+        // The RPC's no-op returns the HEAD version — syncing the displayed
+        // number from the action's own return respects the authority rule
+        // (matters after an uncertain transport retry).
+        setLatestVersion(result.data.versionNumber);
+        setVersionNotice(copy.panel.versions.noop(result.data.versionNumber));
+      }
+    } catch {
+      setFeedback(copy.panel.versions.unknown);
+    } finally {
+      release();
+    }
   }
 
   // ----- rendering ---------------------------------------------------------
@@ -459,14 +501,49 @@ export function ProfileInterview({
         </Button>
       </section>
 
-      <p className="border-border/60 border-t pt-4">
-        <Link
-          href="/profile/history"
-          className="text-sm font-medium underline-offset-4 hover:underline"
-        >
-          {copy.panel.history}
-        </Link>
-      </p>
+      <section
+        aria-label={copy.panel.versions.title}
+        className="border-border/60 flex flex-col gap-2 border-t pt-4"
+      >
+        <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          {copy.panel.versions.title}
+        </h3>
+        <p className="text-muted-foreground text-xs">
+          {latestVersion !== null
+            ? copy.panel.versions.current(latestVersion)
+            : copy.panel.versions.none}
+        </p>
+        {living.claims.some((c) => c.state === "confirmed") ? (
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              {...busyProps}
+              onClick={() => void publishVersion()}
+            >
+              {copy.panel.versions.publish}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            {copy.panel.versions.needConfirmed}
+          </p>
+        )}
+        {versionNotice ? (
+          <p role="status" className="text-sm">
+            {versionNotice}
+          </p>
+        ) : null}
+        <p>
+          <Link
+            href="/profile/history"
+            className="text-sm font-medium underline-offset-4 hover:underline"
+          >
+            {copy.panel.history}
+          </Link>
+        </p>
+      </section>
     </div>
   );
 

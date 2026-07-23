@@ -140,6 +140,20 @@ export const copy = {
         detach: "Détacher",
         empty: "Votre profil se construira ici au fil de l'entretien.",
         history: "Historique",
+        versions: {
+          title: "Versions",
+          current: (n: number) => `Version actuelle : ${n}`,
+          none: "Aucune version confirmée pour le moment.",
+          publish: "Figer une version du profil",
+          needConfirmed:
+            "Confirmez au moins un élément pour pouvoir figer une version.",
+          published: (n: number, summary: string) =>
+            `Version ${n} figée — « ${summary} »`,
+          noop: (n: number) =>
+            `Aucun changement de fond depuis la version ${n} — aucune nouvelle version n'a été créée.`,
+          unknown:
+            "La connexion a été interrompue pendant la publication de la version : son résultat est incertain. Réessayez — une version identique n'est jamais créée en double.",
+        },
       },
     },
     history: {
@@ -332,6 +346,20 @@ export const copy = {
         detach: "Detach",
         empty: "Your profile will build here as the interview goes.",
         history: "History",
+        versions: {
+          title: "Versions",
+          current: (n: number) => `Current version: ${n}`,
+          none: "No confirmed version yet.",
+          publish: "Freeze a profile version",
+          needConfirmed:
+            "Confirm at least one element before freezing a version.",
+          published: (n: number, summary: string) =>
+            `Version ${n} frozen — “${summary}”`,
+          noop: (n: number) =>
+            `No substantive change since version ${n} — no new version was created.`,
+          unknown:
+            "The connection dropped while freezing the version: its outcome is uncertain. Try again — an identical version is never created twice.",
+        },
       },
     },
     history: {
