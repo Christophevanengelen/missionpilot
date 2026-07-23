@@ -7,6 +7,8 @@ import {
   createEvidence,
   detachEvidence,
   getOwnProfile,
+  getVersionByNumber,
+  listVersions,
   publishVersion,
   restoreVersion,
   setClaimState,
@@ -281,6 +283,69 @@ describe("evidence + restore", () => {
       .select("id, detached_at")
       .is("detached_at", null);
     expect(activeLinks!.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("history reads (PR C): list and single-version contracts", () => {
+  it("lists own versions newest first with the history fields", async () => {
+    const versions = await listVersions(alice, aliceProfileId);
+    expect(versions.length).toBeGreaterThanOrEqual(2);
+    const numbers = versions.map((v) => v.version_number);
+    expect(numbers).toEqual([...numbers].sort((a, b) => b - a));
+    for (const v of versions) {
+      expect(v.id).toBeTruthy();
+      expect(typeof v.change_summary).toBe("string");
+      expect(v.change_summary.length).toBeGreaterThan(0);
+      expect(v.published_at).toBeTruthy();
+    }
+  });
+
+  it("resolves a version by its human number, with content; null when absent", async () => {
+    const versions = await listVersions(alice, aliceProfileId);
+    const head = versions[0];
+    const found = await getVersionByNumber(
+      alice,
+      aliceProfileId,
+      head.version_number,
+    );
+    expect(found?.id).toBe(head.id);
+    const content = found?.content as { schema_version: number };
+    expect(content.schema_version).toBe(1);
+
+    const absent = await getVersionByNumber(alice, aliceProfileId, 9999);
+    expect(absent).toBeNull();
+  });
+
+  it("restore of head-identical content reports created=false and mutates nothing", async () => {
+    // The RPC returns `created` — the UI needs it to distinguish the no-op
+    // honestly (defect: the server action initially dropped this flag).
+    const before = await listVersions(alice, aliceProfileId);
+    const head = before[0];
+    const claimsBefore = await alice
+      .from("profile_claims")
+      .select("id, state, superseded_at")
+      .eq("profile_id", aliceProfileId)
+      .order("id");
+    const result = await restoreVersion(alice, aliceProfileId, head.id);
+    expect(result.created).toBe(false);
+    const after = await listVersions(alice, aliceProfileId);
+    expect(after.length).toBe(before.length);
+    expect(after[0].id).toBe(head.id);
+    // "Mutates nothing" includes the living claims: same rows, same states,
+    // none newly closed.
+    const claimsAfter = await alice
+      .from("profile_claims")
+      .select("id, state, superseded_at")
+      .eq("profile_id", aliceProfileId)
+      .order("id");
+    expect(claimsAfter.data).toEqual(claimsBefore.data);
+  });
+
+  it("another user reads nothing through the same functions", async () => {
+    const versions = await listVersions(mallory, aliceProfileId);
+    expect(versions).toEqual([]);
+    const one = await getVersionByNumber(mallory, aliceProfileId, 1);
+    expect(one).toBeNull();
   });
 });
 
