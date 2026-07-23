@@ -48,12 +48,13 @@
 
 ## Checks
 
-| Check       | Command                 | Result                                                                                                                    |
-| ----------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| verify      | `pnpm verify`           | passed — format:check · lint · typecheck · **90/90 unit** · build                                                         |
-| integration | `pnpm test:integration` | skipped — integration tests use synthetic summaries (« course A »), never the generated strings (grep-verified)           |
-| pgTAP       | `pnpm test:rls`         | skipped — no SQL touched; DB only checks `char_length(change_summary)`                                                    |
-| e2e         | `pnpm test:e2e`         | skipped — no local stack in this session; committed suite asserts only « Rôle mis à jour » (unchanged); CI runs on the PR |
+| Check       | Command                 | Result                                                                                                                                                                         |
+| ----------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| verify      | `pnpm verify`           | passed — format:check · lint · typecheck · **90/90 unit** · build                                                                                                              |
+| integration | `pnpm test:integration` | skipped — integration tests use synthetic summaries (« course A »), never the generated strings (grep-verified)                                                                |
+| pgTAP       | `pnpm test:rls`         | skipped — no SQL touched; DB only checks `char_length(change_summary)`                                                                                                         |
+| e2e         | `pnpm test:e2e`         | skipped locally (no stack in this session) — **passed in CI**: « Database and e2e gates (isolated local stack) » green on the PR                                               |
+| CI          | PR #8 checks            | passed — Quality gates 1m15s · Database and e2e gates 4m37s; Vercel Preview not deployed (git author `cve-goog` lacks Vercel project access — infra, not code; owner decision) |
 
 ## Evidence
 
