@@ -30,7 +30,12 @@ export function Composer({
     event.preventDefault();
     if (!onSend || busy) return;
     const value = text;
-    await onSend(value);
+    try {
+      await onSend(value);
+    } catch {
+      // The page surfaced its own feedback; keep the user's text intact.
+      return;
+    }
     setText("");
   };
   return (

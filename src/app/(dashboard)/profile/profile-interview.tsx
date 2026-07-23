@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,21 @@ export function ProfileInterview({
   const copy = t().interview;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Synchronous lock (ref) + UI mirror (state): the ref is authoritative and
+  // immune to stale closures — two near-simultaneous submits can never both
+  // enter a mutation, even before React re-renders the disabled state.
+  const inFlightRef = useRef(false);
   const [inFlight, setInFlight] = useState(false);
+  const acquire = () => {
+    if (inFlightRef.current) return false;
+    inFlightRef.current = true;
+    setInFlight(true);
+    return true;
+  };
+  const release = () => {
+    inFlightRef.current = false;
+    setInFlight(false);
+  };
   const [mode, setMode] = useState<Mode>({ type: "normal" });
   const [suggestDismissed, setSuggestDismissed] = useState<string | null>(null);
   const [contextOpen, setContextOpen] = useState(false);
@@ -84,8 +98,7 @@ export function ProfileInterview({
   const busy = pending || inFlight;
 
   async function run(op: () => Promise<{ ok: boolean; error?: string }>) {
-    if (inFlight) return;
-    setInFlight(true);
+    if (!acquire()) return;
     setFeedback(null);
     try {
       const result = await op();
@@ -98,7 +111,7 @@ export function ProfileInterview({
       // focus to the composer, which persists.
       document.getElementById("ux-composer")?.focus();
     } finally {
-      setInFlight(false);
+      release();
     }
   }
 
@@ -152,8 +165,7 @@ export function ProfileInterview({
         : step.type === "suggest_evidence"
           ? step.claim
           : undefined;
-    if (inFlight) return;
-    setInFlight(true);
+    if (!acquire()) return;
     try {
       setFeedback(null);
       const source = values.sourceReference.trim();
@@ -206,7 +218,7 @@ export function ProfileInterview({
       // Surface any partially-created record honestly instead of hiding it.
       refresh();
     } finally {
-      setInFlight(false);
+      release();
     }
   }
 
