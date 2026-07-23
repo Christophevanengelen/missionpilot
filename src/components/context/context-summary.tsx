@@ -5,8 +5,9 @@ import type { KnownFact } from "@/lib/ux/conversation-types";
 /**
  * "What MissionPilot understood" — the running known-facts set + non-intrusive
  * progress. Prop-driven (real features pass real facts; the preview passes
- * mock ones). Mirrors thread cards — never the only place info lives. Desktop
- * side panel; on mobile it is rendered inside a top sheet by the page.
+ * mock ones). Deliberately secondary: caption-level heading, quiet type — it
+ * reads as a margin note beside the conversation, never as a second product.
+ * Mirrors thread cards — never the only place info lives.
  */
 export function ContextSummary({
   facts,
@@ -17,12 +18,12 @@ export function ContextSummary({
 }) {
   const copy = t();
   return (
-    <section aria-label={copy.context.title} className="flex flex-col gap-4">
+    <section aria-label={copy.context.title} className="flex flex-col gap-5">
       <div>
-        <h2 className="text-sm font-semibold tracking-tight">
+        <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           {copy.context.title}
         </h2>
-        <p className="text-muted-foreground mt-1 text-xs">
+        <p className="text-muted-foreground mt-2 text-xs">
           {copy.context.progress(progress)}
         </p>
         <div
@@ -31,7 +32,7 @@ export function ContextSummary({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label={copy.context.progress(progress)}
-          className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full"
+          className="bg-muted mt-1.5 h-1 overflow-hidden rounded-full"
         >
           <div
             className="bg-primary h-full rounded-full motion-safe:transition-[width] motion-safe:duration-(--duration-base)"
@@ -39,17 +40,20 @@ export function ContextSummary({
           />
         </div>
       </div>
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-3">
         {facts.map((f) => (
           <li
             key={f.label}
-            className="flex items-center justify-between gap-2 text-sm"
+            className="flex items-start justify-between gap-3 text-sm"
           >
-            <span className="flex flex-col">
+            <span className="flex min-w-0 flex-col">
               <span className="text-muted-foreground text-xs">{f.label}</span>
-              <span>{f.value}</span>
+              <span className="truncate">{f.value}</span>
             </span>
-            <StateBadge state={f.state} />
+            <StateBadge
+              state={f.state}
+              className="shrink-0 px-1.5 text-[11px]"
+            />
           </li>
         ))}
       </ul>

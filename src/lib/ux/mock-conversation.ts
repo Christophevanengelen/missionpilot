@@ -12,6 +12,7 @@ export const mockThread: Turn[] = [
     id: "t1",
     text: "Bonjour. Je vais vous aider à trouver des missions qui vous correspondent vraiment.",
     question: "Quel type de mission recherchez-vous ?",
+    lead: true,
   },
   {
     role: "user",
@@ -45,15 +46,23 @@ export const mockThread: Turn[] = [
       title: "Preuve — Réalisation",
       state: "needs_review",
       fields: [
-        { label: "Titre", value: "Refonte du checkout — e-commerce" },
+        {
+          label: "Titre",
+          value: "Refonte du checkout — e-commerce",
+          wide: true,
+        },
         {
           label: "Métrique",
           value: "+18 % de conversion",
           warn: "à confirmer",
         },
         { label: "Période", value: "2023 – 2024" },
-        { label: "Source", value: "texte fourni · non vérifié" },
-        { label: "Compétences", value: "UX, Design System, A/B testing" },
+        { label: "Source", value: "texte fourni · non vérifié", wide: true },
+        {
+          label: "Compétences",
+          chips: ["UX", "Design System", "A/B testing"],
+          wide: true,
+        },
       ],
     },
   },

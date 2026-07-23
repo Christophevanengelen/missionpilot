@@ -11,14 +11,16 @@ import { t, type Locale } from "@/lib/copy";
 export function StateBadge({
   state,
   locale,
+  className,
 }: {
   state: CardState;
   locale?: Locale;
+  className?: string;
 }) {
   return (
     <Badge
       variant="outline"
-      className={cn("font-medium", CARD_STATE_STYLE[state])}
+      className={cn("font-medium", CARD_STATE_STYLE[state], className)}
       data-state={state}
     >
       {t(locale).cardStates[state]}

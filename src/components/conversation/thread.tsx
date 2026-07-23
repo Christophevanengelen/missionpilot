@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, WifiOff } from "lucide-react";
+import { AlertTriangle, ShieldCheck, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardShell, CardField } from "@/components/cards/card-shell";
@@ -31,7 +31,7 @@ export function Thread({
         role="status"
         aria-live="polite"
         aria-label="Chargement de la conversation"
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
       >
         <Skeleton className="h-16 w-3/4" />
         <Skeleton className="h-32 w-full" />
@@ -71,7 +71,7 @@ export function Thread({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {state === "offline" ? (
         <p
           role="status"
@@ -85,7 +85,7 @@ export function Thread({
       {/* Polite live region: new assistant turns / card state changes announce
           here without stealing focus. */}
       <ol
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-8"
         aria-label="Conversation"
         aria-live="polite"
       >
@@ -93,18 +93,28 @@ export function Thread({
           turn.role === "user" ? (
             <li
               key={turn.id}
-              className="bg-secondary text-secondary-foreground ml-auto max-w-[80%] rounded-xl rounded-br-sm px-4 py-2 text-[15px]"
+              className="bg-secondary text-secondary-foreground ml-auto max-w-[78%] rounded-xl rounded-br-sm px-5 py-3 text-base"
             >
               {turn.text}
             </li>
           ) : (
-            <li key={turn.id} className="flex flex-col gap-3">
-              <p className="text-[15px] leading-relaxed">{turn.text}</p>
+            <li key={turn.id} className="flex flex-col gap-4">
+              <p
+                className={
+                  turn.lead
+                    ? "text-2xl leading-snug font-semibold tracking-tight"
+                    : "text-base leading-relaxed"
+                }
+              >
+                {turn.text}
+              </p>
               {turn.card ? (
                 <ThreadCard turn={turn} disabled={state === "offline"} />
               ) : null}
               {turn.question ? (
-                <p className="text-[15px] font-medium">{turn.question}</p>
+                <p className="pt-1 text-lg leading-snug font-medium">
+                  {turn.question}
+                </p>
               ) : null}
               {turn.chips ? (
                 <div
@@ -148,7 +158,7 @@ function ThreadCard({
 
   if (card.kind === "score") {
     return (
-      <CardShell title={card.title} state={card.state}>
+      <CardShell title={card.title} state={card.state} variant="instrument">
         <ScoreBreakdown
           weighted={card.weighted}
           confidence={card.confidence}
@@ -160,28 +170,36 @@ function ThreadCard({
   }
 
   if (card.kind === "approval") {
+    // Ceremonial and NEUTRAL: solemnity comes from space and composition.
+    // Warning styling is reserved for real risk (an unverified claim).
     return (
-      <CardShell
-        title={card.title}
-        state="proposed"
-        className="border-warning/40"
-      >
-        <p className="text-muted-foreground mb-3 text-sm">
+      <CardShell title={card.title} state="proposed" variant="ceremonial">
+        <p className="text-muted-foreground mb-4 flex items-start gap-2 text-sm">
+          <ShieldCheck
+            aria-hidden="true"
+            className="text-primary mt-0.5 size-4 shrink-0"
+          />
           {t().approval.reassure}
         </p>
-        <dl>
-          <CardField label="Action">{card.action}</CardField>
+        <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          <CardField label="Action" wide>
+            {card.action}
+          </CardField>
           <CardField label="Contenu">{card.detail}</CardField>
           <CardField label="Destination">{card.destination}</CardField>
         </dl>
         {card.blocked ? (
-          <p className="text-muted-foreground mt-3 text-xs">
+          <p className="text-muted-foreground mt-4 flex items-start gap-2 text-xs">
+            <AlertTriangle
+              aria-hidden="true"
+              className="text-warning mt-0.5 size-3.5 shrink-0"
+            />
             {t().approval.blockedReason}
           </p>
         ) : null}
         {/* Decline is first and at least as prominent as approve (equal
             weight): approving an external action is never the easy default. */}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm">
             {a.decline}
           </Button>
@@ -198,35 +216,73 @@ function ThreadCard({
     );
   }
 
-  // understanding / evidence — field cards with the four core actions.
-  // A rejected card offers only Restore (never a dead end).
-  const actions =
-    card.state === "rejected" ? (
-      <Button type="button" variant="outline" size="sm" disabled={disabled}>
-        {a.restore}
-      </Button>
-    ) : (
-      <>
-        <Button type="button" size="sm" disabled={disabled}>
-          {a.confirm}
-        </Button>
-        <Button type="button" variant="outline" size="sm" disabled={disabled}>
-          {a.correct}
-        </Button>
-        <Button type="button" variant="ghost" size="sm" disabled={disabled}>
-          {a.ignore}
-        </Button>
-        <Button type="button" variant="ghost" size="sm" disabled={disabled}>
-          {a.goDeeper}
-        </Button>
-      </>
+  // understanding / evidence — field cards.
+  // Rejected: recessed register — compact and set aside via hierarchy and a
+  // dashed border, never via low-contrast text. Restore is the only action.
+  if (card.state === "rejected") {
+    return (
+      <CardShell
+        title={card.title}
+        state="rejected"
+        variant="recessed"
+        className="w-full max-w-[44rem]"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-muted-foreground text-sm">
+            {card.fields
+              .map((f) => f.value)
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          <Button type="button" variant="ghost" size="sm" disabled={disabled}>
+            {a.restore}
+          </Button>
+        </div>
+      </CardShell>
     );
+  }
 
+  // Utility cards cap at 44rem while important moments (hero, score,
+  // approval) span the full thread — the width alternation is the rhythm.
+  const variant = card.kind === "evidence" ? "document" : "quiet";
+  const railClass =
+    card.kind === "evidence"
+      ? card.state === "needs_review"
+        ? " border-l-warning/70"
+        : " border-l-primary/30"
+      : "";
   return (
-    <CardShell title={card.title} state={card.state} actions={actions}>
-      <dl>
+    <CardShell
+      title={card.title}
+      state={card.state}
+      variant={variant}
+      className={"w-full max-w-[44rem]" + railClass}
+      actions={
+        <>
+          <Button type="button" size="sm" disabled={disabled}>
+            {a.confirm}
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={disabled}>
+            {a.correct}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={disabled}>
+            {a.ignore}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={disabled}>
+            {a.goDeeper}
+          </Button>
+        </>
+      }
+    >
+      <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {card.fields.map((f) => (
-          <CardField key={f.label} label={f.label} warn={f.warn}>
+          <CardField
+            key={f.label}
+            label={f.label}
+            warn={f.warn}
+            chips={f.chips}
+            wide={f.wide}
+          >
             {f.value}
           </CardField>
         ))}

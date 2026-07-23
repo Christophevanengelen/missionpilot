@@ -4,14 +4,15 @@ import { Label } from "@/components/ui/label";
 import { t } from "@/lib/copy";
 
 /**
- * Language input + send. Static in the UX Preview (no submission). Labelled
- * textarea; send is a real button with an accessible name.
+ * Language input + send — the standing invitation to talk. Static in the UX
+ * Preview (no submission). Labelled textarea; send is a real button with an
+ * accessible name; the whole surface carries the focus ring.
  */
 export function Composer({ disabled }: { disabled?: boolean }) {
   const copy = t();
   return (
     <form
-      className="border-border bg-surface-raised flex items-end gap-2 rounded-xl border p-2"
+      className="border-border bg-card focus-within:ring-ring/60 flex items-end gap-2 rounded-2xl border p-3 shadow-floating focus-within:ring-2"
       aria-label="Composer un message"
     >
       <Label htmlFor="ux-composer" className="sr-only">
@@ -19,16 +20,17 @@ export function Composer({ disabled }: { disabled?: boolean }) {
       </Label>
       <textarea
         id="ux-composer"
-        rows={1}
+        rows={2}
         placeholder={copy.composer.placeholder}
         disabled={disabled}
-        className="text-foreground placeholder:text-muted-foreground max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] outline-none disabled:opacity-60"
+        className="text-foreground placeholder:text-muted-foreground max-h-40 min-h-14 flex-1 resize-none bg-transparent px-2 py-1.5 text-base outline-none disabled:opacity-60"
       />
       <Button
         type="submit"
         size="icon"
         disabled={disabled}
         aria-label={copy.actions.send}
+        className="rounded-full"
       >
         <SendHorizontal aria-hidden="true" />
       </Button>

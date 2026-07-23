@@ -13,7 +13,15 @@ export type VerdictKey =
   | "do_not_apply"
   | "needs_review";
 
-export type Field = { label: string; value: string; warn?: string };
+export type Field = {
+  label: string;
+  value?: string;
+  warn?: string;
+  /** Render as small pills (skills, tags) instead of a plain value. */
+  chips?: string[];
+  /** Span the full width of the card's field grid. */
+  wide?: boolean;
+};
 
 export type UnderstandingCard = {
   kind: "understanding";
@@ -79,6 +87,8 @@ export type AssistantTurn = {
   card?: ThreadCardData;
   question?: string;
   chips?: string[];
+  /** Presentation flag: renders the text as the conversation's opening lead. */
+  lead?: boolean;
 };
 
 export type UserTurn = { role: "user"; id: string; text: string };

@@ -35,8 +35,18 @@ designed against both.
 
 Surfaces are defined by **hairline borders** (`--border`, 1px), not shadows.
 Shadows are reserved for **floating** elements (dialogs, popovers, the login
-card, drag previews): `shadow-floating`. `shadow-hairline` outlines a
-surface on busy backgrounds. Nothing else casts shadows.
+card, the docked composer): `shadow-floating`. `shadow-raised` is a very
+discreet elevation reserved for the **hero register** (the recommendation
+card) — hierarchy there still comes first from typography, space and
+composition, never from decoration. `shadow-hairline` outlines a surface on
+busy backgrounds. Nothing else casts shadows.
+
+**Card registers** (implemented by `CardShell`): `quiet` (workhorse
+proposals) · `document` (evidence — accent rail, raised surface) · `hero`
+(the recommendation) · `ceremonial` (external-action approval — solemn and
+**neutral**; warning styling is reserved for real risk, e.g. an unverified
+claim) · `instrument` (dense/technical) · `recessed` (rejected — compact,
+dashed border; never low-contrast text).
 
 ## Radius
 

@@ -60,6 +60,7 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --shadow-hairline: var(--shadow-hairline);
+  --shadow-raised: var(--shadow-raised);
   --shadow-floating: var(--shadow-floating);
   /* Motion: fast for state feedback, base for layout; both disabled under
      prefers-reduced-motion via motion-safe utilities. */
@@ -95,6 +96,9 @@
   --success: oklch(0.55 0.12 150);
   --warning: oklch(0.65 0.13 75);
   --shadow-hairline: 0 0 0 1px oklch(0.185 0.008 260 / 5%);
+  --shadow-raised:
+    0 1px 2px oklch(0.185 0.008 260 / 5%),
+    0 3px 10px oklch(0.185 0.008 260 / 5%);
   --shadow-floating:
     0 1px 2px oklch(0.185 0.008 260 / 6%),
     0 8px 24px oklch(0.185 0.008 260 / 8%);
@@ -137,6 +141,7 @@
   --success: oklch(0.7 0.11 150);
   --warning: oklch(0.75 0.12 75);
   --shadow-hairline: 0 0 0 1px oklch(0 0 0 / 25%);
+  --shadow-raised: 0 1px 2px oklch(0 0 0 / 25%), 0 3px 10px oklch(0 0 0 / 20%);
   --shadow-floating:
     0 1px 2px oklch(0 0 0 / 30%), 0 8px 24px oklch(0 0 0 / 35%);
   --chart-1: oklch(0.87 0 0);
