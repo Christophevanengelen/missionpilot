@@ -6,7 +6,7 @@
 
 begin;
 
-select plan(66);
+select plan(68);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: users C and D (the signup trigger creates their profiles).
@@ -344,6 +344,21 @@ select throws_ok(
               where user_id = '33333333-3333-3333-3333-333333333333'),
             'skill', '{"name":"ok","extra":"x"}'::jsonb)$$,
   'P0001', null, 'an unexpected extra key is refused (strict schemas)');
+
+-- Per-kind LENGTH caps match the app schemas exactly (no boundary drift).
+select throws_ok(
+  format($f$insert into public.profile_claims (profile_id, kind, value)
+    values ((select id from public.candidate_profiles
+              where user_id = '33333333-3333-3333-3333-333333333333'),
+            'skill', jsonb_build_object('name', repeat('x', 121)))$f$),
+  'P0001', null, 'a 121-char skill name is refused (cap 120)');
+
+select throws_ok(
+  format($f$insert into public.profile_claims (profile_id, kind, value)
+    values ((select id from public.candidate_profiles
+              where user_id = '33333333-3333-3333-3333-333333333333'),
+            'seniority', jsonb_build_object('level', repeat('x', 101)))$f$),
+  'P0001', null, 'a 101-char seniority level is refused (cap 100)');
 
 select throws_ok(
   $$update public.profile_versions set change_summary = 'rewrite'$$,

@@ -114,10 +114,15 @@ begin
   else
     for v_key in select unnest(v_allowed) loop
       if p_value ? v_key then
-        v_max := 300;
-        if v_key in ('text', 'statement') then
-          v_max := 2000;
-        end if;
+        -- Exact per-kind caps, mirroring the app-side Zod schemas.
+        v_max := case p_kind || '.' || v_key
+          when 'role.title' then 200
+          when 'seniority.level' then 100
+          when 'summary.text' then 2000
+          when 'skill.name' then 120
+          when 'achievement.title' then 300
+          when 'achievement.statement' then 2000
+        end;
         if jsonb_typeof(p_value->v_key) <> 'string'
            or char_length(btrim(p_value->>v_key)) < 1
            or char_length(p_value->>v_key) > v_max then
