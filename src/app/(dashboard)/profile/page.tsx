@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
-import { getOwnProfile, loadLivingProfile } from "@/lib/profile/logic";
+import {
+  getOwnProfile,
+  listVersions,
+  loadLivingProfile,
+} from "@/lib/profile/logic";
 import type { ClaimKind, ClaimState } from "@/domain/profile";
 import { ProfileInterview } from "./profile-interview";
 
@@ -18,9 +22,11 @@ export default async function ProfilePage() {
   const client = await createClient();
   const profile = await getOwnProfile(client);
   const living = await loadLivingProfile(client, profile.id);
+  const versions = await listVersions(client, profile.id);
 
   return (
     <ProfileInterview
+      latestVersionNumber={versions[0]?.version_number ?? null}
       claims={living.claims.map((c) => ({
         id: c.id,
         kind: c.kind as ClaimKind,

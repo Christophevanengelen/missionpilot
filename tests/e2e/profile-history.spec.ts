@@ -8,6 +8,11 @@ import { randomUUID } from "node:crypto";
 // publication contract with the synthetic user's own session (RLS in
 // force); the browser journey starts at Profil → Historique.
 
+// The whole file is one ordered chain over a per-run synthetic user: serial
+// mode makes CI retries coherent (a retry re-runs the chain from its fresh
+// seed instead of leaving later tests against an unexpected state).
+test.describe.configure({ mode: "serial" });
+
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 const secretKey = process.env.SUPABASE_SECRET_KEY ?? "";
@@ -254,4 +259,50 @@ test("historique : liste → version → comparaison → restauration → persis
   await page.goto("/profile/history");
   await expect(page.getByRole("article", { name: "Version 3" })).toBeVisible();
   await expect(page.getByRole("article", { name: "Version 4" })).toHaveCount(0);
+});
+
+// Order-dependent by design (tests in a file run sequentially with the
+// default config): builds on the state the previous test left — working
+// profile = restored V1 content (role + one skill), head = version 3.
+test("figer une version depuis le profil : création honnête puis no-op honnête (PR D)", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/profile");
+
+  // The interview resumes at the first missing foundation element
+  // (seniority): answer and confirm it so the confirmed state genuinely
+  // differs from the head version.
+  await expect(page.getByText("niveau de séniorité")).toBeVisible();
+  await page.getByLabel("Votre message").fill("Senior");
+  await page.getByRole("button", { name: "Envoyer" }).click();
+  await page
+    .getByLabel("Conversation")
+    .getByRole("button", { name: "Confirmer", exact: true })
+    .click();
+  // The next question arriving proves the decision was committed.
+  await expect(page.getByText("Combien d'années d'expérience")).toBeVisible();
+
+  // Freeze the confirmed state: new version + deterministic summary.
+  await page
+    .getByRole("button", { name: "Figer une version du profil" })
+    .click();
+  await expect(
+    page.getByText(/Version 4 figée — « Séniorité renseigné/),
+  ).toBeVisible();
+  await expect(page.getByText("Version actuelle : 4")).toBeVisible();
+
+  // Freeze again: honest no-op — no ghost version is ever created.
+  await page
+    .getByRole("button", { name: "Figer une version du profil" })
+    .click();
+  await expect(
+    page.getByText(/Aucun changement de fond depuis la version 4/),
+  ).toBeVisible();
+
+  await page.goto("/profile/history");
+  const v4 = page.getByRole("article", { name: "Version 4" });
+  await expect(v4).toBeVisible();
+  await expect(v4.getByText("Version la plus récente")).toBeVisible();
+  await expect(page.getByRole("article", { name: "Version 5" })).toHaveCount(0);
 });
