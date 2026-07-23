@@ -19,6 +19,7 @@ import {
   CLAIM_KINDS,
   CLAIM_STATES,
   evidenceInputSchema,
+  profilePreferencesSchema,
   type ClaimKind,
   type ClaimState,
 } from "@/domain/profile";
@@ -339,5 +340,19 @@ export async function restoreVersionAction(
     };
   } catch (error) {
     return sanitize("restoreVersion", error);
+  }
+}
+
+export async function savePreferencesAction(
+  input: unknown,
+): Promise<ActionResult> {
+  try {
+    const parsed = profilePreferencesSchema.parse(input);
+    const { client, profileId } = await ownProfileClient();
+    await profile.savePreferences(client, profileId, parsed);
+    const revalidated = revalidateProfile("savePreferences");
+    return { ok: true, data: undefined, revalidated };
+  } catch (error) {
+    return sanitize("savePreferences", error);
   }
 }

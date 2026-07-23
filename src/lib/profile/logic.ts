@@ -13,7 +13,9 @@ import {
   SINGLE_VALUED_KINDS,
   type ClaimKind,
   type ClaimState,
+  type EngagementType,
   type EvidenceInput,
+  type ProfilePreferences,
 } from "@/domain/profile";
 import { buildVersionContent, type VersionContent } from "./version-content";
 import { buildChangeSummary, buildRestoreSummary } from "./change-summary";
@@ -31,6 +33,72 @@ export async function getOwnProfile(client: Client) {
     .single();
   if (error) fail("profile", error.message);
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// Target preferences & hard constraints (PR E) — the profile's live
+// positioning. Read/write via the session client (RLS owner policies in
+// force); the column-scoped grant restricts what an authenticated user may
+// write, the trigger validates every value.
+
+const PREFERENCE_COLUMNS =
+  "target_role_families, preferred_engagement_types, languages, allowed_work_regions, hard_exclusions, target_day_rate, minimum_day_rate, base_currency, remote_policy, timezone_overlap, travel_tolerance";
+
+/** Load the caller's own preferences as the app-facing camelCase shape. */
+export async function loadPreferences(
+  client: Client,
+  profileId: string,
+): Promise<ProfilePreferences> {
+  const { data, error } = await client
+    .from("candidate_profiles")
+    .select(PREFERENCE_COLUMNS)
+    .eq("id", profileId)
+    .single();
+  if (error) fail("preferences load", error.message);
+  return {
+    targetRoleFamilies: (data.target_role_families as string[]) ?? [],
+    preferredEngagementTypes:
+      (data.preferred_engagement_types as EngagementType[]) ?? [],
+    languages: (data.languages as string[]) ?? [],
+    allowedWorkRegions: (data.allowed_work_regions as string[]) ?? [],
+    hardExclusions: (data.hard_exclusions as string[]) ?? [],
+    targetDayRate: data.target_day_rate,
+    minimumDayRate: data.minimum_day_rate,
+    baseCurrency: data.base_currency as ProfilePreferences["baseCurrency"],
+    remotePolicy: data.remote_policy as ProfilePreferences["remotePolicy"],
+    timezoneOverlap: data.timezone_overlap,
+    travelTolerance:
+      data.travel_tolerance as ProfilePreferences["travelTolerance"],
+  };
+}
+
+/** Persist the FULL preferences set (already validated by the caller). */
+export async function savePreferences(
+  client: Client,
+  profileId: string,
+  prefs: ProfilePreferences,
+) {
+  const { data, error } = await client
+    .from("candidate_profiles")
+    .update({
+      target_role_families: prefs.targetRoleFamilies,
+      preferred_engagement_types: prefs.preferredEngagementTypes,
+      languages: prefs.languages,
+      allowed_work_regions: prefs.allowedWorkRegions,
+      hard_exclusions: prefs.hardExclusions,
+      target_day_rate: prefs.targetDayRate,
+      minimum_day_rate: prefs.minimumDayRate,
+      base_currency: prefs.baseCurrency,
+      remote_policy: prefs.remotePolicy,
+      timezone_overlap: prefs.timezoneOverlap,
+      travel_tolerance: prefs.travelTolerance,
+    })
+    .eq("id", profileId)
+    .select("id")
+    .maybeSingle();
+  if (error) fail("preferences save", error.message);
+  if (!data) fail("preferences save", "not found or not owned");
+  return data.id;
 }
 
 // ---------------------------------------------------------------------------
