@@ -7,11 +7,16 @@ import { canonicalJson, type VersionContent } from "./version-content";
 
 type SingleValued = "role" | "seniority" | "summary" | "years_experience";
 
-const SINGLE_LABELS: Record<SingleValued, string> = {
-  role: "Rôle",
-  seniority: "Séniorité",
-  summary: "Résumé",
-  years_experience: "Années d'expérience",
+// `accord` is the past-participle agreement suffix for the label's gender and
+// number: "" masculine singular, "e" feminine singular, "es" feminine plural.
+const SINGLE_LABELS: Record<
+  SingleValued,
+  { label: string; accord: "" | "e" | "es" }
+> = {
+  role: { label: "Rôle", accord: "" },
+  seniority: { label: "Séniorité", accord: "e" },
+  summary: { label: "Résumé", accord: "" },
+  years_experience: { label: "Années d'expérience", accord: "es" },
 };
 
 function singleValue(content: VersionContent, kind: SingleValued) {
@@ -55,9 +60,10 @@ export function buildChangeSummary(
     const before = singleValue(previous, kind);
     const after = singleValue(next, kind);
     if (before === after) continue;
-    if (before === null) parts.push(`${SINGLE_LABELS[kind]} renseigné`);
-    else if (after === null) parts.push(`${SINGLE_LABELS[kind]} retiré`);
-    else parts.push(`${SINGLE_LABELS[kind]} mis à jour`);
+    const { label, accord } = SINGLE_LABELS[kind];
+    if (before === null) parts.push(`${label} renseigné${accord}`);
+    else if (after === null) parts.push(`${label} retiré${accord}`);
+    else parts.push(`${label} mis${accord} à jour`);
   }
 
   for (const [kind, singular, pluralForm, removedS, removedP] of [
