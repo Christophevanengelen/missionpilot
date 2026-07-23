@@ -165,9 +165,13 @@ Reviews (pass 4): implementation-reviewer FAIL→**repaired** (missing
 frozen-evidence proof added; drift note added; both re-verified);
 security-reviewer **PASS** (helpers properly sandboxed; denial proofs added
 on its minor; size-guard removal accepted as self-scoped, documented).
-Final counts: unit 56 · pgTAP 94 (66 new) · integration 15 · e2e 19.
+Final counts: unit 56 · pgTAP 96 (68 new) · integration 15 · e2e 19.
 
-**Codex pass 4 (final, read-only): recorded in the PR.**
+**Codex pass 4: FAIL** — one exact finding: the SQL validator's generic
+300-char cap drifted from the app schemas → **fixed** (per-(kind, key) caps
+mirroring Zod + pgTAP length proofs). **Codex pass 5 (final): PASS** — no
+blocker/major; two minors are recorded owner decisions (summary-preview
+drift; living-library restore semantics).
 
 ## Stop
 
