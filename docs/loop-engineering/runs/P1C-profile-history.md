@@ -105,9 +105,17 @@ nothing » and exercised end-to-end by e2e step 8; fix = expose the existing
 
 - **requiresHumanApproval**: yes (UX validation on Vercel Preview, then
   explicit merge approval)
-- **stopReason**: PR C implemented inside the locked scope, all local gates
-  green (88 unit · 98 pgTAP · 19 integration · 29 e2e), both independent
-  reviews PASS with demonstrated minors repaired and re-verified; awaiting
-  PR CI, human UX validation on the Vercel Preview and explicit owner
-  approval before merge. Codex re-review (PR B diff + this PR) deferred to
-  2026-07-29 (quota, owner decision).
+- **stopReason**: PR C MERGED — full journey (list → read-only version →
+  compare → honest traceable restore → history intact) demonstrated live on
+  the hosted Preview with a synthetic demo account before approval; owner
+  explicitly approved the merge of PR #6 at head `238d737`; squash-merged
+  to main as `343e2b3` (2026-07-23), branch deleted, all merge-commit
+  checks green (CI both jobs · Supabase sync no-op · Vercel), production
+  deployment READY on missionpilot.vercel.app. One cosmetic info noted
+  during the live run: duplicated « Revenir au profil actuel » affordance
+  after a successful restore (success-view button + the page's permanent
+  link). Codex re-review (PR B diff + this PR) deferred to 2026-07-29
+  (quota, owner decision). Hosted demo-seeding parenthesis honestly
+  recorded: signups + email confirmation temporarily toggled to create the
+  synthetic demo user with the PUBLIC publishable key (RLS in force, no
+  secret key handled by anyone), then immediately reverted and verified.
