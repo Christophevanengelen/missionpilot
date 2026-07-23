@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/db/database.types";
 import {
+  countSnapshots,
   getLatestSnapshot,
   getOpportunity,
   getOwnProfile,
@@ -104,6 +105,9 @@ describe("pasted-text import", () => {
       .select("id", { count: "exact", head: true })
       .eq("opportunity_id", first.opportunity_id);
     expect(count ?? 0).toBeGreaterThanOrEqual(2);
+
+    // countSnapshots (the "seen N times" source of truth) matches the count.
+    expect(await countSnapshots(alice, first.opportunity_id)).toBe(count);
   });
 
   it("honestly reports unknown fields for opaque text", async () => {
