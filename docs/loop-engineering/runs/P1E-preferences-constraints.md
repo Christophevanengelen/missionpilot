@@ -6,11 +6,12 @@
   target preferences and hard constraints (the profile's live positioning
   the Phase 3 matching engine will read). A dedicated `/profile/preferences`
   form, all fields optional, never blocking the interview.
-- **status**: in_progress
+- **status**: completed
 - **attempt**: 1
 - **startedAt**: 2026-07-24T00:20:00+02:00
-- **startSha**: `abb461a` (main, clean)
-- **branch**: `feat/phase-1-preferences`
+- **startSha**: `abb461a`; rebased onto `dc2debe` (main after PR D) — panel
+  links conflict resolved (Historique + Préférences coexist)
+- **branch**: `feat/phase-1-preferences` (PR #9)
 
 ## Scope
 
@@ -69,4 +70,12 @@ automation: out of remit / security anti-pattern; left to the owner.
 ## Stop
 
 - **requiresHumanApproval**: yes (merge)
-- **stopReason**: —
+- **stopReason**: PR E complete — all local gates green (88 unit · 113 pgTAP
+  · 23 integration · 31 e2e post-rebase), both independent reviews PASS (1
+  Low repaired), rebased onto main (PR D) and **PR #9 CI fully green**.
+  Closes Phase 1's last roadmap deliverable; all six Phase 1 deliverables
+  are now covered. Awaiting explicit owner merge approval. Note: the PR #9
+  Vercel preview runs against the hosted DB, which receives PR E's migration
+  only on merge to main (no Supabase Branching on the free plan) — the
+  `/profile/preferences` page fully exercises only after merge; CI proves it
+  on the isolated local stack meanwhile.
