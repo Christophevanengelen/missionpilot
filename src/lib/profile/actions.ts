@@ -311,6 +311,12 @@ export async function restoreVersionAction(
   ActionResult<{
     versionId: string;
     versionNumber: number;
+    /** False = the SQL no-op guard fired (content already identical to the
+     *  head) and NOTHING was mutated. The RPC has always returned this
+     *  flag; dropping it here made the no-op indistinguishable from a real
+     *  restore when the restored version's number differs from the head's
+     *  (defect demonstrated by the PR C e2e — honest UI needs it). */
+    created: boolean;
     missingEvidence: number;
   }>
 > {
@@ -327,6 +333,7 @@ export async function restoreVersionAction(
       data: {
         versionId: result.version_id,
         versionNumber: result.version_number,
+        created: result.created,
         missingEvidence: result.missing_evidence,
       },
     };

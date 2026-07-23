@@ -323,6 +323,37 @@ export async function publishVersion(client: Client, profileId: string) {
   return { ...result, summary };
 }
 
+/** Confirmed versions, newest first (RLS: owner rows only). */
+export async function listVersions(client: Client, profileId: string) {
+  const { data, error } = await client
+    .from("profile_versions")
+    .select(
+      "id, version_number, change_summary, created_from_version_id, published_at",
+    )
+    .eq("profile_id", profileId)
+    .order("version_number", { ascending: false });
+  if (error) fail("versions list", error.message);
+  return data;
+}
+
+/** One version by its human number, with content; null when absent. */
+export async function getVersionByNumber(
+  client: Client,
+  profileId: string,
+  versionNumber: number,
+) {
+  const { data, error } = await client
+    .from("profile_versions")
+    .select(
+      "id, version_number, content, change_summary, created_from_version_id, published_at",
+    )
+    .eq("profile_id", profileId)
+    .eq("version_number", versionNumber)
+    .maybeSingle();
+  if (error) fail("version read", error.message);
+  return data;
+}
+
 export async function restoreVersion(
   client: Client,
   profileId: string,

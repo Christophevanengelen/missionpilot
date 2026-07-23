@@ -139,6 +139,74 @@ export const copy = {
         attachedTo: (label: string) => `Rattachée à « ${label} »`,
         detach: "Détacher",
         empty: "Votre profil se construira ici au fil de l'entretien.",
+        history: "Historique",
+      },
+    },
+    history: {
+      title: "Historique du profil",
+      subtitle:
+        "Les versions confirmées de votre profil, de la plus récente à la plus ancienne.",
+      empty:
+        "Aucune version confirmée pour le moment. Votre profil de travail n'est pas encore figé dans une version.",
+      loadError:
+        "L'historique n'a pas pu être chargé. Réessayez — vos versions sont intactes.",
+      versionLabel: (n: number) => `Version ${n}`,
+      latestBadge: "Version la plus récente",
+      restoredFrom: (n: number) =>
+        `Issue de la restauration de la version ${n}`,
+      confirmedOn: (date: string) => `Confirmée le ${date}`,
+      noSummary: "Aucun résumé enregistré pour cette version.",
+      backToProfile: "Revenir au profil actuel",
+      backToHistory: "Retour à l'historique",
+      openVersion: "Consulter",
+      readOnlyNotice:
+        "Vous consultez une version confirmée, en lecture seule. Votre profil de travail actuel n'est pas modifié.",
+      versionUnavailable:
+        "Cette version n'existe pas ou n'est plus disponible.",
+      emptyVersion: "Cette version ne contient aucun élément confirmé.",
+      compare: {
+        title: "Comparaison",
+        direction: (a: number, b: number) => `Version ${a} → Version ${b}`,
+        reference: "Version de référence",
+        compared: "Version comparée",
+        invert: "Inverser",
+        sameVersion:
+          "Comparer une version avec elle-même n'apporterait aucun changement. Choisissez deux versions différentes.",
+        changesCount: (n: number) =>
+          n === 0
+            ? "Aucun changement"
+            : `${n} ${n > 1 ? "changements" : "changement"}`,
+        countsDetail: (added: number, modified: number, removed: number) =>
+          [
+            `${added} ${added > 1 ? "ajouts" : "ajout"}`,
+            `${modified} ${modified > 1 ? "modifications" : "modification"}`,
+            `${removed} ${removed > 1 ? "suppressions" : "suppression"}`,
+          ].join(" · "),
+        added: "Ajouté",
+        modified: "Modifié",
+        removed: "Supprimé",
+        unchanged: "Inchangé",
+        before: "Avant",
+        after: "Après",
+        evidenceAdded: "Preuve rattachée",
+        evidenceRemoved: "Preuve détachée",
+        evidenceChanged: "Preuve mise à jour",
+      },
+      restoreAction: "Restaurer cette version",
+      restore: {
+        warning:
+          "Cette version remplacera le contenu actuel de votre profil. Une nouvelle version retraçant cette restauration sera créée. Toutes les versions existantes seront conservées.",
+        cancel: "Annuler",
+        confirm: "Restaurer cette version",
+        success: (source: number, created: number) =>
+          `Version ${source} restaurée. Votre profil de travail a été remplacé et la version ${created} retrace cette restauration. Toutes les versions existantes sont conservées.`,
+        noop: "Aucune modification n'a été effectuée : le contenu de cette version est déjà identique à votre version la plus récente.",
+        missingEvidence: (n: number) =>
+          `${n} ${n > 1 ? "preuves d'origine ne sont plus disponibles et n'ont pas pu être rattachées" : "preuve d'origine n'est plus disponible et n'a pas pu être rattachée"}.`,
+        error:
+          "La restauration n'a pas abouti. Votre profil et vos versions n'ont pas été modifiés — réessayez.",
+        unknown:
+          "La connexion a été interrompue pendant la restauration : son résultat est incertain. Rouvrez l'historique pour vérifier l'état réel avant de réessayer.",
       },
     },
   },
@@ -263,6 +331,69 @@ export const copy = {
         attachedTo: (label: string) => `Attached to “${label}”`,
         detach: "Detach",
         empty: "Your profile will build here as the interview goes.",
+        history: "History",
+      },
+    },
+    history: {
+      title: "Profile history",
+      subtitle: "The confirmed versions of your profile, newest first.",
+      empty:
+        "No confirmed version yet. Your working profile has not been frozen into a version.",
+      loadError:
+        "The history could not be loaded. Try again — your versions are intact.",
+      versionLabel: (n: number) => `Version ${n}`,
+      latestBadge: "Latest version",
+      restoredFrom: (n: number) => `Created by restoring version ${n}`,
+      confirmedOn: (date: string) => `Confirmed on ${date}`,
+      noSummary: "No summary recorded for this version.",
+      backToProfile: "Back to current profile",
+      backToHistory: "Back to history",
+      openVersion: "View",
+      readOnlyNotice:
+        "You are viewing a confirmed version, read-only. Your current working profile is not modified.",
+      versionUnavailable: "This version does not exist or is unavailable.",
+      emptyVersion: "This version contains no confirmed element.",
+      compare: {
+        title: "Comparison",
+        direction: (a: number, b: number) => `Version ${a} → Version ${b}`,
+        reference: "Reference version",
+        compared: "Compared version",
+        invert: "Invert",
+        sameVersion:
+          "Comparing a version with itself would show no change. Pick two different versions.",
+        changesCount: (n: number) =>
+          n === 0 ? "No change" : `${n} ${n > 1 ? "changes" : "change"}`,
+        countsDetail: (added: number, modified: number, removed: number) =>
+          [
+            `${added} ${added > 1 ? "additions" : "addition"}`,
+            `${modified} ${modified > 1 ? "modifications" : "modification"}`,
+            `${removed} ${removed > 1 ? "removals" : "removal"}`,
+          ].join(" · "),
+        added: "Added",
+        modified: "Modified",
+        removed: "Removed",
+        unchanged: "Unchanged",
+        before: "Before",
+        after: "After",
+        evidenceAdded: "Proof attached",
+        evidenceRemoved: "Proof detached",
+        evidenceChanged: "Proof updated",
+      },
+      restoreAction: "Restore this version",
+      restore: {
+        warning:
+          "This version will replace the current content of your profile. A new version tracing this restore will be created. Every existing version is kept.",
+        cancel: "Cancel",
+        confirm: "Restore this version",
+        success: (source: number, created: number) =>
+          `Version ${source} restored. Your working profile was replaced and version ${created} traces this restore. Every existing version is kept.`,
+        noop: "Nothing was changed: this version's content is already identical to your latest version.",
+        missingEvidence: (n: number) =>
+          `${n} original ${n > 1 ? "proofs are" : "proof is"} no longer available and could not be re-attached.`,
+        error:
+          "The restore did not go through. Your profile and versions were not modified — try again.",
+        unknown:
+          "The connection dropped during the restore: its outcome is uncertain. Reopen the history to check the real state before trying again.",
       },
     },
   },

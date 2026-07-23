@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Thread } from "@/components/conversation/thread";
@@ -457,6 +458,15 @@ export function ProfileInterview({
           {copy.panel.addEvidence}
         </Button>
       </section>
+
+      <p className="border-border/60 border-t pt-4">
+        <Link
+          href="/profile/history"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+        >
+          {copy.panel.history}
+        </Link>
+      </p>
     </div>
   );
 
