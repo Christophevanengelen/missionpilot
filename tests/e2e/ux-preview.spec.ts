@@ -145,7 +145,12 @@ test.describe("UX Preview", () => {
     // next-themes defaultTheme=system → dark tokens applied.
     await expectNoSeriousAxeViolations(page, "dark populated");
     await openDemoPanel(page);
-    await page.getByRole("button", { name: "Erreur", exact: true }).click();
+    const errorBtn = page.getByRole("button", { name: "Erreur", exact: true });
+    await errorBtn.click();
+    await expect(errorBtn).toHaveAttribute("aria-pressed", "true");
+    // Same settle as the states loop: never let axe sample the motion-safe
+    // color transition mid-blend on a slow runner.
+    await page.waitForTimeout(250);
     await expectNoSeriousAxeViolations(page, "dark error");
   });
 

@@ -12,6 +12,9 @@ try {
 // dev server: production mode is faster in CI and catches build-only issues.
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Mutation round-trips (server action + RSC refresh) need headroom on the
+  // 2-core CI runner; interactive polls still pass as fast as the app does.
+  expect: { timeout: 15_000 },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   // html report feeds the CI failure artifact (playwright-report/, gitignored).
