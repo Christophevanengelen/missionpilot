@@ -147,6 +147,7 @@ export type Database = {
       candidate_profiles: {
         Row: {
           created_at: string;
+          current_version_id: string | null;
           display_name: string | null;
           id: string;
           status: string;
@@ -155,6 +156,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          current_version_id?: string | null;
           display_name?: string | null;
           id?: string;
           status?: string;
@@ -163,13 +165,241 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          current_version_id?: string | null;
           display_name?: string | null;
           id?: string;
           status?: string;
           updated_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "candidate_profiles_current_version_id_fkey";
+            columns: ["current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_versions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      claim_evidence_links: {
+        Row: {
+          claim_id: string;
+          created_at: string;
+          detach_reason: string | null;
+          detached_at: string | null;
+          evidence_id: string;
+          id: string;
+        };
+        Insert: {
+          claim_id: string;
+          created_at?: string;
+          detach_reason?: string | null;
+          detached_at?: string | null;
+          evidence_id: string;
+          id?: string;
+        };
+        Update: {
+          claim_id?: string;
+          created_at?: string;
+          detach_reason?: string | null;
+          detached_at?: string | null;
+          evidence_id?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "claim_evidence_links_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_claims";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "claim_evidence_links_evidence_id_fkey";
+            columns: ["evidence_id"];
+            isOneToOne: false;
+            referencedRelation: "evidence_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      evidence_items: {
+        Row: {
+          created_at: string;
+          end_date: string | null;
+          id: string;
+          metrics: Json;
+          organization: string | null;
+          profile_id: string;
+          source_reference: string | null;
+          source_type: string;
+          start_date: string | null;
+          state: string;
+          statement: string;
+          tags: string[];
+          title: string;
+          type: string;
+          updated_at: string;
+          verification_status: string;
+        };
+        Insert: {
+          created_at?: string;
+          end_date?: string | null;
+          id?: string;
+          metrics?: Json;
+          organization?: string | null;
+          profile_id: string;
+          source_reference?: string | null;
+          source_type: string;
+          start_date?: string | null;
+          state?: string;
+          statement: string;
+          tags?: string[];
+          title: string;
+          type: string;
+          updated_at?: string;
+          verification_status?: string;
+        };
+        Update: {
+          created_at?: string;
+          end_date?: string | null;
+          id?: string;
+          metrics?: Json;
+          organization?: string | null;
+          profile_id?: string;
+          source_reference?: string | null;
+          source_type?: string;
+          start_date?: string | null;
+          state?: string;
+          statement?: string;
+          tags?: string[];
+          title?: string;
+          type?: string;
+          updated_at?: string;
+          verification_status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "evidence_items_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      profile_claims: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          origin: string;
+          previous_claim_id: string | null;
+          profile_id: string;
+          state: string;
+          superseded_at: string | null;
+          superseded_by_claim_id: string | null;
+          updated_at: string;
+          value: Json;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          origin?: string;
+          previous_claim_id?: string | null;
+          profile_id: string;
+          state?: string;
+          superseded_at?: string | null;
+          superseded_by_claim_id?: string | null;
+          updated_at?: string;
+          value: Json;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          origin?: string;
+          previous_claim_id?: string | null;
+          profile_id?: string;
+          state?: string;
+          superseded_at?: string | null;
+          superseded_by_claim_id?: string | null;
+          updated_at?: string;
+          value?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_claims_previous_claim_id_fkey";
+            columns: ["previous_claim_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_claims";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profile_claims_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profile_claims_superseded_by_claim_id_fkey";
+            columns: ["superseded_by_claim_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_claims";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      profile_versions: {
+        Row: {
+          change_summary: string;
+          content: Json;
+          content_hash: string;
+          created_from_version_id: string | null;
+          id: string;
+          profile_id: string;
+          published_at: string;
+          version_number: number;
+        };
+        Insert: {
+          change_summary: string;
+          content: Json;
+          content_hash: string;
+          created_from_version_id?: string | null;
+          id?: string;
+          profile_id: string;
+          published_at?: string;
+          version_number: number;
+        };
+        Update: {
+          change_summary?: string;
+          content?: Json;
+          content_hash?: string;
+          created_from_version_id?: string | null;
+          id?: string;
+          profile_id?: string;
+          published_at?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_versions_created_from_version_id_fkey";
+            columns: ["created_from_version_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_versions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profile_versions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       system_health_results: {
         Row: {
@@ -217,7 +447,34 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      publish_profile_version: {
+        Args: {
+          p_change_summary: string;
+          p_content: Json;
+          p_content_hash: string;
+          p_created_from_version_id?: string;
+          p_profile_id: string;
+        };
+        Returns: Json;
+      };
+      replace_profile_claim: {
+        Args: {
+          p_claim_to_supersede?: string;
+          p_kind: string;
+          p_origin?: string;
+          p_profile_id: string;
+          p_value: Json;
+        };
+        Returns: string;
+      };
+      restore_profile_version: {
+        Args: {
+          p_change_summary: string;
+          p_profile_id: string;
+          p_version_id: string;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;
