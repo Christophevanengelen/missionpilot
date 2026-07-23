@@ -84,7 +84,7 @@ policies (`with check` incl. profile-ownership join) are the second barrier.
 
 Migration `supabase/migrations/20260723115606_phase1_profile_evidence.sql`
 (4 tables, chain-integrity trigger, 3 SQL functions, RLS + minimal grants);
-pgTAP `supabase/tests/profile_rls.test.sql` (53); domain
+pgTAP `supabase/tests/profile_rls.test.sql` (56); domain
 `src/domain/profile.ts`; `src/lib/profile/{version-content,change-summary,
 logic,actions}.ts`; unit tests ×3; integration
 `tests/integration/profile-foundation.test.ts`; regenerated
@@ -95,7 +95,7 @@ logic,actions}.ts`; unit tests ×3; integration
 | Check                                               | Result                                                                                                                                                                                                           |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `supabase db reset` (both migrations apply cleanly) | passed                                                                                                                                                                                                           |
-| pgTAP `pnpm test:rls`                               | **81/81** (28 phase-0 + 53 new)                                                                                                                                                                                  |
+| pgTAP `pnpm test:rls`                               | **84/84** (28 phase-0 + 56 new)                                                                                                                                                                                  |
 | Unit `pnpm test`                                    | **56/56** (21 new: state machine, canonicalization/hash incl. total-order determinism, FR summaries)                                                                                                             |
 | Integration `pnpm test:integration`                 | **14/14** (correction chain, illegal transition, idempotent double submit, SAME-content race → 1 row, DIFFERENT-content race → n+1/n+2, restore with links + traceability, cross-user lockout via real sessions) |
 | `pnpm verify:full`                                  | fully green (see PR)                                                                                                                                                                                             |
