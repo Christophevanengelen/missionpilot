@@ -4,7 +4,8 @@
 - **taskId**: P1A-data-foundation
 - **goal**: Data foundation for the versioned professional profile and evidence library — migration, RLS and minimal grants, atomic publish/restore SQL functions, domain state machine, Zod validation, DAL-verified Server Actions, and the unit/integration/pgTAP proofs. No business UI in this PR.
 - **status**: completed
-- **attempt**: 2 / **maxAttempts**: 3 (1 = build; 2 = review repairs)
+- **attempt**: 3 / **maxAttempts**: 3 (1 = build; 2 = Claude review repairs;
+  3 = Codex review repairs)
 - **startedAt** / **completedAt**: 2026-07-23T15:30:00+02:00 / 2026-07-23T18:30:00+02:00
 
 ## Specification (owner-approved plan + mandatory corrections)
@@ -114,7 +115,20 @@ logic,actions}.ts`; unit tests ×3; integration
 | security | info     | content hash not recomputed in DB; content size unbounded                           | size guard added (256 KB); hash **advisory at rest** by design (computed app-side, tested canonicalization; self-scoped) — documented                                          |
 | security | info     | crafted stored content can fail one's own restore                                   | accepted (atomic rollback proven; self-DoS only)                                                                                                                               |
 
-Both reviewers: **PASS** (0 blocker, 0 major). Codex verdict recorded in the PR.
+Both reviewers: **PASS** (0 blocker, 0 major).
+
+**Codex pass 1 (read-only): FAIL — findings and honest resolutions:**
+
+| Severity | Finding                                                                                 | Resolution                                                                                                                                                                                                                      |
+| -------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| blocker  | restoring a snapshot equal to the current head mutated claims with no traceable version | **fixed**: head-hash guard BEFORE any mutation — redundant restore returns `created=false`, claims untouched (+3 pgTAP)                                                                                                         |
+| major    | `current_version_id` FK not same-profile constrained                                    | **fixed**: composite FK `(id, current_version_id) → profile_versions(profile_id, id)` — even privileged paths cannot cross profiles                                                                                             |
+| major    | direct INSERT grant on `profile_claims` "bypasses" the actions                          | **rebutted, by design**: Server Actions execute with the caller's SESSION (`authenticated` role) — these grants ARE the actions' write path; RLS `with check` + partial unique index + chain trigger bound it; self-scoped only |
+| major    | users can close their own claims without successor via PostgREST                        | **rebutted, documented**: the invoker function needs those column grants; closure-without-successor is legal domain vocabulary (restore uses it); reopening/rewriting is trigger-blocked; strictly self-scoped                  |
+| minor    | evidence-change summary sensitive to array order                                        | **fixed**: order-insensitive comparison                                                                                                                                                                                         |
+| minor    | `rejected → proposed` transition questioned                                             | **rebutted, intentional**: the explicit «Restaurer» action on an ignored statement (owner-approved UX); app-enforced by the state machine                                                                                       |
+
+**Codex pass 2 verdict: recorded in the PR.**
 
 ## Stop
 

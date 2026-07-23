@@ -95,11 +95,15 @@ export function buildChangeSummary(
     // Same claims and same evidence counts, yet something differs: the
     // CONTENT of an attached evidence changed (title, statement,
     // verification…). Say so honestly instead of "no change".
-    const evidenceChanged =
+    const evidenceKey = (content: VersionContent) =>
       canonicalJson(
-        previous.claims.map((c) => c.evidence.map(stripEvidenceId)),
-      ) !==
-      canonicalJson(next.claims.map((c) => c.evidence.map(stripEvidenceId)));
+        content.claims
+          .map((c) =>
+            c.evidence.map((e) => canonicalJson(stripEvidenceId(e))).sort(),
+          )
+          .sort(),
+      );
+    const evidenceChanged = evidenceKey(previous) !== evidenceKey(next);
     return evidenceChanged
       ? "Preuves rattachées mises à jour."
       : "Aucun changement de fond.";

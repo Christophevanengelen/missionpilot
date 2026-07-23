@@ -174,11 +174,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "candidate_profiles_current_version_id_fkey";
-            columns: ["current_version_id"];
+            foreignKeyName: "candidate_profiles_current_version_same_profile";
+            columns: ["id", "current_version_id"];
             isOneToOne: false;
             referencedRelation: "profile_versions";
-            referencedColumns: ["id"];
+            referencedColumns: ["profile_id", "id"];
           },
         ];
       };

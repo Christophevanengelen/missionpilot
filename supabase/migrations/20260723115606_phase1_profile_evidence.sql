@@ -360,7 +360,10 @@ create table public.profile_versions (
     check (char_length(change_summary) between 1 and 2000),
   created_from_version_id uuid references public.profile_versions (id),
   published_at timestamptz not null default now(),
-  unique (profile_id, version_number)
+  unique (profile_id, version_number),
+  -- Composite key so current_version_id below can be constrained to a
+  -- version OF THE SAME PROFILE (defense in depth for privileged paths).
+  unique (profile_id, id)
 );
 
 alter table public.profile_versions enable row level security;
@@ -387,8 +390,15 @@ grant select, insert, delete on public.profile_versions to service_role;
 --    only.
 
 alter table public.candidate_profiles
-  add column current_version_id uuid
-    references public.profile_versions (id) on delete set null;
+  add column current_version_id uuid;
+
+-- Same-profile constraint: even a privileged/manual update can never point a
+-- profile at another profile's version.
+alter table public.candidate_profiles
+  add constraint candidate_profiles_current_version_same_profile
+    foreign key (id, current_version_id)
+    references public.profile_versions (profile_id, id)
+    on delete set null (current_version_id);
 
 -- ---------------------------------------------------------------------------
 -- 6. Atomic publication (and restore) — SECURITY DEFINER, hardened.
@@ -504,6 +514,7 @@ as $$
 declare
   v_uid uuid;
   v_source record;
+  v_head record;
   v_claim jsonb;
   v_new_claim_id uuid;
   v_evidence_id uuid;
@@ -527,6 +538,24 @@ begin
     where id = p_version_id and profile_id = p_profile_id;
   if not found then
     raise exception 'version not found for this profile';
+  end if;
+
+  -- Guard BEFORE any mutation: restoring a snapshot whose business content
+  -- equals the current head would close/rebuild the living claims while the
+  -- consecutive-difference rule prevents any traceable version row. Refuse
+  -- the no-op instead of mutating silently.
+  select content_hash, id, version_number into v_head
+    from public.profile_versions
+    where profile_id = p_profile_id
+    order by version_number desc
+    limit 1;
+  if v_head.content_hash = v_source.content_hash then
+    return jsonb_build_object(
+      'version_id', v_head.id,
+      'version_number', v_head.version_number,
+      'created', false,
+      'missing_evidence', 0
+    );
   end if;
 
   update public.profile_claims

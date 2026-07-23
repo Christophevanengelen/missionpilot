@@ -6,7 +6,7 @@
 
 begin;
 
-select plan(53);
+select plan(56);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: users C and D (the signup trigger creates their profiles).
@@ -342,6 +342,29 @@ select is(
      'Restauration de la version 2.')
    ->> 'missing_evidence')::int,
   0, 'restoring an evidence-free snapshot reports zero misses');
+
+-- No-op guard: restoring a snapshot equal to the CURRENT head must refuse
+-- before any mutation — no ghost version, no silently-closed claims.
+select set_config('test.claims_rows_before',
+  (select count(*)::text from public.profile_claims), true);
+
+select is(
+  (public.restore_profile_version(
+     (select id from public.candidate_profiles
+       where user_id = '33333333-3333-3333-3333-333333333333'),
+     (select id from public.profile_versions where version_number = 2),
+     'Restauration redondante.')
+   ->> 'created')::boolean,
+  false, 'restoring content equal to the head creates nothing');
+
+select is(
+  (select max(version_number)::int from public.profile_versions),
+  4, 'no ghost version was appended by the redundant restore');
+
+select is(
+  (select count(*)::text from public.profile_claims),
+  current_setting('test.claims_rows_before'),
+  'the living claims were left completely untouched');
 
 -- History-shape guard (chain-integrity trigger), still as C: a closed claim
 -- can never be silently reopened.
