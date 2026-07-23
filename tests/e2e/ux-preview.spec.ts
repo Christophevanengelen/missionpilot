@@ -44,16 +44,19 @@ async function openDemoPanel(page: Page) {
   ).toBeVisible();
 }
 
-test.describe("UX Preview", () => {
-  test.beforeEach(() => {
-    test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
-  });
-
+// The auth-boundary proof needs no credentials — it must ALWAYS run.
+test.describe("UX Preview access", () => {
   test("is auth-protected: anonymous visitors are sent to login", async ({
     page,
   }) => {
     await page.goto("/ux-preview");
     await expect(page).toHaveURL(/\/login/);
+  });
+});
+
+test.describe("UX Preview", () => {
+  test.beforeEach(() => {
+    test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
   });
 
   test("authenticated, it shows the conversational surface", async ({
