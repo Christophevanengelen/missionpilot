@@ -224,6 +224,62 @@ export const copy = {
           "La connexion a été interrompue pendant la restauration : son résultat est incertain. Rouvrez l'historique pour vérifier l'état réel avant de réessayer.",
       },
     },
+    opportunities: {
+      title: "Opportunités",
+      subtitle:
+        "Importez une annonce : nous en gardons une copie source figée et en extrayons les données, à vérifier par vous.",
+      importLabel: "Coller le texte d'une annonce",
+      importPlaceholder:
+        "Collez ici le texte complet d'une offre de mission ou de poste…",
+      importButton: "Importer l'annonce",
+      importEmpty: "Collez le texte d'une annonce avant d'importer.",
+      importError:
+        "L'import n'a pas abouti. Vérifiez le texte collé et réessayez.",
+      listEmpty:
+        "Aucune opportunité pour le moment. Importez une première annonce ci-dessus.",
+      unknownsNote: (n: number) =>
+        n === 0
+          ? "Tous les champs ont pu être renseignés (à vérifier)."
+          : `${n} ${n > 1 ? "champs n'ont" : "champ n'a"} pas pu être déterminé${n > 1 ? "s" : ""} depuis la source.`,
+      openDetail: "Inspecter",
+      unverifiedBanner:
+        "Données extraites automatiquement de la source — non vérifiées. Elles servent à l'inspection, pas de vérité.",
+      sections: {
+        normalized: "Données normalisées",
+        unknowns: "Champs non déterminés",
+        source: "Capture source (figée)",
+      },
+      fields: {
+        title: "Intitulé",
+        organization: "Organisation",
+        engagementType: "Type d'engagement",
+        seniority: "Séniorité",
+        remoteType: "Télétravail",
+        locationText: "Localisation",
+        compensation: "Rémunération",
+        requirements: "Exigences",
+        responsibilities: "Missions",
+        skills: "Compétences",
+        sourceUrl: "Lien source",
+        description: "Description",
+      },
+      remoteTypes: {
+        remote_only: "100 % à distance",
+        hybrid: "Hybride",
+        onsite: "Sur site",
+        unspecified: "Non précisé",
+      },
+      engagementTypes: {
+        freelance: "Freelance",
+        part_time: "Temps partiel",
+        interim: "Intérim",
+        permanent: "Permanent",
+      },
+      capturedAt: (date: string) => `Capturée le ${date}`,
+      backToList: "Retour aux opportunités",
+      notFound: "Cette opportunité n'existe pas ou n'est plus disponible.",
+      none: "Non déterminé",
+    },
     preferences: {
       title: "Préférences & contraintes",
       subtitle:
@@ -477,6 +533,61 @@ export const copy = {
         unknown:
           "The connection dropped during the restore: its outcome is uncertain. Reopen the history to check the real state before trying again.",
       },
+    },
+    opportunities: {
+      title: "Opportunities",
+      subtitle:
+        "Import a listing: we keep a frozen source copy and extract its data, for you to verify.",
+      importLabel: "Paste a listing's text",
+      importPlaceholder:
+        "Paste the full text of a mission or job listing here…",
+      importButton: "Import listing",
+      importEmpty: "Paste a listing's text before importing.",
+      importError:
+        "The import did not go through. Check the text and try again.",
+      listEmpty: "No opportunities yet. Import a first listing above.",
+      unknownsNote: (n: number) =>
+        n === 0
+          ? "Every field could be filled (to verify)."
+          : `${n} field${n > 1 ? "s" : ""} could not be determined from the source.`,
+      openDetail: "Inspect",
+      unverifiedBanner:
+        "Data extracted automatically from the source — unverified. For inspection, not ground truth.",
+      sections: {
+        normalized: "Normalized data",
+        unknowns: "Undetermined fields",
+        source: "Source capture (frozen)",
+      },
+      fields: {
+        title: "Title",
+        organization: "Organization",
+        engagementType: "Engagement type",
+        seniority: "Seniority",
+        remoteType: "Remote",
+        locationText: "Location",
+        compensation: "Compensation",
+        requirements: "Requirements",
+        responsibilities: "Responsibilities",
+        skills: "Skills",
+        sourceUrl: "Source link",
+        description: "Description",
+      },
+      remoteTypes: {
+        remote_only: "Remote only",
+        hybrid: "Hybrid",
+        onsite: "Onsite",
+        unspecified: "Unspecified",
+      },
+      engagementTypes: {
+        freelance: "Freelance",
+        part_time: "Part-time",
+        interim: "Interim",
+        permanent: "Permanent",
+      },
+      capturedAt: (date: string) => `Captured on ${date}`,
+      backToList: "Back to opportunities",
+      notFound: "This opportunity does not exist or is unavailable.",
+      none: "Undetermined",
     },
     preferences: {
       title: "Preferences & constraints",

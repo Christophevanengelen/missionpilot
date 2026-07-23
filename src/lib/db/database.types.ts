@@ -325,6 +325,142 @@ export type Database = {
           },
         ];
       };
+      opportunities: {
+        Row: {
+          canonical_fingerprint: string;
+          compensation_currency: string | null;
+          compensation_max: number | null;
+          compensation_min: number | null;
+          compensation_period: string | null;
+          created_at: string;
+          description: string | null;
+          engagement_type: string | null;
+          first_seen_at: string;
+          id: string;
+          last_seen_at: string;
+          location_text: string | null;
+          organization: string | null;
+          profile_id: string;
+          remote_type: string | null;
+          requirements: Json;
+          responsibilities: Json;
+          seniority: string | null;
+          skills: Json;
+          source_name: string | null;
+          source_url: string | null;
+          status: string;
+          title: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          canonical_fingerprint: string;
+          compensation_currency?: string | null;
+          compensation_max?: number | null;
+          compensation_min?: number | null;
+          compensation_period?: string | null;
+          created_at?: string;
+          description?: string | null;
+          engagement_type?: string | null;
+          first_seen_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          location_text?: string | null;
+          organization?: string | null;
+          profile_id: string;
+          remote_type?: string | null;
+          requirements?: Json;
+          responsibilities?: Json;
+          seniority?: string | null;
+          skills?: Json;
+          source_name?: string | null;
+          source_url?: string | null;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          canonical_fingerprint?: string;
+          compensation_currency?: string | null;
+          compensation_max?: number | null;
+          compensation_min?: number | null;
+          compensation_period?: string | null;
+          created_at?: string;
+          description?: string | null;
+          engagement_type?: string | null;
+          first_seen_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          location_text?: string | null;
+          organization?: string | null;
+          profile_id?: string;
+          remote_type?: string | null;
+          requirements?: Json;
+          responsibilities?: Json;
+          seniority?: string | null;
+          skills?: Json;
+          source_name?: string | null;
+          source_url?: string | null;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      opportunity_snapshots: {
+        Row: {
+          content_hash: string;
+          created_at: string;
+          id: string;
+          opportunity_id: string;
+          parser_version: string;
+          profile_id: string;
+          raw_text: string;
+          retrieval_method: string;
+          retrieved_at: string;
+          source_policy_decision: string;
+        };
+        Insert: {
+          content_hash: string;
+          created_at?: string;
+          id?: string;
+          opportunity_id: string;
+          parser_version: string;
+          profile_id: string;
+          raw_text: string;
+          retrieval_method: string;
+          retrieved_at?: string;
+          source_policy_decision?: string;
+        };
+        Update: {
+          content_hash?: string;
+          created_at?: string;
+          id?: string;
+          opportunity_id?: string;
+          parser_version?: string;
+          profile_id?: string;
+          raw_text?: string;
+          retrieval_method?: string;
+          retrieved_at?: string;
+          source_policy_decision?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_snapshots_profile_id_opportunity_id_fkey";
+            columns: ["profile_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["profile_id", "id"];
+          },
+        ];
+      };
       profile_claims: {
         Row: {
           created_at: string;
@@ -484,6 +620,18 @@ export type Database = {
     };
     Functions: {
       build_profile_snapshot: { Args: { p_profile_id: string }; Returns: Json };
+      import_opportunity: {
+        Args: {
+          p_canonical_fingerprint: string;
+          p_content_hash: string;
+          p_normalized: Json;
+          p_parser_version: string;
+          p_raw_text: string;
+          p_retrieval_method: string;
+          p_source_policy_decision: string;
+        };
+        Returns: Json;
+      };
       publish_profile_version: {
         Args: {
           p_change_summary: string;
