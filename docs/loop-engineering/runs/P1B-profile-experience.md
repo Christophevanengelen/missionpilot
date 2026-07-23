@@ -7,7 +7,7 @@
   conversation into the PR A foundation's structured, verifiable claims and
   evidence — premium Studio-calme UX, French-first, honest at every level.
 - **status**: completed
-- **attempt**: 2 (1 = build P1B.0→P1B.4; 2 = review repairs)
+- **attempt**: 3 (1 = build; 2 = Claude review repairs; 3 = Codex repairs ×2 — budget cap)
 - **startedAt** / **completedAt**: 2026-07-23T15:00:00+02:00 / 2026-07-23T16:30:00+02:00
 
 ## Owner arbitrations honored
@@ -47,7 +47,7 @@ Extensions (optional props only): Thread `renderCard`/`onChip`, Composer
 `conversation-types` (ThreadState moved, KnownFact.supported). New card:
 `evidence-form-card.tsx`. Copy: interview FR+EN. Nav: « Profil & Preuves ».
 Tests: `tests/unit/interview-engine.test.ts` (18) ·
-`tests/e2e/profile-interview.spec.ts` (6) · pgTAP +2 (plan 70) · fixtures.
+`tests/e2e/profile-interview.spec.ts` (7) · pgTAP +2 (plan 70) · fixtures.
 
 ## Checks (evidence)
 
@@ -74,7 +74,9 @@ Tests: `tests/unit/interview-engine.test.ts` (18) ·
 | codex p1 | major ×2  | the in-flight lock read stale React state (two near-simultaneous submits could both enter)                                                                                                                                                | **fixed**: synchronous ref-based lock (authoritative, closure-immune); Composer swallows onSend failures and keeps the text                                                                           |
 | codex p1 | minor     | dismissed evidence suggestion returns after refresh                                                                                                                                                                                       | **rebutted, by design**: the thread is a stateless projection; the «never nagged» rule is for REJECTED claims — an unsupported achievement legitimately keeps its suggestion (dismiss is per-session) |
 | codex p1 | info ×2   | «verbatim» proposals are length-capped · migration re-revokes the private snapshot builder without re-grant                                                                                                                               | documented: caps are deliberate bounds (user sees + confirms); the builder is intentionally app-role-private (DEFINER-internal)                                                                       |
-| codex p2 | —         | final read-only verdict                                                                                                                                                                                                                   | recorded in the PR                                                                                                                                                                                    |
+| codex p2 | major ×2  | panel link rows reused the «appuyé» wording regardless of tiers · the deepen card kept Confirmer beside the follow-up (two active paths)                                                                                                  | **fixed**: link rows now name their claim («Rattachée à … ») ; the reviewed card offers only the owner-defined Ignorer escape — confirmation happens on the replacement proposal                      |
+| codex p2 | minor     | Approfondir had no browser-level proof                                                                                                                                                                                                    | **fixed**: dedicated e2e (follow-up question visible · no Confirmer on the reviewed card · replacement proposal · human confirmation)                                                                 |
+| codex p3 | —         | final read-only verdict                                                                                                                                                                                                                   | recorded in the PR                                                                                                                                                                                    |
 
 ## Known limits (honest)
 

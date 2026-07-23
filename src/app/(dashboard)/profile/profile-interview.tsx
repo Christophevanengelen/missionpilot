@@ -279,25 +279,18 @@ export function ProfileInterview({
               </Button>
             </>
           ) : claim.state === "needs_review" ? (
-            <>
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy}
-                onClick={() => decide(claim.id, "confirmed")}
-              >
-                {a.confirm}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={busy}
-                onClick={() => decide(claim.id, "rejected")}
-              >
-                {a.ignore}
-              </Button>
-            </>
+            // Single resolution path after Approfondir: answer the follow-up
+            // (replacement proposal to confirm). Ignorer stays as the
+            // owner-defined escape.
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => decide(claim.id, "rejected")}
+            >
+              {a.ignore}
+            </Button>
           ) : undefined
         }
       >
@@ -395,7 +388,12 @@ export function ProfileInterview({
                 {activeLinks.map((l) => (
                   <div key={l.id} className="flex items-center justify-between">
                     <span className="text-muted-foreground text-xs">
-                      {t().interview.supported}
+                      {(() => {
+                        const claim = claims.find((c) => c.id === l.claim_id);
+                        return claim
+                          ? copy.panel.attachedTo(claimValueLabel(claim))
+                          : copy.panel.attachedTo("…");
+                      })()}
                     </span>
                     <Button
                       type="button"

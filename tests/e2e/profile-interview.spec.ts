@@ -203,6 +203,53 @@ test.describe.serial("Entretien de profil guidé", () => {
     await expect(page.getByTestId("action-feedback")).toHaveCount(0);
   });
 
+  test("Approfondir is a real flow: follow-up question, then a replacement to confirm", async ({
+    page,
+  }) => {
+    await signInAndOpen(page);
+    // Foundation is complete → enrichment chip opens an extra achievement ask.
+    await page
+      .getByRole("button", {
+        name: "Quelle réalisation concrète illustre le mieux votre valeur ?",
+      })
+      .click();
+    await answer(page, "Migration design system");
+    await expect(
+      page.getByRole("heading", { name: "Ce que j'ai compris" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Approfondir" }).click();
+    // Kind-specific deterministic follow-up; the ONLY resolution path is a
+    // replacement formulation (no Confirmer on the reviewed card).
+    await expect(
+      page.getByText("Précisons cette réalisation", { exact: false }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Confirmer" })).toHaveCount(
+      0,
+    );
+
+    await answer(
+      page,
+      "Migration du design system sur 4 produits, adoption 90 %",
+    );
+    // The replacement arrives as a NEW proposal requiring human confirmation.
+    await expect(
+      page
+        .getByLabel("Conversation")
+        .getByText("Migration du design system sur 4 produits", {
+          exact: false,
+        }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Confirmer" }).click();
+    await expect(
+      page
+        .getByLabel("Panneau de contexte")
+        .getByText("Migration du design system sur 4 produits", {
+          exact: false,
+        }),
+    ).toBeVisible();
+  });
+
   test("resume NEVER re-asks a confirmed element (dedicated assertion)", async ({
     page,
   }) => {
