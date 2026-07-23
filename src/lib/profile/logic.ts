@@ -114,6 +114,7 @@ function evidenceRow(profileId: string, input: EvidenceInput) {
     title: input.title,
     statement: input.statement,
     organization: input.organization ?? null,
+    role_played: input.rolePlayed ?? null,
     start_date: input.startDate ?? null,
     end_date: input.endDate ?? null,
     metrics: input.metrics,
@@ -229,7 +230,7 @@ export async function loadLivingProfile(client: Client, profileId: string) {
     client
       .from("evidence_items")
       .select(
-        "id, type, title, statement, organization, start_date, end_date, metrics, tags, source_type, source_reference, verification_status, state",
+        "id, type, title, statement, organization, role_played, start_date, end_date, metrics, tags, source_type, source_reference, verification_status, state",
       )
       .eq("profile_id", profileId)
       .order("created_at", { ascending: true }),

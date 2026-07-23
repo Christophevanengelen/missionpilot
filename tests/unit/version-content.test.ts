@@ -13,6 +13,7 @@ const evidenceA = {
   title: "Refonte du checkout",
   statement: "+18 % de conversion",
   organization: "Acme",
+  role_played: null,
   start_date: "2023-01-01",
   end_date: "2024-01-01",
   verification_status: "user_confirmed",

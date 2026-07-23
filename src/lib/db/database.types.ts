@@ -232,6 +232,7 @@ export type Database = {
           metrics: Json;
           organization: string | null;
           profile_id: string;
+          role_played: string | null;
           source_reference: string | null;
           source_type: string;
           start_date: string | null;
@@ -250,6 +251,7 @@ export type Database = {
           metrics?: Json;
           organization?: string | null;
           profile_id: string;
+          role_played?: string | null;
           source_reference?: string | null;
           source_type: string;
           start_date?: string | null;
@@ -268,6 +270,7 @@ export type Database = {
           metrics?: Json;
           organization?: string | null;
           profile_id?: string;
+          role_played?: string | null;
           source_reference?: string | null;
           source_type?: string;
           start_date?: string | null;

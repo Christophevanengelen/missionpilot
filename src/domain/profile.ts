@@ -115,6 +115,7 @@ export const evidenceInputSchema = z
     title: trimmed(300),
     statement: trimmed(5000),
     organization: trimmed(200).optional(),
+    rolePlayed: trimmed(200).optional(),
     startDate: z.iso.date().optional(),
     endDate: z.iso.date().optional(),
     metrics: z

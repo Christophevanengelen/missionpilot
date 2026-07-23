@@ -6,7 +6,7 @@
 
 begin;
 
-select plan(68);
+select plan(70);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: users C and D (the signup trigger creates their profiles).
@@ -176,12 +176,18 @@ select throws_ok(
 
 select lives_ok(
   $$insert into public.evidence_items
-      (profile_id, type, title, statement, source_type, verification_status)
+      (profile_id, type, title, statement, role_played, source_type,
+       verification_status)
     values ((select id from public.candidate_profiles
               where user_id = '33333333-3333-3333-3333-333333333333'),
             'achievement', 'Refonte du checkout', '+18 % de conversion',
-            'user_stated', 'user_confirmed')$$,
-  'C records a user_confirmed evidence');
+            'Lead designer', 'user_stated', 'user_confirmed')$$,
+  'C records a user_confirmed evidence with an explicit role played');
+
+select throws_ok(
+  format($f$update public.evidence_items set role_played = repeat('x', 201)
+    where title = 'Refonte du checkout'$f$),
+  '23514', null, 'role_played is capped at 200 chars (SQL check)');
 
 select throws_ok(
   $$insert into public.evidence_items
@@ -270,6 +276,12 @@ select is(
     from public.profile_versions where version_number = 1),
   '+18 % de conversion',
   'the snapshot EMBEDS the confirmed evidence content');
+
+select is(
+  (select content->'claims'->0->'evidence'->0->>'role_played'
+    from public.profile_versions where version_number = 1),
+  'Lead designer',
+  'the snapshot freezes the role played alongside the evidence');
 
 select is(
   (select max(version_number)::int from public.profile_versions),
