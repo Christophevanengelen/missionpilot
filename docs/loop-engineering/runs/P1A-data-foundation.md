@@ -136,7 +136,38 @@ Both reviewers: **PASS** (0 blocker, 0 major).
 | major    | restore materializes stored content into confirmed claims                                                                           | **mitigated by the same fix** (only validated content can be stored) + DB CHECKs on insert; residual: self-scoped only                                                                                  |
 | minor    | successor could cross kinds via direct column update                                                                                | **fixed**: chain trigger now requires same profile AND same kind for both chain references (+1 pgTAP)                                                                                                   |
 
-**Codex pass 3 verdict: recorded in the PR.**
+**Codex pass 3: FAIL** — remaining major (client-supplied snapshot content)
+escalated to the owner per STOP_CONDITIONS (repair budget exhausted).
+
+## Pass 4 — Option B (owner arbitration, new bounded repair loop)
+
+The owner ruled **Option B**: the DATABASE is the sole author of published
+content. Implemented: `publish_profile_version(profile, summary[, from])` —
+the content/hash parameters are GONE; `build_profile_snapshot` (one shared
+SQL canonicalization: active confirmed claims + active links + relevant
+fields of confirmed evidence, stable order) and `snapshot_content_hash`
+(id-stripped canonical form, sha256 via pgcrypto) run inside the locked
+transaction; per-kind value schemas enforced at the DB trigger boundary
+(strict keys, bounded lengths, years 0–80); all invariants preserved (lock,
+idempotence, numbering, current_version_id, immutability, traceable restore,
+head-equivalent refusal). The app now only WORDS the human summary
+(documented accepted drift); it never supplies content.
+
+Owner-mandated proofs (all pgTAP/integration-verified): direct RPC cannot
+inject a fact absent from confirmed claims · malformed per-kind values are
+refused at the boundary · the snapshot equals the confirmed DB state exactly
+· **old snapshots are frozen** (a later evidence edit never rewrites them) ·
+races/double submits stay serialized (one creation, consecutive numbers) ·
+restore + head-equivalent refusal intact · RLS isolation unregressed ·
+DEFINER-internal helpers denied to app roles (regression alarms).
+
+Reviews (pass 4): implementation-reviewer FAIL→**repaired** (missing
+frozen-evidence proof added; drift note added; both re-verified);
+security-reviewer **PASS** (helpers properly sandboxed; denial proofs added
+on its minor; size-guard removal accepted as self-scoped, documented).
+Final counts: unit 56 · pgTAP 94 (66 new) · integration 15 · e2e 19.
+
+**Codex pass 4 (final, read-only): recorded in the PR.**
 
 ## Stop
 

@@ -447,11 +447,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      build_profile_snapshot: { Args: { p_profile_id: string }; Returns: Json };
       publish_profile_version: {
         Args: {
           p_change_summary: string;
-          p_content: Json;
-          p_content_hash: string;
           p_created_from_version_id?: string;
           p_profile_id: string;
         };
@@ -474,6 +473,11 @@ export type Database = {
           p_version_id: string;
         };
         Returns: Json;
+      };
+      snapshot_content_hash: { Args: { p_content: Json }; Returns: string };
+      validate_claim_value: {
+        Args: { p_kind: string; p_value: Json };
+        Returns: undefined;
       };
     };
     Enums: {

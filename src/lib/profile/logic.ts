@@ -6,7 +6,7 @@
  * workflows/health-logic.ts).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@/lib/db/database.types";
+import type { Database } from "@/lib/db/database.types";
 import {
   assertClaimTransition,
   parseClaimValue,
@@ -15,11 +15,7 @@ import {
   type ClaimState,
   type EvidenceInput,
 } from "@/domain/profile";
-import {
-  buildVersionContent,
-  contentHash,
-  type VersionContent,
-} from "./version-content";
+import { buildVersionContent, type VersionContent } from "./version-content";
 import { buildChangeSummary, buildRestoreSummary } from "./change-summary";
 
 type Client = SupabaseClient<Database>;
@@ -307,11 +303,14 @@ export async function publishVersion(client: Client, profileId: string) {
   }
 
   const summary = buildChangeSummary(previous, next);
+  // Option B (owner arbitration): the DATABASE rebuilds the snapshot
+  // canonically from the confirmed living state inside the locked
+  // transaction — the app only WORDS the human summary and never supplies
+  // content. Accepted drift: this unlocked preview may miss a concurrent
+  // same-user change that lands before the lock; the stored content is
+  // always the DB truth, the summary is descriptive only.
   const { data, error } = await client.rpc("publish_profile_version", {
     p_profile_id: profileId,
-    // Boundary cast: VersionContent is JSON-shaped by construction.
-    p_content: next as unknown as Json,
-    p_content_hash: contentHash(next),
     p_change_summary: summary,
   });
   if (error) fail("publish", error.message);

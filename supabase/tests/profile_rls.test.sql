@@ -6,7 +6,7 @@
 
 begin;
 
-select plan(59);
+select plan(66);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: users C and D (the signup trigger creates their profiles).
@@ -42,8 +42,7 @@ select throws_ok(
   null, 'anon cannot read profile_versions');
 select throws_ok(
   $$select public.publish_profile_version(
-      '33333333-3333-3333-3333-333333333333'::uuid,
-      '{}'::jsonb, repeat('a', 64), 'x')$$,
+      '33333333-3333-3333-3333-333333333333'::uuid, 'x')$$,
   '42501', null, 'anon cannot execute publish');
 select throws_ok(
   $$select public.restore_profile_version(
@@ -55,6 +54,9 @@ select throws_ok(
       '33333333-3333-3333-3333-333333333333'::uuid,
       'role', '{"title":"x"}'::jsonb)$$,
   '42501', null, 'anon cannot execute replace_profile_claim');
+select throws_ok(
+  'select public.build_profile_snapshot(gen_random_uuid())',
+  '42501', null, 'anon cannot call the internal snapshot builder');
 
 reset role;
 
@@ -74,6 +76,19 @@ select lives_ok(
         where user_id = '33333333-3333-3333-3333-333333333333'),
       'role', '{"title":"Product Designer"}'::jsonb)$$,
   'C proposes a role claim');
+
+-- The DEFINER-internal helpers are unreachable for app roles: an accidental
+-- future grant would silently open ownership-less reads — these proofs make
+-- that regression loud.
+select throws_ok(
+  'select public.build_profile_snapshot(gen_random_uuid())',
+  '42501', null, 'authenticated cannot call the snapshot builder directly');
+select throws_ok(
+  $$select public.snapshot_content_hash('{}'::jsonb)$$,
+  '42501', null, 'authenticated cannot call the snapshot hasher directly');
+select throws_ok(
+  $$select public.validate_claim_value('role', '{}'::jsonb)$$,
+  '42501', null, 'authenticated cannot call the validator directly');
 
 select is(
   (select count(*)::int from public.profile_claims c
@@ -237,24 +252,24 @@ select throws_ok(
             1, '{}'::jsonb, repeat('a', 64), 'direct')$$,
   '42501', null, 'users cannot insert versions directly');
 
+-- The DB is the sole author of snapshots: confirm the evidence so the
+-- canonical rebuild embeds it, then publish with a summary only.
+update public.evidence_items set state = 'confirmed'
+  where title = 'Refonte du checkout';
+
 select is(
   (public.publish_profile_version(
      (select id from public.candidate_profiles
        where user_id = '33333333-3333-3333-3333-333333333333'),
-     jsonb_build_object('schema_version', 1, 'claims', jsonb_build_array(
-       jsonb_build_object(
-         'kind', 'role',
-         'value', jsonb_build_object('title', 'Lead Product Designer'),
-         'evidence', jsonb_build_array(jsonb_build_object(
-           'evidence_id',
-           (select id from public.evidence_items
-             where title = 'Refonte du checkout'),
-           'verification_status', 'user_confirmed',
-           'source_type', 'user_stated')))
-     )),
-     repeat('1', 64), 'Première version publiée du profil.')
+     'Première version publiée du profil.')
    ->> 'created')::boolean,
   true, 'first publish creates a version');
+
+select is(
+  (select content->'claims'->0->'evidence'->0->>'statement'
+    from public.profile_versions where version_number = 1),
+  '+18 % de conversion',
+  'the snapshot EMBEDS the confirmed evidence content');
 
 select is(
   (select max(version_number)::int from public.profile_versions),
@@ -272,58 +287,63 @@ select is(
   (public.publish_profile_version(
      (select id from public.candidate_profiles
        where user_id = '33333333-3333-3333-3333-333333333333'),
-     '{"schema_version":1,"claims":[]}'::jsonb,
-     repeat('1', 64), 'double clic')
+     'double clic')
    ->> 'created')::boolean,
-  false, 'identical consecutive content publishes nothing (idempotent)');
+  false, 'unchanged business state publishes nothing (idempotent)');
 
 select is(
   (select count(*)::int from public.profile_versions),
   1, 'no duplicate row after the idempotent retry');
 
+-- A real business change (a skill becomes confirmed) yields version 2.
+update public.profile_claims set state = 'confirmed'
+  where kind = 'skill' and value->>'name' = 'UX' and superseded_at is null;
+
 select is(
   (public.publish_profile_version(
      (select id from public.candidate_profiles
        where user_id = '33333333-3333-3333-3333-333333333333'),
-     '{"schema_version":1,"claims":[]}'::jsonb,
-     repeat('2', 64), 'Résumé mis à jour.')
+     'Compétence confirmée.')
    ->> 'version_number')::int,
-  2, 'changed content becomes version 2');
+  2, 'a confirmed business change becomes version 2');
+
+-- Injection is impossible by construction: the still-proposed skill is NOT
+-- in the snapshot — the published content equals the CONFIRMED state, and
+-- nothing else.
+select is(
+  (select jsonb_array_length(content->'claims')
+    from public.profile_versions where version_number = 2),
+  2, 'the snapshot contains exactly the confirmed claims (role + 1 skill)');
+
+select is(
+  (select count(*)::int from public.profile_claims c
+    join public.candidate_profiles p on p.id = c.profile_id
+    where p.user_id = '33333333-3333-3333-3333-333333333333'
+      and c.superseded_at is null and c.state = 'confirmed'),
+  2, 'which matches the confirmed living state exactly');
 
 select throws_ok(
   $$select public.publish_profile_version(
       (select id from public.candidate_profiles
         where user_id = '33333333-3333-3333-3333-333333333333'),
-      '{}'::jsonb, 'not-a-hash', 'x')$$,
-  'P0001', null, 'a malformed hash is refused');
-
--- Forged-snapshot refusals: the RPC boundary itself upholds honesty, even
--- when a caller bypasses the app layer entirely.
-select throws_ok(
-  $$select public.publish_profile_version(
-      (select id from public.candidate_profiles
-        where user_id = '33333333-3333-3333-3333-333333333333'),
-      '{"schema_version":1,"claims":[{"kind":"role","value":{"title":"x"},
-        "evidence":[{"verification_status":"externally_verified",
-                     "source_type":"user_stated"}]}]}'::jsonb,
-      repeat('7', 64), 'forge')$$,
-  'P0001', null,
-  'a forged externally_verified badge in the snapshot is refused');
-
-select throws_ok(
-  $$select public.publish_profile_version(
-      (select id from public.candidate_profiles
-        where user_id = '33333333-3333-3333-3333-333333333333'),
-      '{"schema_version":1,"claims":[{"kind":"invented","value":{}}]}'::jsonb,
-      repeat('8', 64), 'forge')$$,
-  'P0001', null, 'an unknown claim kind in the snapshot is refused');
-
-select throws_ok(
-  $$select public.publish_profile_version(
-      (select id from public.candidate_profiles
-        where user_id = '33333333-3333-3333-3333-333333333333'),
-      '{}'::jsonb, repeat('3', 64), '   ')$$,
+      '   ')$$,
   'P0001', null, 'an empty change summary is refused');
+
+-- Malformed claims cannot even ENTER the database (per-kind validation at
+-- the trigger boundary), so no snapshot can ever contain them.
+select throws_ok(
+  $$insert into public.profile_claims (profile_id, kind, value)
+    values ((select id from public.candidate_profiles
+              where user_id = '33333333-3333-3333-3333-333333333333'),
+            'skill', '{"bad":1}'::jsonb)$$,
+  'P0001', null, 'a value with the wrong shape for its kind is refused');
+
+select throws_ok(
+  $$insert into public.profile_claims (profile_id, kind, value)
+    values ((select id from public.candidate_profiles
+              where user_id = '33333333-3333-3333-3333-333333333333'),
+            'skill', '{"name":"ok","extra":"x"}'::jsonb)$$,
+  'P0001', null, 'an unexpected extra key is refused (strict schemas)');
 
 select throws_ok(
   $$update public.profile_versions set change_summary = 'rewrite'$$,
@@ -403,6 +423,18 @@ select is(
   current_setting('test.claims_rows_before'),
   'the living claims were left completely untouched');
 
+-- Mandated proof: old snapshots are FROZEN. Editing the living evidence
+-- after publication never rewrites an already-published version.
+update public.evidence_items
+  set statement = 'texte modifié après publication'
+  where title = 'Refonte du checkout';
+
+select is(
+  (select content->'claims'->0->'evidence'->0->>'statement'
+    from public.profile_versions where version_number = 1),
+  '+18 % de conversion',
+  'a later evidence edit never rewrites an old published snapshot');
+
 -- History-shape guard (chain-integrity trigger), still as C: a closed claim
 -- can never be silently reopened.
 select throws_ok(
@@ -453,8 +485,7 @@ select throws_ok(
 
 select throws_ok(
   $$select public.publish_profile_version(
-      current_setting('test.c_profile_id')::uuid,
-      '{}'::jsonb, repeat('9', 64), 'intrusion')$$,
+      current_setting('test.c_profile_id')::uuid, 'intrusion')$$,
   '42501', null,
   'publish refuses a non-owner even with the REAL foreign profile id');
 

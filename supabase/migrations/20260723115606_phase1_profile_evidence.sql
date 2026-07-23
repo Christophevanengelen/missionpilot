@@ -10,6 +10,10 @@
 -- are the second barrier. service_role/agent-ops is NOT used here; it keeps
 -- privileges only for the future, documented privacy-erasure workflow.
 
+-- sha256 for canonical snapshot hashing (Supabase ships pgcrypto in the
+-- extensions schema; idempotent here for fresh stacks).
+create extension if not exists pgcrypto with schema extensions;
+
 -- ---------------------------------------------------------------------------
 -- 1. profile_claims — the living interview state.
 --
@@ -52,6 +56,82 @@ create index profile_claims_profile_idx
 -- chain references must stay inside the SAME profile, and a closed claim can
 -- never be silently reopened. Lifecycle-state legality remains app-enforced
 -- (documented decision) — this trigger protects only the history's shape.
+-- Per-kind value schema validation at the DATABASE boundary: a malformed
+-- claim can never enter through a direct API call. Mirrors the app-side Zod
+-- schemas (strict keys, bounded lengths).
+create or replace function public.validate_claim_value(
+  p_kind text,
+  p_value jsonb
+) returns void
+language plpgsql
+immutable
+set search_path = ''
+as $fn$
+declare
+  v_key text;
+  v_allowed text[];
+  v_required text[];
+  v_max integer;
+begin
+  if jsonb_typeof(p_value) <> 'object' then
+    raise exception 'claim value must be an object';
+  end if;
+
+  case p_kind
+    when 'role' then
+      v_required := array['title']; v_allowed := array['title'];
+    when 'seniority' then
+      v_required := array['level']; v_allowed := array['level'];
+    when 'summary' then
+      v_required := array['text']; v_allowed := array['text'];
+    when 'years_experience' then
+      v_required := array['years']; v_allowed := array['years'];
+    when 'skill' then
+      v_required := array['name']; v_allowed := array['name'];
+    when 'achievement' then
+      v_required := array['title']; v_allowed := array['title', 'statement'];
+    else
+      raise exception 'unknown claim kind: %', p_kind;
+  end case;
+
+  for v_key in select jsonb_object_keys(p_value) loop
+    if not (v_key = any(v_allowed)) then
+      raise exception 'unexpected key % for kind %', v_key, p_kind;
+    end if;
+  end loop;
+  if exists (
+    select 1 from unnest(v_required) r where not (p_value ? r)
+  ) then
+    raise exception 'missing required key for kind %', p_kind;
+  end if;
+
+  if p_kind = 'years_experience' then
+    if jsonb_typeof(p_value->'years') <> 'number'
+       or (p_value->>'years')::numeric <> floor((p_value->>'years')::numeric)
+       or (p_value->>'years')::numeric not between 0 and 80 then
+      raise exception 'years must be an integer between 0 and 80';
+    end if;
+  else
+    for v_key in select unnest(v_allowed) loop
+      if p_value ? v_key then
+        v_max := 300;
+        if v_key in ('text', 'statement') then
+          v_max := 2000;
+        end if;
+        if jsonb_typeof(p_value->v_key) <> 'string'
+           or char_length(btrim(p_value->>v_key)) < 1
+           or char_length(p_value->>v_key) > v_max then
+          raise exception 'invalid % for kind %', v_key, p_kind;
+        end if;
+      end if;
+    end loop;
+  end if;
+end;
+$fn$;
+
+revoke all on function public.validate_claim_value(text, jsonb)
+  from public, anon, authenticated;
+
 create or replace function public.enforce_claim_chain_integrity()
 returns trigger
 language plpgsql
@@ -59,6 +139,7 @@ security definer
 set search_path = ''
 as $$
 begin
+  perform public.validate_claim_value(new.kind, new.value);
   if new.previous_claim_id is not null then
     if not exists (
       select 1 from public.profile_claims c
@@ -405,17 +486,125 @@ alter table public.candidate_profiles
     on delete set null (current_version_id);
 
 -- ---------------------------------------------------------------------------
--- 6. Atomic publication (and restore) — SECURITY DEFINER, hardened.
+-- 6. Canonical snapshot construction + atomic publication — the DATABASE is
+--    the sole author of published content (owner arbitration, Option B): a
+--    client can never supply the snapshot of an immutable version.
 --
--- Several independent statements from a Server Action cannot guarantee the
--- consecutive-difference rule under concurrency, so the whole contract runs
--- in ONE transaction here: lock profile row → read last version → compare
--- hash → next number → insert → move current_version_id.
+-- build_profile_snapshot rebuilds the content from the REAL business state:
+-- active confirmed claims, active links, and the relevant fields of the
+-- linked confirmed evidence — in a canonical, stable order (claims by kind
+-- then value; evidence by its id-stripped record). The hash covers the
+-- id-stripped canonical form (technical ids, timestamps and purely visual
+-- data are excluded by construction). ONE shared SQL implementation — no
+-- divergent copies.
+
+create or replace function public.build_profile_snapshot(
+  p_profile_id uuid
+) returns jsonb
+language sql
+stable
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'schema_version', 1,
+    'claims', coalesce((
+      select jsonb_agg(claim_obj order by claim_kind, claim_sort)
+      from (
+        select
+          c.kind as claim_kind,
+          c.value::text as claim_sort,
+          jsonb_build_object(
+            'kind', c.kind,
+            'value', c.value,
+            'evidence', coalesce((
+              select jsonb_agg(ev_obj order by ev_sort)
+              from (
+                select
+                  (jsonb_build_object(
+                    'type', e.type,
+                    'title', e.title,
+                    'statement', e.statement,
+                    'organization', e.organization,
+                    'start_date', e.start_date,
+                    'end_date', e.end_date,
+                    'verification_status', e.verification_status,
+                    'source_type', e.source_type,
+                    'source_reference', e.source_reference
+                  ))::text as ev_sort,
+                  jsonb_build_object(
+                    'evidence_id', e.id,
+                    'type', e.type,
+                    'title', e.title,
+                    'statement', e.statement,
+                    'organization', e.organization,
+                    'start_date', e.start_date,
+                    'end_date', e.end_date,
+                    'verification_status', e.verification_status,
+                    'source_type', e.source_type,
+                    'source_reference', e.source_reference
+                  ) as ev_obj
+                from public.claim_evidence_links l
+                join public.evidence_items e on e.id = l.evidence_id
+                where l.claim_id = c.id
+                  and l.detached_at is null
+                  and e.state = 'confirmed'
+              ) ev
+            ), '[]'::jsonb)
+          ) as claim_obj
+        from public.profile_claims c
+        where c.profile_id = p_profile_id
+          and c.superseded_at is null
+          and c.state = 'confirmed'
+      ) cl
+    ), '[]'::jsonb)
+  );
+$$;
+
+revoke all on function public.build_profile_snapshot(uuid)
+  from public, anon, authenticated;
+
+-- Business hash of a snapshot: canonical form with evidence ids stripped.
+create or replace function public.snapshot_content_hash(
+  p_content jsonb
+) returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select encode(extensions.digest(
+    (jsonb_build_object(
+      'schema_version', p_content->'schema_version',
+      'claims', coalesce((
+        select jsonb_agg(
+                 jsonb_build_object(
+                   'kind', c.value->'kind',
+                   'value', c.value->'value',
+                   'evidence', coalesce((
+                     select jsonb_agg(e.value - 'evidence_id'
+                                      order by (e.value - 'evidence_id')::text)
+                     from jsonb_array_elements(
+                       coalesce(c.value->'evidence', '[]'::jsonb)) e
+                   ), '[]'::jsonb)
+                 )
+                 order by c.value->>'kind', (c.value->'value')::text)
+        from jsonb_array_elements(
+          coalesce(p_content->'claims', '[]'::jsonb)) c
+      ), '[]'::jsonb)
+    ))::text::bytea,
+    'sha256'), 'hex');
+$$;
+
+revoke all on function public.snapshot_content_hash(jsonb)
+  from public, anon, authenticated;
+
+-- Atomic publication: lock profile row → REBUILD the snapshot from the real
+-- business state → compare hash with the head (idempotent double submit /
+-- consecutive-difference rule) → next number → insert → move
+-- current_version_id. All in one transaction; the caller supplies only the
+-- human summary (and, for restores, the traceability pointer).
 
 create or replace function public.publish_profile_version(
   p_profile_id uuid,
-  p_content jsonb,
-  p_content_hash text,
   p_change_summary text,
   p_created_from_version_id uuid default null
 ) returns jsonb
@@ -428,8 +617,8 @@ declare
   v_last record;
   v_next integer;
   v_id uuid;
-  v_claim jsonb;
-  v_ev jsonb;
+  v_content jsonb;
+  v_hash text;
 begin
   v_uid := (select auth.uid());
   if v_uid is null then
@@ -444,57 +633,6 @@ begin
     raise exception 'profile not found or not owned' using errcode = '42501';
   end if;
 
-  if p_content is null or jsonb_typeof(p_content) <> 'object' then
-    raise exception 'invalid content';
-  end if;
-  if pg_column_size(p_content) > 262144 then
-    raise exception 'content too large';
-  end if;
-
-  -- Structural honesty validation: a snapshot is the durable, immutable
-  -- record future phases will trust — the RPC boundary must refuse forged
-  -- content even when the caller bypasses the app layer. In particular a
-  -- user can NEVER smuggle an `externally_verified` badge into their own
-  -- published history.
-  if jsonb_typeof(p_content->'claims') <> 'array' then
-    raise exception 'invalid content: claims must be an array';
-  end if;
-  if jsonb_array_length(p_content->'claims') > 500 then
-    raise exception 'invalid content: too many claims';
-  end if;
-  for v_claim in
-    select value from jsonb_array_elements(p_content->'claims')
-  loop
-    if coalesce(v_claim->>'kind', '') not in
-       ('role', 'seniority', 'summary', 'years_experience', 'skill',
-        'achievement') then
-      raise exception 'invalid content: unknown claim kind';
-    end if;
-    if jsonb_typeof(v_claim->'value') <> 'object' then
-      raise exception 'invalid content: claim value must be an object';
-    end if;
-    if v_claim ? 'evidence' then
-      if jsonb_typeof(v_claim->'evidence') <> 'array' then
-        raise exception 'invalid content: evidence must be an array';
-      end if;
-      for v_ev in
-        select value from jsonb_array_elements(v_claim->'evidence')
-      loop
-        if coalesce(v_ev->>'verification_status', '') not in
-           ('imported', 'user_confirmed') then
-          raise exception
-            'invalid content: forged or missing verification status';
-        end if;
-        if coalesce(v_ev->>'source_type', '') not in
-           ('user_stated', 'document', 'url', 'import') then
-          raise exception 'invalid content: unknown evidence source type';
-        end if;
-      end loop;
-    end if;
-  end loop;
-  if p_content_hash !~ '^[0-9a-f]{64}$' then
-    raise exception 'invalid content hash';
-  end if;
   if p_change_summary is null
      or char_length(trim(p_change_summary)) not between 1 and 2000 then
     raise exception 'invalid change summary';
@@ -507,15 +645,16 @@ begin
     end if;
   end if;
 
+  v_content := public.build_profile_snapshot(p_profile_id);
+  v_hash := public.snapshot_content_hash(v_content);
+
   select id, version_number, content_hash into v_last
     from public.profile_versions
     where profile_id = p_profile_id
     order by version_number desc
     limit 1;
 
-  -- Consecutive-difference rule + double-submit idempotence: identical
-  -- business content returns the existing head, creates nothing.
-  if v_last.id is not null and v_last.content_hash = p_content_hash then
+  if v_last.id is not null and v_last.content_hash = v_hash then
     return jsonb_build_object(
       'version_id', v_last.id,
       'version_number', v_last.version_number,
@@ -529,7 +668,7 @@ begin
     (profile_id, version_number, content, content_hash, change_summary,
      created_from_version_id)
   values
-    (p_profile_id, v_next, p_content, p_content_hash,
+    (p_profile_id, v_next, v_content, v_hash,
      trim(p_change_summary), p_created_from_version_id)
   returning id into v_id;
 
@@ -645,8 +784,6 @@ begin
 
   v_result := public.publish_profile_version(
     p_profile_id,
-    v_source.content,
-    v_source.content_hash,
     p_change_summary,
     v_source.id
   );
@@ -656,10 +793,10 @@ end;
 $$;
 
 revoke all on function
-  public.publish_profile_version(uuid, jsonb, text, text, uuid)
+  public.publish_profile_version(uuid, text, uuid)
   from public, anon;
 grant execute on function
-  public.publish_profile_version(uuid, jsonb, text, text, uuid)
+  public.publish_profile_version(uuid, text, uuid)
   to authenticated;
 
 revoke all on function

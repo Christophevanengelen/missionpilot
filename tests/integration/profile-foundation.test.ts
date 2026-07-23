@@ -158,46 +158,66 @@ describe("publication: atomic, idempotent, serialized", () => {
     expect(r1.version_number).toBe(r2.version_number);
   });
 
-  it("serializes concurrent DIFFERENT contents into n+1 then n+2", async () => {
+  it("races on the row lock stay serialized (no duplicate, no gap)", async () => {
+    // The DB is the sole author of content now, so two concurrent publishes
+    // always see the same living state: the lock serializes them, exactly
+    // one creates, the other is served the identical head.
+    const s3 = await submitClaim(alice, aliceProfileId, "skill", {
+      name: `Course-${randomUUID().slice(0, 8)}`,
+    });
+    await setClaimState(alice, s3, "confirmed");
     const { data: head } = await alice
       .from("profile_versions")
       .select("version_number")
       .order("version_number", { ascending: false })
       .limit(1)
-      .single();
-    const base = head!.version_number;
+      .maybeSingle();
+    const base = head?.version_number ?? 0;
 
-    // Two direct RPC publishes with genuinely different contents race for
-    // the profile-row lock: both must land, as consecutive numbers, with no
-    // gap and no duplicate.
-    const contentA = {
-      schema_version: 1,
-      claims: [{ kind: "skill", value: { name: "course-A" }, evidence: [] }],
-    };
-    const contentB = {
-      schema_version: 1,
-      claims: [{ kind: "skill", value: { name: "course-B" }, evidence: [] }],
-    };
     const [ra, rb] = await Promise.all([
       alice.rpc("publish_profile_version", {
         p_profile_id: aliceProfileId,
-        p_content: contentA,
-        p_content_hash: "a".repeat(64),
         p_change_summary: "course A",
       }),
       alice.rpc("publish_profile_version", {
         p_profile_id: aliceProfileId,
-        p_content: contentB,
-        p_content_hash: "b".repeat(64),
         p_change_summary: "course B",
       }),
     ]);
     expect(ra.error).toBeNull();
     expect(rb.error).toBeNull();
-    const numbers = [ra.data, rb.data]
-      .map((d) => (d as { version_number: number }).version_number)
-      .sort((x, y) => x - y);
-    expect(numbers).toEqual([base + 1, base + 2]);
+    const results = [ra.data, rb.data] as Array<{
+      version_number: number;
+      created: boolean;
+    }>;
+    expect(results.filter((r) => r.created)).toHaveLength(1);
+    expect(results[0].version_number).toBe(results[1].version_number);
+    expect(results[0].version_number).toBe(base + 1);
+
+    // Sequential distinct states still number consecutively (n+1 then n+2).
+    const s4 = await submitClaim(alice, aliceProfileId, "skill", {
+      name: `Suite-${randomUUID().slice(0, 8)}`,
+    });
+    await setClaimState(alice, s4, "confirmed");
+    const nextPublish = await publishVersion(alice, aliceProfileId);
+    expect(nextPublish.created).toBe(true);
+    expect(nextPublish.version_number).toBe(base + 2);
+  });
+
+  it("publishes EXACTLY the confirmed state — a proposed claim cannot leak in", async () => {
+    const proposed = await submitClaim(alice, aliceProfileId, "skill", {
+      name: `Proposée-${randomUUID().slice(0, 8)}`,
+    });
+    const publish = await publishVersion(alice, aliceProfileId);
+    const { data: version } = await alice
+      .from("profile_versions")
+      .select("content")
+      .eq("version_number", publish.version_number)
+      .single();
+    const kindsAndNames = JSON.stringify(version!.content);
+    expect(kindsAndNames).not.toContain("Proposée-");
+    // Cleanup: reject the proposal so later tests keep a clean state.
+    await setClaimState(alice, proposed, "rejected");
   });
 });
 
@@ -281,8 +301,6 @@ describe("isolation: another user is fully locked out", () => {
 
     const publish = await mallory.rpc("publish_profile_version", {
       p_profile_id: aliceProfileId,
-      p_content: { schema_version: 1, claims: [] },
-      p_content_hash: "9".repeat(64),
       p_change_summary: "intrusion",
     });
     expect(publish.error).not.toBeNull();
