@@ -140,8 +140,9 @@ diff is deferred to 2026-07-29 (quota, owner decision).
 ## Stop
 
 - **requiresHumanApproval**: yes
-- **stopReason**: PR B complete after attempt 5 — deterministic interview
-  live on the real foundation, all gates green locally (76 unit · 98 pgTAP ·
-  15 integration · 28 e2e), reviews recorded; awaiting PR CI, the deferred
-  Codex re-review (2026-07-29) and explicit owner approval before merge.
-  Versions/history/compare (PR C) not started.
+- **stopReason**: PR B MERGED — owner explicitly approved PR #5 at head
+  `c7ae999`; squash-merged to main as `bb0fd88` (2026-07-23), branch
+  deleted, main CI green. All gates green locally and in CI (76 unit ·
+  98 pgTAP · 15 integration · 28 e2e). The deferred Codex re-review
+  (2026-07-29) remains recorded as a complementary, non-blocking control.
+  Versions/history/compare (PR C) not started — awaiting the owner's brief.
