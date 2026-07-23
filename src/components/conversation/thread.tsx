@@ -7,8 +7,11 @@ import { CardShell, CardField } from "@/components/cards/card-shell";
 import { OpportunityCard } from "@/components/cards/opportunity-card";
 import { ScoreBreakdown } from "@/components/cards/score-card";
 import { t } from "@/lib/copy";
-import type { AssistantTurn, Turn } from "@/lib/ux/conversation-types";
-import type { PreviewState } from "@/lib/ux/mock-conversation";
+import type {
+  AssistantTurn,
+  ThreadState,
+  Turn,
+} from "@/lib/ux/conversation-types";
 
 /**
  * The conversation thread — the primary surface. Prop-driven (takes `turns`),
@@ -19,9 +22,16 @@ import type { PreviewState } from "@/lib/ux/mock-conversation";
 export function Thread({
   turns,
   state,
+  renderCard,
+  onChip,
 }: {
   turns: Turn[];
-  state: PreviewState;
+  state: ThreadState;
+  /** Optional card renderer override (the real product wires actions here);
+   *  defaults to the static presentational cards. */
+  renderCard?: (turn: AssistantTurn) => React.ReactNode;
+  /** Optional suggestion-chip handler; without it chips stay static. */
+  onChip?: (chip: string) => void;
 }) {
   const copy = t();
 
@@ -108,9 +118,11 @@ export function Thread({
               >
                 {turn.text}
               </p>
-              {turn.card ? (
-                <ThreadCard turn={turn} disabled={state === "offline"} />
-              ) : null}
+              {turn.card
+                ? (renderCard?.(turn) ?? (
+                    <ThreadCard turn={turn} disabled={state === "offline"} />
+                  ))
+                : null}
               {turn.question ? (
                 <p className="pt-1 text-lg leading-snug font-medium">
                   {turn.question}
@@ -130,6 +142,7 @@ export function Thread({
                       size="sm"
                       className="rounded-full"
                       disabled={state === "offline"}
+                      onClick={onChip ? () => onChip(chip) : undefined}
                     >
                       {chip}
                     </Button>

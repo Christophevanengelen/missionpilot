@@ -94,4 +94,20 @@ export type AssistantTurn = {
 export type UserTurn = { role: "user"; id: string; text: string };
 export type Turn = AssistantTurn | UserTurn;
 
-export type KnownFact = { label: string; value: string; state: CardState };
+export type KnownFact = {
+  label: string;
+  value: string;
+  state: CardState;
+  /** Honest third tier: confirmed AND actively backed by confirmed proof. */
+  supported?: boolean;
+};
+
+/** Thread surface states (shared by the real product and the UX Preview). */
+export const THREAD_STATES = [
+  "populated",
+  "loading",
+  "empty",
+  "error",
+  "offline",
+] as const;
+export type ThreadState = (typeof THREAD_STATES)[number];

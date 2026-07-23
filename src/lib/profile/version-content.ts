@@ -22,6 +22,7 @@ export type SnapshotEvidence = {
   title: string;
   statement: string;
   organization: string | null;
+  role_played: string | null;
   start_date: string | null;
   end_date: string | null;
   verification_status: string;
@@ -52,6 +53,7 @@ type EvidenceRow = {
   title: string;
   statement: string;
   organization: string | null;
+  role_played: string | null;
   start_date: string | null;
   end_date: string | null;
   verification_status: string;
@@ -122,6 +124,7 @@ export function buildVersionContent(
               title: e.title,
               statement: e.statement,
               organization: e.organization,
+              role_played: e.role_played,
               start_date: e.start_date,
               end_date: e.end_date,
               verification_status: e.verification_status,

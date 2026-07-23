@@ -23,6 +23,7 @@ function content(
         title: `t${j}`,
         statement: `s${j}`,
         organization: null,
+        role_played: null,
         start_date: null,
         end_date: null,
         verification_status: "user_confirmed",

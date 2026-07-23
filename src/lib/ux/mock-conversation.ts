@@ -174,11 +174,5 @@ export const mockKnownFacts: KnownFact[] = [
 export const mockProgress = 62;
 
 /** Simulated states of the thread region, for the state switcher in preview. */
-export const previewStates = [
-  "populated",
-  "loading",
-  "empty",
-  "error",
-  "offline",
-] as const;
-export type PreviewState = (typeof previewStates)[number];
+export { THREAD_STATES as previewStates } from "@/lib/ux/conversation-types";
+export type { ThreadState as PreviewState } from "@/lib/ux/conversation-types";
