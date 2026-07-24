@@ -1,19 +1,21 @@
 "use server";
 
 /**
- * Auto-discovery action: derive search keywords from the CONFIRMED profile
- * (role + skills), query the configured legal source (Adzuna), and run each
- * ad through the standard import pipeline (immutable snapshot, per-owner
- * dedup, gate + score on read). Honest outcomes: how many were new vs
- * already known; a specific reason when discovery cannot run.
+ * Auto-discovery action: build search plans from the profile (target métiers
+ * first, confirmed role + skills as fallback — see `plan.ts`), query the
+ * configured legal source (Adzuna), and run each ad through the standard
+ * import pipeline (immutable snapshot, per-owner dedup, gate + score on
+ * read). Honest outcomes: how many were new vs already known; a specific
+ * reason when discovery cannot run.
  */
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
-import { adzunaConfigured, searchAdzuna } from "./adzuna";
+import { adzunaConfigured, searchAdzuna, type DiscoveredAd } from "./adzuna";
+import { buildSearchPlans, runSearchPlans } from "./plan";
 import * as opportunity from "@/lib/opportunity/logic";
-import { loadLivingProfile } from "@/lib/profile/logic";
+import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 
 const logger = createLogger({ module: "discovery-actions" });
 
@@ -25,24 +27,11 @@ export type DiscoveryResult =
       duplicates: number;
       /** Ads that individually failed to import (logged; the rest landed). */
       failed: number;
+      /** Métier searches that errored while others succeeded — surfaced so a
+       *  possibly-incomplete result is never presented as a complete one. */
+      failedSearches: number;
     }
   | { ok: false; error: "unconfigured" | "no_keywords" | "generic" };
-
-/** Keywords from the confirmed profile: the role title first, then skills. */
-function deriveKeywords(
-  claims: { kind: string; state: string; value: unknown }[],
-): string[] {
-  const confirmed = claims.filter((c) => c.state === "confirmed");
-  const role = confirmed
-    .filter((c) => c.kind === "role")
-    .map((c) => (c.value as { title?: unknown })?.title)
-    .find((v): v is string => typeof v === "string" && v.trim() !== "");
-  const skills = confirmed
-    .filter((c) => c.kind === "skill")
-    .map((c) => (c.value as { name?: unknown })?.name)
-    .filter((v): v is string => typeof v === "string" && v.trim() !== "");
-  return [...(role ? [role] : []), ...skills].slice(0, 4);
-}
 
 export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
   try {
@@ -52,10 +41,26 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     const client = await createClient();
     const profile = await opportunity.getOwnProfile(client);
     const living = await loadLivingProfile(client, profile.id);
-    const keywords = deriveKeywords(living.claims);
-    if (keywords.length === 0) return { ok: false, error: "no_keywords" };
+    const prefs = await loadPreferences(client, profile.id);
+    const plans = buildSearchPlans(living.claims, prefs.targetRoleFamilies);
+    if (plans.length === 0) return { ok: false, error: "no_keywords" };
 
-    const ads = await searchAdzuna(keywords);
+    // Per-search isolation + cross-search dedup live in the testable runner;
+    // only when EVERY search failed is the whole run an error, and a partial
+    // failure count travels to the UI (honesty: never present a possibly
+    // incomplete result as a complete one).
+    const { ads, failedSearches } = await runSearchPlans<DiscoveredAd>(
+      plans,
+      (keywords, mode) => searchAdzuna(keywords, mode),
+      (plan, error) => {
+        logger.error("discovery search failed", {
+          mode: plan.mode,
+          reason: error instanceof Error ? error.message : "unknown",
+        });
+      },
+    );
+    if (failedSearches === plans.length) return { ok: false, error: "generic" };
+
     let imported = 0;
     let duplicates = 0;
     let failed = 0;
@@ -82,7 +87,14 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
         reason: error instanceof Error ? error.message : "unknown",
       });
     }
-    return { ok: true, found: ads.length, imported, duplicates, failed };
+    return {
+      ok: true,
+      found: ads.length,
+      imported,
+      duplicates,
+      failed,
+      failedSearches,
+    };
   } catch (error) {
     logger.error("discovery failed", {
       reason: error instanceof Error ? error.message : "unknown",

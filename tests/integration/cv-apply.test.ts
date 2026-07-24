@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/db/database.types";
-import { applyCvProfile } from "@/lib/profile/cv-apply";
+import { addCvSkills, applyCvProfile } from "@/lib/profile/cv-apply";
 import {
   getOwnProfile,
   loadLivingProfile,
@@ -133,5 +133,30 @@ describe("applyCvProfile (through the DB, RLS)", () => {
         c.kind === "skill" && (c.value as { name?: string })?.name === "Kafka",
     );
     expect(kafka?.state).toBe("confirmed");
+  });
+});
+
+describe("addCvSkills — chip flow (through the DB, RLS)", () => {
+  it("the kept chip selection lands CONFIRMED (the selection is the validation)", async () => {
+    // One pre-existing proposal (e.g. from the interview) that the user keeps
+    // selected on the chip screen — it must be confirmed, not no-oped.
+    await submitClaim(session, profileId, "skill", { name: "Terraform" });
+
+    const { added } = await addCvSkills(session, profileId, [
+      "Terraform", // proposed → confirmed
+      "Kubernetes", // new → created confirmed
+      "Spark", // already confirmed → nothing, not counted
+    ]);
+    expect(added).toBe(2);
+
+    const living = await loadLivingProfile(session, profileId);
+    const byName = (name: string) =>
+      living.claims.find(
+        (c) =>
+          c.kind === "skill" && (c.value as { name?: string })?.name === name,
+      );
+    expect(byName("Terraform")?.state).toBe("confirmed");
+    expect(byName("Kubernetes")?.state).toBe("confirmed");
+    expect(byName("Spark")?.state).toBe("confirmed");
   });
 });

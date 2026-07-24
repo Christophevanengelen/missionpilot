@@ -3,8 +3,8 @@
 /**
  * CV ingestion actions. `analyzeCvAction` reads an uploaded PDF (or pasted
  * text) and returns DETECTED skills — it stores nothing (privacy: the CV file
- * and text are never persisted). `addSkillsAction` creates the skills the user
- * confirms as proposed claims (the normal claim lifecycle then applies).
+ * and text are never persisted). `addSkillsAction` saves the skills the user
+ * kept selected as CONFIRMED claims (the chip selection is the validation).
  */
 import { z } from "zod";
 import { verifySession } from "@/lib/auth/dal";
@@ -16,7 +16,7 @@ import {
   aiDetectSkills,
   type CvProfileUnderstanding,
 } from "./cv-ai";
-import { applyCvProfile, applyProfileSchema } from "./cv-apply";
+import { addCvSkills, applyCvProfile, applyProfileSchema } from "./cv-apply";
 import { detectSkills } from "./cv-extract";
 import { CvPdfError, extractPdfText } from "./cv-pdf";
 
@@ -104,8 +104,8 @@ const addSkillsSchema = z.object({
 export type AddSkillsResult =
   { ok: true; added: number } | { ok: false; error: string };
 
-/** Create the confirmed-by-the-user skills as proposed claims, skipping ones
- *  the profile already has (case-insensitive). */
+/** Thin wrapper over the testable `addCvSkills` logic (see cv-apply.ts):
+ *  the chip selection is the user's validation, so skills land CONFIRMED. */
 export async function addSkillsAction(
   input: unknown,
 ): Promise<AddSkillsResult> {
@@ -114,24 +114,7 @@ export async function addSkillsAction(
     await verifySession();
     const client = await createClient();
     const own = await profile.getOwnProfile(client);
-    const living = await profile.loadLivingProfile(client, own.id);
-    const existing = new Set(
-      living.claims
-        .filter((c) => c.kind === "skill")
-        .map((c) =>
-          String((c.value as { name?: unknown })?.name ?? "")
-            .trim()
-            .toLowerCase(),
-        ),
-    );
-    let added = 0;
-    for (const name of skills) {
-      const key = name.trim().toLowerCase();
-      if (existing.has(key)) continue;
-      await profile.submitClaim(client, own.id, "skill", { name });
-      existing.add(key);
-      added += 1;
-    }
+    const { added } = await addCvSkills(client, own.id, skills);
     return { ok: true, added };
   } catch (error) {
     logger.error("add skills failed", {

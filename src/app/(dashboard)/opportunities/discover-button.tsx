@@ -34,8 +34,14 @@ export function DiscoverButton() {
     error: boolean;
   } {
     if (result.ok) {
+      const partial =
+        result.failedSearches > 0
+          ? ` ${copy.partial(result.failedSearches)}`
+          : "";
       return {
-        text: copy.result(result.imported, result.duplicates, result.failed),
+        text:
+          copy.result(result.imported, result.duplicates, result.failed) +
+          partial,
         error: false,
       };
     }

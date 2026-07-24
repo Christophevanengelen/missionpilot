@@ -129,9 +129,15 @@ function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
 /**
  * Search Adzuna for ads matching the given keywords. Throws `AdzunaError`
  * on config/HTTP/shape problems (callers surface an honest generic failure).
+ *
+ * Modes: "any" (default) ORs the keywords across the whole ad — right for a
+ * mixed role+skills bag; "title" requires the words in the AD TITLE — right
+ * for a target MÉTIER ("Data Engineer" must be the job, not two stray words
+ * in a paragraph).
  */
 export async function searchAdzuna(
   keywords: string[],
+  mode: "any" | "title" = "any",
 ): Promise<DiscoveredAd[]> {
   if (!adzunaConfigured()) {
     throw new AdzunaError("adzuna credentials are not configured");
@@ -146,9 +152,7 @@ export async function searchAdzuna(
   const params = new URLSearchParams({
     app_id: env.ADZUNA_APP_ID!,
     app_key: env.ADZUNA_APP_KEY!,
-    // OR semantics: an ad matching ANY of the profile keywords qualifies —
-    // AND over role+skills would routinely return zero on a first run.
-    what_or: what,
+    ...(mode === "title" ? { title_only: what } : { what_or: what }),
     results_per_page: String(RESULTS_PER_PAGE),
     "content-type": "application/json",
   });

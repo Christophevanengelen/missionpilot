@@ -146,6 +146,19 @@ describe("searchAdzuna", () => {
     expect(parsed.searchParams.get("what_or")).toBe("a b c d e");
   });
 
+  it("title mode targets the ad TITLE (title_only), not the whole ad", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ results: [] }),
+    } as Response);
+    await searchAdzuna(["Data Engineer"], "title");
+    const [calledUrl] = fetchMock.mock.calls[0];
+    const parsed = new URL(String(calledUrl));
+    expect(parsed.searchParams.get("title_only")).toBe("Data Engineer");
+    expect(parsed.searchParams.get("what_or")).toBeNull();
+  });
+
   it("throws a typed error on HTTP failure and on invalid shape", async () => {
     fetchMock.mockResolvedValue({
       ok: false,
