@@ -145,7 +145,11 @@ export function dueFollowUps(
   tracked: TrackedOpportunity[],
   today: string,
 ): TrackedOpportunity[] {
-  return tracked
-    .filter((t) => t.followUpOn !== null && t.followUpOn <= today)
-    .sort((a, b) => (a.followUpOn! < b.followUpOn! ? -1 : 1));
+  return (
+    tracked
+      .filter((t) => t.followUpOn !== null && t.followUpOn <= today)
+      // Total order (returns 0 on equal dates) so same-day follow-ups keep their
+      // stable input order (updated_at desc) instead of an arbitrary one.
+      .sort((a, b) => a.followUpOn!.localeCompare(b.followUpOn!))
+  );
 }

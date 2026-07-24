@@ -30,8 +30,12 @@ export default async function ApplicationsPage() {
   const stageLabels = t().opportunities.tracking.stages;
 
   const groups = groupByStage(tracked);
-  // Server-computed "today" for follow-up dueness (date-only comparison).
-  const today = new Date().toISOString().slice(0, 10);
+  // "Today" in the app's target timezone (not UTC) so a follow-up dated for the
+  // user's LOCAL day surfaces from local midnight, not only once UTC rolls over.
+  // en-CA renders ISO YYYY-MM-DD, matching dueFollowUps' lexical comparison.
+  const today = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Europe/Paris",
+  });
   const due = dueFollowUps(tracked, today);
 
   return (

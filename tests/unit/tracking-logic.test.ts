@@ -63,4 +63,21 @@ describe("dueFollowUps", () => {
       dueFollowUps([item("x", "applied", "2026-09-01")], "2026-07-24"),
     ).toEqual([]);
   });
+
+  it("keeps stable input order for follow-ups sharing a date (total-order sort)", () => {
+    const due = dueFollowUps(
+      [
+        item("first", "applied", "2026-07-20"),
+        item("second", "interview", "2026-07-20"),
+        item("earlier", "applied", "2026-07-10"),
+      ],
+      "2026-07-24",
+    );
+    // Chronological first, then the two same-date items in their input order.
+    expect(due.map((d) => d.opportunityId)).toEqual([
+      "earlier",
+      "first",
+      "second",
+    ]);
+  });
 });
