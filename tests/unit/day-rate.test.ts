@@ -101,4 +101,17 @@ describe("estimateDayRate", () => {
       }),
     ).toBeNull();
   });
+
+  it("guards on BOTH bounds (self-contained, even if min > max)", () => {
+    // Defensive: a caller passing an inverted, implausible min must not slip
+    // through by hiding behind a small max.
+    expect(
+      estimateDayRate({
+        compensationMin: 4_500_000,
+        compensationMax: 500_000,
+        compensationCurrency: "EUR",
+        compensationPeriod: "year",
+      }),
+    ).toBeNull();
+  });
 });

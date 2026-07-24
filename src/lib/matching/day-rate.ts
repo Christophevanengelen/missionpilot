@@ -55,7 +55,9 @@ export function estimateDayRate(comp: {
   if (annualLow <= 0 || annualHigh <= 0) return null;
   // Never surface a "day rate" from an implausible salary (mis-extraction
   // guard): honesty over coverage — better no benchmark than a fabricated one.
-  if (annualHigh > MAX_PLAUSIBLE_ANNUAL) return null;
+  // Check BOTH bounds so the guard is self-contained (does not rely on a
+  // caller keeping min ≤ max).
+  if (Math.max(annualLow, annualHigh) > MAX_PLAUSIBLE_ANNUAL) return null;
 
   let low = roundTo10((annualLow / BILLABLE_DAYS) * FREELANCE_UPLIFT_LOW);
   let high = roundTo10((annualHigh / BILLABLE_DAYS) * FREELANCE_UPLIFT_HIGH);
