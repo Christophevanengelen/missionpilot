@@ -10,6 +10,33 @@ export const DEFAULT_LOCALE: Locale = "fr";
 
 export const copy = {
   fr: {
+    dashboard: {
+      hero: {
+        title: "Bienvenue sur MissionPilot",
+        lead: "Uploadez votre CV : nous comprenons votre parcours, en déduisons votre rôle prioritaire et vos compétences cœur, puis cherchons automatiquement les offres qui vous correspondent — avec un score et le pourquoi de chaque match. Il n'y a plus qu'à découvrir le résultat.",
+        privacy:
+          "Votre CV n'est jamais conservé : l'analyse se fait en mémoire, seul le profil validé est enregistré.",
+      },
+      status: {
+        title: "Votre tableau de bord",
+        roleLabel: "Rôle prioritaire",
+        roleMissing: "À confirmer dans votre profil",
+        skillsLabel: (n: number) =>
+          `${n} ${n > 1 ? "compétences confirmées" : "compétence confirmée"}`,
+        targetsLabel: "Métiers recherchés",
+        targetsMissing: "Aucun métier cible pour l'instant",
+        offersLabel: (n: number) =>
+          n === 0
+            ? "Aucune offre découverte pour l'instant"
+            : `${n} ${n > 1 ? "offres découvertes" : "offre découverte"}`,
+        analyzedLabel: (n: number) =>
+          `${n} ${n > 1 ? "analysées par l'IA" : "analysée par l'IA"}`,
+        seeOffers: "Voir mes offres",
+        refreshCta: "Importer un nouveau CV / compléter mon profil",
+        noOffersHint:
+          "Complétez votre profil ou importez votre CV pour lancer la découverte d'offres.",
+      },
+    },
     cvImport: {
       title: "Importer mon CV",
       note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est jamais conservé.",
@@ -541,6 +568,31 @@ export const copy = {
     },
   },
   en: {
+    dashboard: {
+      hero: {
+        title: "Welcome to MissionPilot",
+        lead: "Upload your CV: we understand your background, infer your priority role and core skills, then automatically find the offers that match you — with a score and the reason behind each match. All that's left is to discover the result.",
+        privacy:
+          "Your CV is never stored: the analysis runs in memory, only the validated profile is saved.",
+      },
+      status: {
+        title: "Your dashboard",
+        roleLabel: "Priority role",
+        roleMissing: "To confirm in your profile",
+        skillsLabel: (n: number) => `${n} skill${n === 1 ? "" : "s"} confirmed`,
+        targetsLabel: "Target jobs",
+        targetsMissing: "No target job yet",
+        offersLabel: (n: number) =>
+          n === 0
+            ? "No offer discovered yet"
+            : `${n} offer${n > 1 ? "s" : ""} discovered`,
+        analyzedLabel: (n: number) => `${n} analyzed by AI`,
+        seeOffers: "See my offers",
+        refreshCta: "Import a new CV / complete my profile",
+        noOffersHint:
+          "Complete your profile or import your CV to start discovering offers.",
+      },
+    },
     cvImport: {
       title: "Import my CV",
       note: "Drop your CV (PDF) or paste its text: we detect your skills and you choose which to add. The file is never stored.",
