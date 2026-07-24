@@ -47,7 +47,7 @@ async function signIn(page: Page) {
   await page.waitForURL(/\/dashboard/);
 }
 
-test("premier login : hero « upload CV » → ajout → bascule vers la vue statut", async ({
+test("premier login : hero « upload CV » → ajout → écran de succès, puis vue statut au retour", async ({
   page,
 }) => {
   await signIn(page);
@@ -75,8 +75,19 @@ test("premier login : hero « upload CV » → ajout → bascule vers la vue sta
   ).toBeVisible();
   await page.getByRole("button", { name: "Ajouter à mon profil" }).click();
 
-  // The fluid payoff: with skills confirmed, the dashboard becomes the status
-  // view (heading + confirmed-skills line) without any manual navigation.
+  // The flow stays on the CV import's own success screen (no mid-flow flip to
+  // the status view — that showed a misleading "0 offers" window and lost
+  // focus). Confirmation is announced in place; focus is not thrown to body.
+  await expect(
+    page.getByText(/compétences? confirmées? dans votre profil/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Votre tableau de bord" }),
+  ).toHaveCount(0);
+
+  // The status view is the destination on the NEXT visit, once the profile
+  // genuinely exists.
+  await page.goto("/dashboard");
   await expect(
     page.getByRole("heading", { name: "Votre tableau de bord" }),
   ).toBeVisible();

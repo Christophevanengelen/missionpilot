@@ -579,7 +579,7 @@ export const copy = {
         title: "Your dashboard",
         roleLabel: "Priority role",
         roleMissing: "To confirm in your profile",
-        skillsLabel: (n: number) => `${n} skill${n > 1 ? "s" : ""} confirmed`,
+        skillsLabel: (n: number) => `${n} skill${n === 1 ? "" : "s"} confirmed`,
         targetsLabel: "Target jobs",
         targetsMissing: "No target job yet",
         offersLabel: (n: number) =>

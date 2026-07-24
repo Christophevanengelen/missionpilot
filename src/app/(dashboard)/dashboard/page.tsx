@@ -5,12 +5,18 @@ import { createClient } from "@/lib/db/server";
 import { getOwnProfile, listOpportunities } from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 import { loadInsights } from "@/lib/matching/insight-logic";
-import { summarizeOnboarding } from "@/lib/profile/onboarding";
+import {
+  summarizeOnboarding,
+  type OnboardingSummary,
+} from "@/lib/profile/onboarding";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { CvImport } from "../profile/cv-import";
+import { DashboardHome } from "./dashboard-home";
 
 export const metadata: Metadata = { title: "Dashboard" };
+
+type DashboardCopy = ReturnType<typeof t>["dashboard"];
 
 /**
  * The dashboard's two faces (owner fluidity mandate). First login — nothing
@@ -18,6 +24,9 @@ export const metadata: Metadata = { title: "Dashboard" };
  * flow (the CvImport screens auto-chain discovery + AI insights). Once a role
  * or a skill is confirmed, it becomes a status view: profile at a glance, how
  * many offers were found and analyzed, and the way through to them.
+ *
+ * The choice is latched client-side (see DashboardHome) so the mid-flow
+ * refresh the CV import fires never yanks a first-login user out of the hero.
  */
 export default async function DashboardPage() {
   await verifySession();
@@ -38,24 +47,40 @@ export default async function DashboardPage() {
   );
   const copy = t().dashboard;
 
-  if (!summary.hasProfile) {
-    return (
-      <section
-        aria-labelledby="dashboard-title"
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6"
-      >
-        <header className="flex flex-col gap-2">
-          <h1 id="dashboard-title" className="text-2xl font-semibold">
-            {copy.hero.title}
-          </h1>
-          <p className="text-muted-foreground text-sm">{copy.hero.lead}</p>
-          <p className="text-muted-foreground text-xs">{copy.hero.privacy}</p>
-        </header>
-        <CvImport />
-      </section>
-    );
-  }
+  return (
+    <DashboardHome
+      initialHasProfile={summary.hasProfile}
+      hero={<Hero copy={copy} />}
+      status={<StatusView summary={summary} copy={copy} />}
+    />
+  );
+}
 
+function Hero({ copy }: { copy: DashboardCopy }) {
+  return (
+    <section
+      aria-labelledby="dashboard-title"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-6"
+    >
+      <header className="flex flex-col gap-2">
+        <h1 id="dashboard-title" className="text-2xl font-semibold">
+          {copy.hero.title}
+        </h1>
+        <p className="text-muted-foreground text-sm">{copy.hero.lead}</p>
+        <p className="text-muted-foreground text-xs">{copy.hero.privacy}</p>
+      </header>
+      <CvImport />
+    </section>
+  );
+}
+
+function StatusView({
+  summary,
+  copy,
+}: {
+  summary: OnboardingSummary;
+  copy: DashboardCopy;
+}) {
   const status = copy.status;
   return (
     <section
@@ -68,7 +93,7 @@ export default async function DashboardPage() {
 
       <dl className="grid gap-3 sm:grid-cols-2">
         <StatCard label={status.roleLabel}>
-          <span className="text-base font-semibold">
+          <span className="text-base font-semibold break-words">
             {summary.roleTitle ?? (
               <span className="text-muted-foreground font-normal">
                 {status.roleMissing}
@@ -81,7 +106,7 @@ export default async function DashboardPage() {
         </StatCard>
 
         <StatCard label={status.targetsLabel}>
-          <span className="text-sm">
+          <span className="text-sm break-words">
             {summary.targetRoles.length > 0 ? (
               summary.targetRoles.join(" · ")
             ) : (
@@ -93,9 +118,11 @@ export default async function DashboardPage() {
         </StatCard>
 
         <StatCard label={status.offersLabel(summary.opportunities)}>
-          <span className="text-muted-foreground text-xs">
-            {status.analyzedLabel(summary.analyzed)}
-          </span>
+          {summary.opportunities > 0 ? (
+            <span className="text-muted-foreground text-xs">
+              {status.analyzedLabel(summary.analyzed)}
+            </span>
+          ) : null}
         </StatCard>
       </dl>
 
@@ -123,7 +150,7 @@ function StatCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-border bg-card flex flex-col gap-1 rounded-xl border p-4">
+    <div className="border-border bg-card flex min-w-0 flex-col gap-1 rounded-xl border p-4">
       <dt className="text-muted-foreground text-xs">{label}</dt>
       <dd className="flex flex-col gap-1">{children}</dd>
     </div>
