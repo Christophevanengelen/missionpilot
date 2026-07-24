@@ -55,15 +55,18 @@ describe("lintCvForAts", () => {
   });
 
   it("accepts the plural French header 'Formations' (no spurious no_sections)", () => {
+    // The ONLY section signal here is the plural header — the body deliberately
+    // contains no other SECTION_TERM (no parcours/expérience/compétences/…), so
+    // the test genuinely regresses if "formations" is dropped from the list.
     const cv =
       "Contact : a@b.co\nFormations\n" +
-      "Master en informatique, école d'ingénieurs, et diverses certifications " +
-      "professionnelles obtenues au fil d'un parcours académique complet. ".repeat(
+      "Master obtenu à l'université, puis plusieurs certifications reconnues " +
+      "dans le domaine du numérique et de la donnée, sur dix années. ".repeat(
         2,
       );
-    expect(codes(lintCvForAts({ text: cv, pageCount: 1 }))).not.toContain(
-      "no_sections",
-    );
+    const result = codes(lintCvForAts({ text: cv, pageCount: 1 }));
+    expect(result).not.toContain("no_sections");
+    expect(result).not.toContain("no_contact"); // guard: email IS present
   });
 
   it("matches section terms accent- and case-insensitively", () => {
