@@ -49,11 +49,19 @@ supabase` for version parity, `permissions: contents: read`).
 
 ## Checks (evidence)
 
-| Check   | Result    |
-| ------- | --------- |
-| verify  | (to fill) |
-| reviews | (to fill) |
-| CI      | (to fill) |
+| Check   | Result                                                                                                                                                                                                                     |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify  | passed — format:check · lint · typecheck · **148/148 unit** · build                                                                                                                                                        |
+| reviews | Implementation **PASS**, Security **PASS** — 0 confirmed defects (verified: `db push` won't hang in non-TTY CI; guard-skip stays green; triggers never expose secrets to fork PRs). 2 hardening items **applied** (below). |
+| CI      | Quality gates + Database/e2e gates SUCCESS on the first pushed commit; re-run after the hardening.                                                                                                                         |
+
+## Hardening applied (from review)
+
+- **Secret exposure surface (minor).** The two secrets were job-level `env`, so
+  present during `pnpm install` lifecycle scripts. Scoped them to only the
+  `guard`/`link`/`push` steps (step-level `env`); `install` no longer sees them.
+- **`timeout-minutes: 15`.** A hung `db push` can no longer hold the concurrency
+  slot for the 6h default.
 
 ## Stop
 
