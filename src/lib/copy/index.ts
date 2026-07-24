@@ -400,6 +400,12 @@ export const copy = {
         },
         excludedTerm: (term: string) => `Terme exclu détecté : « ${term} »`,
       },
+      dayRate: {
+        section: "TJM freelance indicatif",
+        range: (low: number, high: number, currency: string) =>
+          `~${low.toLocaleString("fr-FR")} à ~${high.toLocaleString("fr-FR")} ${currency}/jour`,
+        note: "Estimation à partir du salaire annoncé : ÷ 218 jours facturables, × 1,5 à 2 pour un profil freelance (charges sociales, congés, intercontrats, risque). À affiner selon votre situation — c'est un repère, pas une garantie.",
+      },
       matchScore: {
         section: "Score de correspondance",
         note: "Score déterministe à partir de vos préférences et de vos compétences confirmées — indicatif, pas une recommandation.",
@@ -991,6 +997,12 @@ export const copy = {
           not_constrained: "Not constrained",
         },
         excludedTerm: (term: string) => `Excluded term found: “${term}”`,
+      },
+      dayRate: {
+        section: "Indicative freelance day rate",
+        range: (low: number, high: number, currency: string) =>
+          `~${low.toLocaleString("en-US")} to ~${high.toLocaleString("en-US")} ${currency}/day`,
+        note: "Estimated from the advertised salary: ÷ 218 billable days, × 1.5 to 2 for a freelance profile (social charges, leave, gaps between contracts, risk). Refine for your situation — it's a benchmark, not a guarantee.",
       },
       matchScore: {
         section: "Match score",
