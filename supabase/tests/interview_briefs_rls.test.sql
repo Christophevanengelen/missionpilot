@@ -21,10 +21,10 @@ set local role anon;
 select set_config('request.jwt.claims', '', true);
 select throws_ok(
   'select count(*) from public.ai_interview_briefs', '42501',
-  null, 'anon cannot read drafts');
+  null, 'anon cannot read briefs');
 reset role;
 
--- user S imports an opportunity, then stores a draft for it.
+-- user W imports an opportunity, then stores a brief for it.
 select set_config('request.jwt.claims',
   json_build_object('sub', 'eeee1111-2222-3333-4444-555555555555',
     'role', 'authenticated')::text, true);
@@ -72,7 +72,7 @@ select is(
   (select jsonb_array_length(questions)::int from public.ai_interview_briefs), 0,
   'the refreshed questions array is stored');
 
--- jsonb array bound: > 12 highlights rejected.
+-- jsonb array bound: > 8 talking points rejected.
 select throws_ok(
   format(
     $$update public.ai_interview_briefs set talking_points = '%s'::jsonb$$,
@@ -82,7 +82,7 @@ select throws_ok(
 
 reset role;
 
--- user T: sees none of S, cannot write into S.
+-- user X: sees none of W, cannot write into W.
 select set_config('request.jwt.claims',
   json_build_object('sub', 'ffff6666-7777-8888-9999-000000000000',
     'role', 'authenticated')::text, true);
@@ -92,7 +92,7 @@ select is(
   (select count(*)::int from public.ai_interview_briefs), 0,
   'X sees none of W''s briefs');
 
--- T claiming S's profile_id → RLS with-check blocks (42501).
+-- X claiming W's profile_id → RLS with-check blocks (42501).
 select throws_ok(
   format(
     $$insert into public.ai_interview_briefs
@@ -104,7 +104,7 @@ select throws_ok(
     (current_setting('test.w_import')::jsonb ->> 'opportunity_id')),
   '42501', null, 'X cannot insert a brief into W''s profile');
 
--- T with its OWN profile but S's opportunity → composite FK blocks (23503).
+-- X with its OWN profile but W's opportunity → composite FK blocks (23503).
 select throws_ok(
   format(
     $$insert into public.ai_interview_briefs
@@ -117,7 +117,7 @@ select throws_ok(
   '23503', null,
   'composite FK blocks X attaching a brief to W''s opportunity');
 
--- Cross-user update/delete: RLS filters S's rows out — no error, zero rows.
+-- Cross-user update/delete: RLS filters W's rows out — no error, zero rows.
 select lives_ok(
   $$update public.ai_interview_briefs set model = 'tamper'$$,
   'X''s blanket update runs against zero visible rows');
@@ -127,7 +127,7 @@ select lives_ok(
 
 reset role;
 
--- back as S: the draft survived T's tampering intact.
+-- back as W: the brief survived X's tampering intact.
 select set_config('request.jwt.claims',
   json_build_object('sub', 'eeee1111-2222-3333-4444-555555555555',
     'role', 'authenticated')::text, true);

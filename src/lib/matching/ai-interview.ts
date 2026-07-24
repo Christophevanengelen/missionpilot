@@ -37,6 +37,9 @@ const briefSchema = z
           })
           .strict(),
       )
+      // At least one question: an all-empty brief would persist, render blank
+      // and become unregenerable (freshness would short-circuit forever).
+      .min(1)
       .max(12),
     /** Points to raise proactively, grounded in the profile. */
     talkingPoints: z.array(z.string().trim().min(1).max(300)).max(8),
