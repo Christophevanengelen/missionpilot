@@ -54,6 +54,18 @@ describe("lintCvForAts", () => {
     );
   });
 
+  it("accepts the plural French header 'Formations' (no spurious no_sections)", () => {
+    const cv =
+      "Contact : a@b.co\nFormations\n" +
+      "Master en informatique, école d'ingénieurs, et diverses certifications " +
+      "professionnelles obtenues au fil d'un parcours académique complet. ".repeat(
+        2,
+      );
+    expect(codes(lintCvForAts({ text: cv, pageCount: 1 }))).not.toContain(
+      "no_sections",
+    );
+  });
+
   it("matches section terms accent- and case-insensitively", () => {
     const accented =
       "Contact: a@b.co\nEXPÉRIENCE\nDix ans de conseil en systèmes d'information " +

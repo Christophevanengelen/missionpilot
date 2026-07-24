@@ -32,6 +32,7 @@ const SECTION_TERMS = [
   "competences",
   "skills",
   "formation",
+  "formations",
   "education",
   "diplome",
   "diplomes",

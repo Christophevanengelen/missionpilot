@@ -62,6 +62,9 @@ export function CvImport() {
   const [pasted, setPasted] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // ATS findings to show alongside an error on the idle form (e.g. a scanned
+  // image PDF that extracts no text — the note is the actionable message).
+  const [idleAtsFindings, setIdleAtsFindings] = useState<AtsFinding[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const linkedinRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
@@ -134,6 +137,7 @@ export function CvImport() {
 
   async function analyze() {
     if (inFlightRef.current) return;
+    setIdleAtsFindings([]);
     const file = fileRef.current?.files?.[0] ?? null;
     if (!file && !pasted.trim()) {
       setError(copy.needInput);
@@ -149,11 +153,18 @@ export function CvImport() {
     inFlightRef.current = true;
     setBusy(true);
     setError(null);
+    setIdleAtsFindings([]);
     try {
       const formData = new FormData();
       if (file) formData.set("file", file);
       if (pasted.trim()) formData.set("text", pasted);
-      routeAnalysis(await analyzeCvAction(formData), "cv");
+      const result = await analyzeCvAction(formData);
+      // On an error/no-skills path the idle form stays visible — surface the
+      // ATS note there (a scanned image PDF's key guidance). `atsFindings` is
+      // present on both branches (required on ok, optional on error).
+      if (!routeAnalysis(result, "cv") && result.atsFindings?.length) {
+        setIdleAtsFindings(result.atsFindings);
+      }
     } catch {
       setError(copy.errors.generic);
     } finally {
@@ -164,6 +175,7 @@ export function CvImport() {
 
   async function analyzeLinkedIn() {
     if (inFlightRef.current) return;
+    setIdleAtsFindings([]);
     const file = linkedinRef.current?.files?.[0] ?? null;
     if (!file) {
       setError(copy.linkedin.needFile);
@@ -633,6 +645,7 @@ export function CvImport() {
           {error}
         </p>
       ) : null}
+      {atsNote(idleAtsFindings)}
     </div>
   );
 }

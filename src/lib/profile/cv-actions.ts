@@ -39,7 +39,14 @@ export type CvAnalysis =
        *  for pasted text / LinkedIn imports, which have no file layout). */
       atsFindings: AtsFinding[];
     }
-  | { ok: false; error: "empty" | "pdf" | "linkedin" | "generic" };
+  | {
+      ok: false;
+      error: "empty" | "pdf" | "linkedin" | "generic";
+      /** Carried on the ERROR path too: a scanned-image PDF extracts no text
+       *  (⇒ error "empty") but is exactly when the no_extractable_text finding
+       *  matters most — it must still reach the user. */
+      atsFindings?: AtsFinding[];
+    };
 
 /**
  * Understand a career narrative — from a CV or a LinkedIn export, uniformly.
@@ -56,7 +63,10 @@ async function analyzeText(
   declaredSkills: string[] = [],
   atsFindings: AtsFinding[] = [],
 ): Promise<CvAnalysis> {
-  if (!text.trim()) return { ok: false, error: "empty" };
+  // A scanned/image PDF extracts (near-)no text — carry the ATS findings so
+  // the "likely a scanned image" guidance reaches the user instead of a bare
+  // "document looks empty".
+  if (!text.trim()) return { ok: false, error: "empty", atsFindings };
 
   const aiProfile = await aiAnalyzeCvProfile(text);
   if (aiProfile) {
