@@ -23,6 +23,8 @@ export const copy = {
       detectedTitle: "Compétences détectées dans votre CV",
       detectedNote:
         "Désélectionnez ce qui ne vous correspond pas, puis ajoutez : chaque compétence rejoindra votre profil comme proposition à confirmer.",
+      aiNote:
+        "L'IA a aussi lu votre CV pour repérer des compétences hors liste — vérifiez-les avant d'ajouter.",
       chooseOne: "Sélectionnez au moins une compétence.",
       addChosen: "Ajouter à mon profil",
       back: "Recommencer",
@@ -469,6 +471,8 @@ export const copy = {
       detectedTitle: "Skills detected in your CV",
       detectedNote:
         "Unselect what doesn't fit, then add: each skill joins your profile as a proposal to confirm.",
+      aiNote:
+        "AI also read your CV to spot skills beyond the curated list — check them before adding.",
       chooseOne: "Select at least one skill.",
       addChosen: "Add to my profile",
       back: "Start over",

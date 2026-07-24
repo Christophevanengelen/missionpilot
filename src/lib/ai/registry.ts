@@ -3,16 +3,19 @@ import "server-only";
 import { env } from "@/lib/env";
 import type { AiProvider } from "@/lib/ai/types";
 import { MockAiProvider } from "@/lib/ai/mock-provider";
+import { OpenAiProvider } from "@/lib/ai/openai-provider";
 import { AiConfigurationError } from "@/lib/security/errors";
 
 /**
- * Explicit provider allowlist. Phase 0 ships the mock only — real adapters
- * are added here when a first use case needs them (user decision, J1/J5).
- * Any name outside the allowlist fails cleanly with a typed, sanitized
- * error; no model or provider name lives outside configuration.
+ * Explicit provider allowlist. `openai` is the first real adapter (owner
+ * decision — deep CV reading); it requires OPENAI_API_KEY and fails cleanly
+ * with a typed configuration error when absent. Any name outside the
+ * allowlist fails the same way; no model or provider name lives outside
+ * configuration.
  */
 const PROVIDER_ALLOWLIST: Record<string, () => AiProvider> = {
   mock: () => new MockAiProvider(),
+  openai: () => new OpenAiProvider(),
 };
 
 export function getAiProvider(

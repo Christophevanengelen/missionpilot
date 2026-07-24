@@ -22,7 +22,7 @@ export const env = createEnv({
     INNGEST_DEV: z.string().optional(),
     OPENAI_API_KEY: z.string().min(1).optional(),
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
-    AI_DEFAULT_PROVIDER: z.enum(["mock"]).default("mock"),
+    AI_DEFAULT_PROVIDER: z.enum(["mock", "openai"]).default("mock"),
     AI_DEFAULT_MODEL: z.string().default("mock-v1"),
     CRON_SECRET: z.string().min(1).optional(),
   },

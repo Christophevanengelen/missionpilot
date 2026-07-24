@@ -13,7 +13,7 @@ import {
 
 type Step =
   | { name: "idle" }
-  | { name: "detected"; skills: string[]; chosen: Set<string> }
+  | { name: "detected"; skills: string[]; chosen: Set<string>; aiUsed: boolean }
   | { name: "added"; count: number };
 
 /**
@@ -71,6 +71,7 @@ export function CvImport() {
         name: "detected",
         skills: result.skills,
         chosen: new Set(result.skills),
+        aiUsed: result.aiUsed,
       });
     } catch {
       setError(copy.errors.generic);
@@ -141,7 +142,10 @@ export function CvImport() {
     return (
       <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4">
         <p className="text-sm font-medium">{copy.detectedTitle}</p>
-        <p className="text-muted-foreground text-xs">{copy.detectedNote}</p>
+        <p className="text-muted-foreground text-xs">
+          {copy.detectedNote}
+          {step.aiUsed ? ` ${copy.aiNote}` : ""}
+        </p>
         <ul className="flex flex-wrap gap-2">
           {step.skills.map((skill) => {
             const on = step.chosen.has(skill);

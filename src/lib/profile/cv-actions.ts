@@ -11,16 +11,22 @@ import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
 import * as profile from "./logic";
+import { aiDetectSkills } from "./cv-ai";
 import { detectSkills } from "./cv-extract";
 import { CvPdfError, extractPdfText } from "./cv-pdf";
 
 const logger = createLogger({ module: "cv-actions" });
 
 export type CvAnalysis =
-  | { ok: true; skills: string[] }
+  | { ok: true; skills: string[]; aiUsed: boolean }
   | { ok: false; error: "empty" | "pdf" | "generic" };
 
-/** Extract text from the uploaded PDF or pasted text, then detect skills. */
+/**
+ * Extract text from the uploaded PDF or pasted text, then detect skills:
+ * deterministic taxonomy detection always; AI reading on top when the OpenAI
+ * provider is configured (merged, de-duplicated case-insensitively — the
+ * deterministic casing wins). An AI failure never breaks the import.
+ */
 export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
   try {
     await verifySession();
@@ -33,7 +39,18 @@ export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
       text = pasted;
     }
     if (!text.trim()) return { ok: false, error: "empty" };
-    return { ok: true, skills: detectSkills(text) };
+
+    const deterministic = detectSkills(text);
+    const ai = await aiDetectSkills(text);
+    const seen = new Set(deterministic.map((s) => s.toLowerCase()));
+    const merged = [...deterministic];
+    for (const skill of ai ?? []) {
+      const key = skill.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(skill);
+    }
+    return { ok: true, skills: merged, aiUsed: ai !== null };
   } catch (error) {
     logger.error("cv analyze failed", {
       reason: error instanceof Error ? error.message : "unknown",
