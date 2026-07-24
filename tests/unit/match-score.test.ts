@@ -81,6 +81,16 @@ describe("skills component (evidence-backed overlap)", () => {
     // no redundant chips, no colliding React keys.
     expect(c.evidence).toEqual(["Go"]);
   });
+  it("counts an acronym/variant/translation as a covered skill (ESCO-inspired)", () => {
+    const c = comp(
+      basePrefs,
+      { skills: ["JS", "gestion de projet", "golang"] },
+      facts({ skills: ["JavaScript", "Project Management", "Go"] }),
+      "skills",
+    );
+    expect(c.score).toBe(100); // all three demanded skills covered via aliases
+    expect(c.evidence).toEqual(["JavaScript", "Project Management", "Go"]);
+  });
   it("is null when either side has no skills", () => {
     expect(
       comp(basePrefs, noSignals, facts({ skills: ["Go"] }), "skills").score,
