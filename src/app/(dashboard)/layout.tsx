@@ -16,6 +16,12 @@ const NAV_ITEMS: Array<{ label: string; href: string | null }> = [
   { label: "Settings", href: null },
 ];
 
+// The linkable destinations, so each NavLink can defer to a more-specific
+// nested route (only one link is aria-current="page" at a time).
+const NAV_HREFS = NAV_ITEMS.map((i) => i.href).filter(
+  (h): h is string => h !== null,
+);
+
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -54,7 +60,9 @@ export default async function DashboardLayout({
             {NAV_ITEMS.map((item) => (
               <li key={item.label}>
                 {item.href ? (
-                  <NavLink href={item.href}>{item.label}</NavLink>
+                  <NavLink href={item.href} siblingHrefs={NAV_HREFS}>
+                    {item.label}
+                  </NavLink>
                 ) : (
                   <span
                     aria-disabled="true"

@@ -60,14 +60,25 @@ explicit requirement.
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                       |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **153/153 unit** · build                                                                          |
-| unit        | **153** (+5: mapper always testimonial + honest provenance; url vs user_stated; schema requires recommender+text, http(s)-only link, strict) |
-| integration | **34** (+1: a recommendation with a link → stored as `testimonial`, `source_type=url`, reference kept, `user_confirmed`, via RLS)            |
-| e2e         | **34** (+1: add a recommendation → listed with a CLICKABLE "Vérifier la source" link, `rel=noopener`, axe-clean)                             |
-| reviews     | (to fill after independent passes)                                                                                                           |
-| CI          | (to fill after push)                                                                                                                         |
+| Check       | Result                                                                                                                                                                                                                                                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **153/153 unit** · build                                                                                                                                                                                                                                                                           |
+| unit        | **153** (+5: mapper always testimonial + honest provenance; url vs user_stated; schema requires recommender+text, http(s)-only link, strict)                                                                                                                                                                                                  |
+| integration | **34** (+1: a recommendation with a link → stored as `testimonial`, `source_type=url`, reference kept, `user_confirmed`, via RLS)                                                                                                                                                                                                             |
+| e2e         | **34** (+1: add a recommendation → listed with a CLICKABLE "Vérifier la source" link, `rel=noopener`, axe-clean)                                                                                                                                                                                                                              |
+| reviews     | Implementation **PASS**, Security **PASS** (0 findings — clickable URL doubly gated `^https?://` at schema + render, href React-escaped, `rel="noopener noreferrer nofollow"` hardcoded, own-data-only RLS, type fixed server-side). Impl flagged **1 minor** a11y defect — **fixed** (below). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit; re-run after the a11y fix.                                                                                                                                                                                                                                                                                  |
+
+## Review repair (before merge)
+
+- **CONFIRMED minor — double `aria-current`.** The new `/profile/recommendations`
+  nav item is nested under `/profile`; `NavLink`'s active check
+  (`pathname === href || startsWith(href + "/")`) matched BOTH on that route →
+  two links marked `aria-current="page"`. Fixed: `NavLink` now takes the sibling
+  hrefs and applies **most-specific-wins** (a parent defers to a longer matching
+  nested href), so exactly one link is current; `/profile/history` &
+  `/profile/preferences` (no own nav item) still highlight "Profil & Preuves".
+  e2e now asserts exactly one `aria-current` on the recommendations route.
 
 ## Stop
 

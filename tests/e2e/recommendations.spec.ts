@@ -54,6 +54,11 @@ test("ajouter une recommandation reçue → preuve avec lien de vérification cl
   await expect(
     page.getByRole("heading", { name: "Recommandations reçues" }),
   ).toBeVisible();
+  // Only the most-specific nav item is current — not both /profile and the
+  // nested /profile/recommendations.
+  await expect(
+    page.locator('nav[aria-label="Primary"] a[aria-current="page"]'),
+  ).toHaveCount(1);
   await expect(page.getByText("Aucune recommandation")).toBeVisible();
 
   await page.getByLabel("Qui vous recommande").fill("Jane Doe");
