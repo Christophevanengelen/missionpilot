@@ -50,9 +50,13 @@ export async function explainBreakdownAction(
     const client = await createClient();
     const profile = await getOwnProfile(client);
 
-    lockKey = `${profile.id}:${opportunityId}`;
-    if (runsInFlight.has(lockKey)) return { ok: true, fresh: true };
-    runsInFlight.add(lockKey);
+    // Acquire the lock BEFORE recording it in lockKey: a busy short-circuit
+    // must leave lockKey null so its `finally` never releases the lock held by
+    // the run that is actually in flight (mirrors insight-actions.ts).
+    const key = `${profile.id}:${opportunityId}`;
+    if (runsInFlight.has(key)) return { ok: true, fresh: true };
+    runsInFlight.add(key);
+    lockKey = key;
 
     const opportunity = await getOpportunity(client, opportunityId);
     if (!opportunity || opportunity.profile_id !== profile.id) {
