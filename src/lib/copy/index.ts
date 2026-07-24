@@ -37,6 +37,17 @@ export const copy = {
           "Complétez votre profil ou importez votre CV pour lancer la découverte d'offres.",
       },
     },
+    applications: {
+      title: "Suivi des candidatures",
+      subtitle:
+        "Votre pipeline de missions — de l'offre repérée à l'offre reçue.",
+      empty:
+        "Aucune candidature suivie. Ouvrez une offre et ajoutez-la à votre suivi.",
+      followUpsTitle: "Relances à faire",
+      followUpDue: (date: string) => `relance prévue le ${date}`,
+      untitled: "Offre sans titre",
+      open: "Ouvrir",
+    },
     cvImport: {
       title: "Importer mon CV",
       note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est jamais conservé.",
@@ -541,6 +552,26 @@ export const copy = {
           generic: "La préparation n'a pas abouti. Réessayez.",
         },
       },
+      tracking: {
+        section: "Suivi de candidature",
+        note: "Suivez cette offre dans votre pipeline. Ces informations restent privées.",
+        stageLabel: "Étape",
+        stages: {
+          saved: "Enregistrée",
+          prepared: "Préparée",
+          applied: "Postulée",
+          interview: "Entretien",
+          offer: "Offre",
+          rejected: "Refusée",
+        } as Record<string, string>,
+        noteLabel: "Note",
+        notePlaceholder: "Contact, prochaines étapes, ressenti…",
+        followUpLabel: "Relance le",
+        save: "Enregistrer le suivi",
+        saved: "Enregistré",
+        untrack: "Retirer du suivi",
+        error: "L'enregistrement n'a pas abouti. Réessayez.",
+      },
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
@@ -674,6 +705,16 @@ export const copy = {
         noOffersHint:
           "Complete your profile or import your CV to start discovering offers.",
       },
+    },
+    applications: {
+      title: "Application tracking",
+      subtitle: "Your mission pipeline — from spotted offer to received offer.",
+      empty:
+        "No tracked application yet. Open an offer and add it to your tracking.",
+      followUpsTitle: "Follow-ups due",
+      followUpDue: (date: string) => `follow-up due on ${date}`,
+      untitled: "Untitled offer",
+      open: "Open",
     },
     cvImport: {
       title: "Import my CV",
@@ -1156,6 +1197,26 @@ export const copy = {
             "This offer does not have enough content to prepare an application.",
           generic: "The preparation did not go through. Try again.",
         },
+      },
+      tracking: {
+        section: "Application tracking",
+        note: "Track this offer in your pipeline. This stays private.",
+        stageLabel: "Stage",
+        stages: {
+          saved: "Saved",
+          prepared: "Prepared",
+          applied: "Applied",
+          interview: "Interview",
+          offer: "Offer",
+          rejected: "Rejected",
+        } as Record<string, string>,
+        noteLabel: "Note",
+        notePlaceholder: "Contact, next steps, impressions…",
+        followUpLabel: "Follow up on",
+        save: "Save tracking",
+        saved: "Saved",
+        untrack: "Remove from tracking",
+        error: "Saving did not go through. Try again.",
       },
       inbox: {
         all: "All",
