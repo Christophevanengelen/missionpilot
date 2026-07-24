@@ -469,6 +469,35 @@ export const copy = {
           generic: "L'analyse n'a pas abouti. Réessayez.",
         },
       },
+      breakdown: {
+        title: "Détail de correspondance (IA)",
+        note: "Chaque exigence de l'offre confrontée à votre profil validé, avec un conseil honnête pour améliorer votre CV là où c'est pertinent. C'est une proposition — jamais une invitation à inventer.",
+        empty:
+          "Lancez l'analyse détaillée pour voir, exigence par exigence, ce que votre profil couvre et comment renforcer votre CV.",
+        button: "Analyser en détail",
+        analyzing: "Analyse en cours…",
+        refreshCta: "Réanalyser",
+        importance: {
+          must: "Indispensable",
+          nice: "Souhaité",
+        } as Record<string, string>,
+        status: {
+          covered: "Couvert",
+          partial: "Partiel",
+          missing: "Manquant",
+        } as Record<string, string>,
+        suggestionLabel: "Conseil",
+        needsReview:
+          "Analyse incertaine — l'IA manque d'éléments, à lire avec recul.",
+        errors: {
+          unconfigured:
+            "L'analyse détaillée n'est pas encore activée (clé OpenAI manquante).",
+          no_profile:
+            "Confirmez d'abord votre profil (rôle, compétences) — importez votre CV pour aller vite.",
+          not_found: "Cette offre n'a pas assez de contenu à analyser.",
+          generic: "L'analyse n'a pas abouti. Réessayez.",
+        },
+      },
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
@@ -1010,6 +1039,35 @@ export const copy = {
           no_candidates:
             "No offer can be analyzed — your offers are excluded by your constraints or have no text.",
           busy: "An analysis is already running — hang on a moment.",
+          generic: "The analysis did not go through. Try again.",
+        },
+      },
+      breakdown: {
+        title: "Match breakdown (AI)",
+        note: "Every requirement of the offer checked against your validated profile, with an honest tip to improve your CV where relevant. It's a proposal — never an invitation to make things up.",
+        empty:
+          "Run the detailed analysis to see, requirement by requirement, what your profile covers and how to strengthen your CV.",
+        button: "Analyze in detail",
+        analyzing: "Analyzing…",
+        refreshCta: "Re-analyze",
+        importance: {
+          must: "Must-have",
+          nice: "Nice-to-have",
+        } as Record<string, string>,
+        status: {
+          covered: "Covered",
+          partial: "Partial",
+          missing: "Missing",
+        } as Record<string, string>,
+        suggestionLabel: "Tip",
+        needsReview:
+          "Uncertain analysis — the AI lacks elements, read with caution.",
+        errors: {
+          unconfigured:
+            "The detailed analysis is not enabled yet (OpenAI key missing).",
+          no_profile:
+            "Confirm your profile first (role, skills) — import your CV to go fast.",
+          not_found: "This offer does not have enough content to analyze.",
           generic: "The analysis did not go through. Try again.",
         },
       },
