@@ -44,6 +44,13 @@ export function CvImport() {
       setError(copy.needInput);
       return;
     }
+    // Pre-check the size client-side: past the server-action body limit the
+    // framework rejects the request before our code runs, so the user would
+    // only ever see a generic error.
+    if (file && file.size > 10 * 1024 * 1024) {
+      setError(copy.errors.tooLarge);
+      return;
+    }
     inFlightRef.current = true;
     setBusy(true);
     setError(null);

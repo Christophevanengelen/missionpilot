@@ -34,6 +34,8 @@ export const copy = {
       errors: {
         empty: "Le document semble vide.",
         pdf: "Ce PDF n'a pas pu être lu. Collez plutôt le texte de votre CV.",
+        tooLarge:
+          "Ce fichier dépasse 10 Mo. Exportez une version plus légère ou collez le texte de votre CV.",
         generic: "L'analyse n'a pas abouti. Réessayez.",
       },
     },
@@ -478,6 +480,8 @@ export const copy = {
       errors: {
         empty: "The document looks empty.",
         pdf: "This PDF could not be read. Paste your CV's text instead.",
+        tooLarge:
+          "This file exceeds 10 MB. Export a lighter version or paste your CV's text.",
         generic: "The analysis did not go through. Try again.",
       },
     },

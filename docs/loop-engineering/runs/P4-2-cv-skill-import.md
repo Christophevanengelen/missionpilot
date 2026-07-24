@@ -57,14 +57,42 @@ still detects.
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **158/158 unit** · build (unpdf bundled)                           |
-| unit        | **158** (+5 detector: aliases/dedup/order, word boundaries, punctuation names, extension-suffix fix, honesty) |
-| integration | **34** (unchanged — skill claims reuse the PR A path already covered)                                         |
-| e2e         | **35** (+1: paste CV → 5 chips all pressed → unselect one → "4 compétences ajoutées" → axe-clean)             |
-| reviews     | (to fill after independent passes)                                                                            |
-| CI          | (to fill after push)                                                                                          |
+| Check       | Result                                                                                                                                                                                                                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **158/158 unit** · build (unpdf bundled)                                                                                                                                                                                                                                               |
+| unit        | **158** (+5 detector: aliases/dedup/order, word boundaries, punctuation names, extension-suffix fix, honesty)                                                                                                                                                                                                                     |
+| integration | **34** (unchanged — skill claims reuse the PR A path already covered)                                                                                                                                                                                                                                                             |
+| e2e         | **35** (+1: paste CV → 5 chips all pressed → unselect one → "4 compétences ajoutées" → axe-clean)                                                                                                                                                                                                                                 |
+| reviews     | Security **PASS** (auth-gated actions, taxonomy-only RegExp — no user-controlled pattern/ReDoS, CV never persisted or logged, RLS-only writes, unpdf pinned post-CVE). Implementation **CHANGES_REQUESTED** → **1 MAJOR + minors confirmed and repaired** (below); re-gated green. Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit; re-run after the repairs.                                                                                                                                                                                                                                                                       |
+
+## Review repairs (before merge)
+
+- **CONFIRMED MAJOR — 10 MB cap unreachable.** Next 16's server actions
+  default to a **1 MB body limit** and `next.config.ts` didn't raise it: any
+  CV over 1 MB was rejected by the framework before the action ran (the
+  10 MB check was dead code) with a misleading generic error. Fixed:
+  `experimental.serverActions.bodySizeLimit: "10mb"` (placement verified in
+  Next 16.2.11 types) + a client-side `file.size` pre-check with a dedicated
+  "fichier trop volumineux" message (FR+EN).
+- **CONFIRMED minor — taxonomy (66) > add cap (50).** A fully-selected
+  keyword-rich CV couldn't be submitted. Fixed: cap raised to 100.
+- **Security hardening (recommended) — extraction bounds.** A small crafted
+  PDF could expand to huge text (compression bomb) or thousands of pages.
+  Fixed: `MAX_PAGES = 80` + extracted text capped at 300k chars; `CvPdfError`
+  re-thrown untouched.
+- **Coverage gap — PDF path untested.** Added unit tests for the safety
+  bounds (empty / oversize / corrupt ⇒ typed `CvPdfError`), with
+  `server-only` mocked.
+
+## Consciously accepted (documented, not repaired)
+
+- **Rejected skills count as "already present"** in the import skip — a skill
+  the user explicitly rejected is not silently re-proposed; the interview's
+  restore flow exists for that.
+- **Common-word false positives** (e.g. "go-live" → Go, "swift" → Swift) —
+  acceptable by design: chips are proposals with a human in the loop; the
+  later LLM brick improves precision.
 
 ## Stop
 
