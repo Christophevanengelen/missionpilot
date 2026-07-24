@@ -11,6 +11,7 @@
  * a fabricated number. Confidence = share of components that could be scored.
  */
 import type { ProfilePreferences } from "@/domain/profile";
+import { canonicalizeSkill } from "@/domain/skill-aliases";
 import type { OpportunityFacts } from "@/lib/matching/hard-constraints";
 
 export const SCORE_COMPONENTS = [
@@ -52,8 +53,6 @@ export type ProfileSignals = {
   skills: string[];
 };
 
-const norm = (s: string) => s.trim().toLowerCase();
-
 /**
  * Share of the opportunity's demanded skills the profile covers. Only the
  * extracted skill tokens are the demand set (requirements are prose — not a
@@ -63,8 +62,11 @@ function scoreSkills(
   signals: ProfileSignals,
   f: OpportunityFacts,
 ): ScoreComponent {
-  const demand = f.skills.map(norm).filter(Boolean);
-  const have = new Set(signals.skills.map(norm).filter(Boolean));
+  // Canonicalize both sides so acronyms / variants / FR↔EN translations of the
+  // SAME skill compare equal ("JS" ↔ "JavaScript", "gestion de projet" ↔
+  // "project management") instead of undercounting a real match.
+  const demand = f.skills.map(canonicalizeSkill).filter(Boolean);
+  const have = new Set(signals.skills.map(canonicalizeSkill).filter(Boolean));
   if (demand.length === 0 || have.size === 0) {
     return { key: "skills", score: null, evidence: [] };
   }
@@ -72,13 +74,13 @@ function scoreSkills(
   const matched = demandSet.filter((d) => have.has(d));
   const score = Math.round((100 * matched.length) / demandSet.length);
   // Evidence: the covered skills in the opportunity's original casing, each
-  // once (a listing may repeat a skill / vary its case — de-dup by normalized
+  // once (a listing may repeat a skill / vary its case — de-dup by canonical
   // token so chips stay unique and keys never collide).
   const matchedSet = new Set(matched);
   const seen = new Set<string>();
   const evidence: string[] = [];
   for (const s of f.skills) {
-    const n = norm(s);
+    const n = canonicalizeSkill(s);
     if (matchedSet.has(n) && !seen.has(n)) {
       seen.add(n);
       evidence.push(s);
