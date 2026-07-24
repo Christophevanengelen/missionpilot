@@ -33,6 +33,21 @@ export const copy = {
           ? "Ces compétences étaient déjà dans votre profil."
           : `${n} ${n > 1 ? "compétences ajoutées" : "compétence ajoutée"} à votre profil (à confirmer dans l'entretien).`,
       again: "Importer un autre document",
+      applied: (n: number) =>
+        `Profil mis à jour — ${n} ${n > 1 ? "éléments confirmés" : "élément confirmé"}.`,
+      appliedNote:
+        "Votre rôle, résumé, compétences cœur et métiers cibles sont en place. Tout reste ajustable dans votre profil.",
+      seeOffers: "Découvrir mes offres",
+      understood: {
+        title: "Voici ce que j'ai compris de votre parcours",
+        note: "Vérifiez, décochez ce qui ne colle pas, puis validez en un clic — tout reste modifiable ensuite.",
+        roleLabel: "Rôle prioritaire",
+        years: (n: number) => `${n} ans d'expérience`,
+        summaryLabel: "Résumé professionnel",
+        skillsLabel: "Compétences cœur (récurrentes dans vos expériences)",
+        targetsLabel: "Métiers cibles pour la recherche d'offres",
+        apply: "C'est bien moi — tout ajouter",
+      },
       errors: {
         empty: "Le document semble vide.",
         pdf: "Ce PDF n'a pas pu être lu. Collez plutôt le texte de votre CV.",
@@ -511,6 +526,21 @@ export const copy = {
           ? "Those skills were already in your profile."
           : `${n} skill${n > 1 ? "s" : ""} added to your profile (to confirm in the interview).`,
       again: "Import another document",
+      applied: (n: number) =>
+        `Profile updated — ${n} ${n > 1 ? "items confirmed" : "item confirmed"}.`,
+      appliedNote:
+        "Your role, summary, core skills and target jobs are in place. Everything stays adjustable in your profile.",
+      seeOffers: "Discover my offers",
+      understood: {
+        title: "Here is what I understood from your career",
+        note: "Check it, untick what doesn't fit, then validate in one click — everything stays editable afterwards.",
+        roleLabel: "Priority role",
+        years: (n: number) => `${n} years of experience`,
+        summaryLabel: "Professional summary",
+        skillsLabel: "Core skills (recurrent across your experiences)",
+        targetsLabel: "Target jobs for offer discovery",
+        apply: "That's me — add everything",
+      },
       errors: {
         empty: "The document looks empty.",
         pdf: "This PDF could not be read. Paste your CV's text instead.",

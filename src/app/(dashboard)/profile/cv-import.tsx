@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,13 +9,17 @@ import { t } from "@/lib/copy";
 import {
   addSkillsAction,
   analyzeCvAction,
+  applyCvProfileAction,
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
+import type { CvProfileAnalysis } from "@/lib/profile/cv-ai";
 
 type Step =
   | { name: "idle" }
   | { name: "detected"; skills: string[]; chosen: Set<string>; aiUsed: boolean }
-  | { name: "added"; count: number };
+  | { name: "understood"; profile: CvProfileAnalysis; chosen: Set<string> }
+  | { name: "added"; count: number }
+  | { name: "applied"; count: number };
 
 /**
  * "Import my CV" — upload a PDF (or paste the text) → deterministic skill
@@ -61,6 +66,15 @@ export function CvImport() {
       const result: CvAnalysis = await analyzeCvAction(formData);
       if (!result.ok) {
         setError(copy.errors[result.error]);
+        return;
+      }
+      if (result.profile) {
+        // Deep AI understanding → the single review screen.
+        setStep({
+          name: "understood",
+          profile: result.profile,
+          chosen: new Set(result.profile.coreSkills),
+        });
         return;
       }
       if (result.skills.length === 0) {
@@ -110,11 +124,167 @@ export function CvImport() {
   }
 
   function toggle(skill: string) {
-    if (step.name !== "detected") return;
+    if (step.name !== "detected" && step.name !== "understood") return;
     const chosen = new Set(step.chosen);
     if (chosen.has(skill)) chosen.delete(skill);
     else chosen.add(skill);
     setStep({ ...step, chosen });
+  }
+
+  async function applyProfile() {
+    if (inFlightRef.current || step.name !== "understood") return;
+    inFlightRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const p = step.profile;
+      const result = await applyCvProfileAction({
+        roleTitle: p.roleTitle,
+        seniorityLevel: p.seniorityLevel,
+        yearsExperience: p.yearsExperience,
+        summary: p.summary,
+        skills: [...step.chosen],
+        targetRoles: p.targetRoles,
+      });
+      if (!result.ok) {
+        setError(copy.errors.generic);
+        return;
+      }
+      setStep({ name: "applied", count: result.confirmed });
+      setPasted("");
+      if (fileRef.current) fileRef.current.value = "";
+      router.refresh();
+    } catch {
+      setError(copy.errors.generic);
+    } finally {
+      inFlightRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  if (step.name === "applied") {
+    return (
+      <div
+        role="status"
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+      >
+        <p className="text-sm font-medium">{copy.applied(step.count)}</p>
+        <p className="text-muted-foreground text-xs">{copy.appliedNote}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm">
+            <Link href="/opportunities">{copy.seeOffers}</Link>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setStep({ name: "idle" })}
+          >
+            {copy.again}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step.name === "understood") {
+    const p = step.profile;
+    return (
+      <div className="border-border bg-card flex flex-col gap-4 rounded-xl border p-4">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium">{copy.understood.title}</p>
+          <p className="text-muted-foreground text-xs">
+            {copy.understood.note}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs">
+            {copy.understood.roleLabel}
+          </p>
+          <p className="text-base font-semibold">
+            {p.roleTitle}
+            {p.seniorityLevel ? (
+              <span className="text-muted-foreground text-sm font-normal">
+                {" "}
+                · {p.seniorityLevel}
+              </span>
+            ) : null}
+            {p.yearsExperience !== null ? (
+              <span className="text-muted-foreground text-sm font-normal">
+                {" "}
+                · {copy.understood.years(p.yearsExperience)}
+              </span>
+            ) : null}
+          </p>
+          <p className="text-muted-foreground text-xs italic">
+            {p.roleRationale}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs">
+            {copy.understood.summaryLabel}
+          </p>
+          <p className="text-sm">{p.summary}</p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs">
+            {copy.understood.skillsLabel}
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {p.coreSkills.map((skill) => {
+              const on = step.chosen.has(skill);
+              return (
+                <li key={skill}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggle(skill)}
+                    disabled={busy}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      on
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs">
+            {copy.understood.targetsLabel}
+          </p>
+          <p className="text-sm">{p.targetRoles.join(" · ")}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" size="sm" onClick={applyProfile} {...busyProps}>
+            {copy.understood.apply}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => setStep({ name: "idle" })}
+          >
+            {copy.back}
+          </Button>
+          {error ? (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   if (step.name === "added") {
