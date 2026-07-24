@@ -24,6 +24,10 @@ import {
   type ClaimState,
 } from "@/domain/profile";
 import type { LivingState } from "./interview";
+import {
+  buildTestimonialEvidence,
+  recommendationInputSchema,
+} from "./recommendation";
 import * as profile from "./logic";
 
 export type ActionResult<T = undefined> =
@@ -195,6 +199,33 @@ export async function createEvidenceAction(
     return { ok: true, data: { evidenceId }, snapshot, revalidated };
   } catch (error) {
     return sanitize("createEvidence", error);
+  }
+}
+
+/**
+ * Add a received recommendation (peer proof) as a `testimonial` evidence item.
+ * The user PASTES their own recommendation; the app never fetches/scrapes it.
+ * The evidence type is fixed server-side to `testimonial`.
+ */
+export async function addRecommendationAction(
+  input: unknown,
+): Promise<ActionResult<{ evidenceId: string }>> {
+  try {
+    const parsed = recommendationInputSchema.parse(input);
+    const evidence = evidenceInputSchema.parse(
+      buildTestimonialEvidence(parsed),
+    );
+    const { client, profileId } = await ownProfileClient();
+    const evidenceId = await profile.createEvidence(
+      client,
+      profileId,
+      evidence,
+    );
+    const snapshot = await loadSnapshot(client, profileId, "addRecommendation");
+    const revalidated = revalidateProfile("addRecommendation");
+    return { ok: true, data: { evidenceId }, snapshot, revalidated };
+  } catch (error) {
+    return sanitize("addRecommendation", error);
   }
 }
 

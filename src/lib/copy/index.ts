@@ -10,6 +10,29 @@ export const DEFAULT_LOCALE: Locale = "fr";
 
 export const copy = {
   fr: {
+    recommendations: {
+      title: "Recommandations reçues",
+      subtitle:
+        "Collez une recommandation reçue (LinkedIn, email…) et son lien de vérification : elle devient une preuve « testimonial » rattachée à votre profil.",
+      listLabel: "Recommandations enregistrées",
+      empty: "Aucune recommandation pour le moment. Ajoutez-en une ci-dessus.",
+      verify: "Vérifier la source",
+      noSource: "Sans lien de vérification",
+      backToProfile: "Retour au profil",
+      error: "L'ajout n'a pas abouti. Réessayez.",
+      form: {
+        recommender: "Qui vous recommande",
+        relationship: "Relation",
+        relationshipPlaceholder: "ex. ancien manager, client…",
+        organization: "Organisation",
+        sourceUrl: "Lien de vérification (recommandé)",
+        sourceNote:
+          "Le lien (ex. la recommandation sur LinkedIn) permet de retrouver et vérifier la source. Nous ne récupérons rien automatiquement — vous collez le texte vous-même.",
+        text: "Texte de la recommandation",
+        submit: "Ajouter la recommandation",
+        required: "Indiquez au moins qui vous recommande et le texte.",
+      },
+    },
     cardStates: {
       proposed: "proposé",
       confirmed: "confirmé",
@@ -404,6 +427,29 @@ export const copy = {
     },
   },
   en: {
+    recommendations: {
+      title: "Received recommendations",
+      subtitle:
+        "Paste a recommendation you received (LinkedIn, email…) and its verification link: it becomes a 'testimonial' proof attached to your profile.",
+      listLabel: "Saved recommendations",
+      empty: "No recommendation yet. Add one above.",
+      verify: "Verify the source",
+      noSource: "No verification link",
+      backToProfile: "Back to profile",
+      error: "Adding it did not go through. Try again.",
+      form: {
+        recommender: "Who recommends you",
+        relationship: "Relationship",
+        relationshipPlaceholder: "e.g. former manager, client…",
+        organization: "Organisation",
+        sourceUrl: "Verification link (recommended)",
+        sourceNote:
+          "The link (e.g. the LinkedIn recommendation) lets the source be traced and verified. We never fetch anything automatically — you paste the text yourself.",
+        text: "Recommendation text",
+        submit: "Add the recommendation",
+        required: "Enter at least who recommends you and the text.",
+      },
+    },
     cardStates: {
       proposed: "proposed",
       confirmed: "confirmed",

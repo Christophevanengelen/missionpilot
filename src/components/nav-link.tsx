@@ -8,12 +8,23 @@ import { cn } from "@/lib/utils";
 export function NavLink({
   href,
   children,
+  siblingHrefs = [],
 }: {
   href: string;
   children: React.ReactNode;
+  /** All nav hrefs, so a parent route can defer to a more-specific nested
+   *  item — otherwise both would claim aria-current="page". */
+  siblingHrefs?: string[];
 }) {
   const pathname = usePathname();
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const matches = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
+  // Most-specific wins: this link is current only if no longer nav href also
+  // matches the current path (avoids two aria-current links on nested routes).
+  const active =
+    matches(href) &&
+    !siblingHrefs.some(
+      (h) => h !== href && h.length > href.length && matches(h),
+    );
 
   return (
     <Link
