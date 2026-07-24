@@ -10,6 +10,33 @@ export const DEFAULT_LOCALE: Locale = "fr";
 
 export const copy = {
   fr: {
+    cvImport: {
+      title: "Importer mon CV",
+      note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est jamais conservé.",
+      fileLabel: "CV (PDF)",
+      pasteLabel: "…ou collez le texte de votre CV",
+      pastePlaceholder: "Collez ici le contenu de votre CV…",
+      analyze: "Analyser mon CV",
+      needInput: "Déposez un PDF ou collez le texte de votre CV.",
+      noneDetected:
+        "Aucune compétence connue détectée dans ce document. Vous pouvez les ajouter via l'entretien ci-dessous.",
+      detectedTitle: "Compétences détectées dans votre CV",
+      detectedNote:
+        "Désélectionnez ce qui ne vous correspond pas, puis ajoutez : chaque compétence rejoindra votre profil comme proposition à confirmer.",
+      chooseOne: "Sélectionnez au moins une compétence.",
+      addChosen: "Ajouter à mon profil",
+      back: "Recommencer",
+      added: (n: number) =>
+        n === 0
+          ? "Ces compétences étaient déjà dans votre profil."
+          : `${n} ${n > 1 ? "compétences ajoutées" : "compétence ajoutée"} à votre profil (à confirmer dans l'entretien).`,
+      again: "Importer un autre document",
+      errors: {
+        empty: "Le document semble vide.",
+        pdf: "Ce PDF n'a pas pu être lu. Collez plutôt le texte de votre CV.",
+        generic: "L'analyse n'a pas abouti. Réessayez.",
+      },
+    },
     recommendations: {
       title: "Recommandations reçues",
       subtitle:
@@ -427,6 +454,33 @@ export const copy = {
     },
   },
   en: {
+    cvImport: {
+      title: "Import my CV",
+      note: "Drop your CV (PDF) or paste its text: we detect your skills and you choose which to add. The file is never stored.",
+      fileLabel: "CV (PDF)",
+      pasteLabel: "…or paste your CV's text",
+      pastePlaceholder: "Paste your CV's content here…",
+      analyze: "Analyse my CV",
+      needInput: "Drop a PDF or paste your CV's text.",
+      noneDetected:
+        "No known skill detected in this document. You can add them through the interview below.",
+      detectedTitle: "Skills detected in your CV",
+      detectedNote:
+        "Unselect what doesn't fit, then add: each skill joins your profile as a proposal to confirm.",
+      chooseOne: "Select at least one skill.",
+      addChosen: "Add to my profile",
+      back: "Start over",
+      added: (n: number) =>
+        n === 0
+          ? "Those skills were already in your profile."
+          : `${n} skill${n > 1 ? "s" : ""} added to your profile (to confirm in the interview).`,
+      again: "Import another document",
+      errors: {
+        empty: "The document looks empty.",
+        pdf: "This PDF could not be read. Paste your CV's text instead.",
+        generic: "The analysis did not go through. Try again.",
+      },
+    },
     recommendations: {
       title: "Received recommendations",
       subtitle:

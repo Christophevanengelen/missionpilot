@@ -7,6 +7,7 @@ import {
   loadLivingProfile,
 } from "@/lib/profile/logic";
 import type { ClaimKind, ClaimState } from "@/domain/profile";
+import { CvImport } from "./cv-import";
 import { ProfileInterview } from "./profile-interview";
 
 export const metadata: Metadata = { title: "Profil & Preuves" };
@@ -25,23 +26,26 @@ export default async function ProfilePage() {
   const versions = await listVersions(client, profile.id);
 
   return (
-    <ProfileInterview
-      latestVersionNumber={versions[0]?.version_number ?? null}
-      claims={living.claims.map((c) => ({
-        id: c.id,
-        kind: c.kind as ClaimKind,
-        value: c.value as Record<string, unknown>,
-        state: c.state as ClaimState,
-      }))}
-      evidence={living.evidence.map((e) => ({
-        id: e.id,
-        title: e.title,
-        statement: e.statement,
-        role_played: e.role_played,
-        verification_status: e.verification_status,
-        state: e.state as ClaimState,
-      }))}
-      links={living.links}
-    />
+    <div className="flex flex-col gap-6">
+      <CvImport />
+      <ProfileInterview
+        latestVersionNumber={versions[0]?.version_number ?? null}
+        claims={living.claims.map((c) => ({
+          id: c.id,
+          kind: c.kind as ClaimKind,
+          value: c.value as Record<string, unknown>,
+          state: c.state as ClaimState,
+        }))}
+        evidence={living.evidence.map((e) => ({
+          id: e.id,
+          title: e.title,
+          statement: e.statement,
+          role_played: e.role_played,
+          verification_status: e.verification_status,
+          state: e.state as ClaimState,
+        }))}
+        links={living.links}
+      />
+    </div>
   );
 }
