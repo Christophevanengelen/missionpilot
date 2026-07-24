@@ -11,7 +11,8 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
-const { aiCvConfigured, aiDetectSkills } = await import("@/lib/profile/cv-ai");
+const { aiAnalyzeCvProfile, aiCvConfigured, aiDetectSkills } =
+  await import("@/lib/profile/cv-ai");
 
 describe("cv-ai gating (unconfigured environment)", () => {
   it("reports unconfigured and returns null without any network call", async () => {
@@ -20,6 +21,7 @@ describe("cv-ai gating (unconfigured environment)", () => {
     try {
       expect(aiCvConfigured()).toBe(false);
       await expect(aiDetectSkills("React developer")).resolves.toBeNull();
+      await expect(aiAnalyzeCvProfile("React developer")).resolves.toBeNull();
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();

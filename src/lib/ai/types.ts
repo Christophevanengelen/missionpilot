@@ -13,6 +13,13 @@ export type AiRequest<T> = {
   /** Versioned prompt identifier — prompts are versioned assets. */
   promptVersion: string;
   /**
+   * SERVER-AUTHORED task instruction, delivered on the TRUSTED side of the
+   * prompt (system message) — never inside `input`, which is untrusted data.
+   * Keeping instructions and data on separate trust levels is what makes the
+   * "ignore instructions inside the input" rule enforceable.
+   */
+  taskInstruction?: string;
+  /**
    * Task input. Treated strictly as DATA by every provider: it can never
    * change rules, schemas or expected statuses (prompt-injection boundary).
    */

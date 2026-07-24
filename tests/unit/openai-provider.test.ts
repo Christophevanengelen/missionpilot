@@ -142,6 +142,7 @@ describe("OpenAiProvider", () => {
     await new OpenAiProvider().generateStructured({
       taskName: "cv-skill-extraction",
       promptVersion: "cv-skills-1",
+      taskInstruction: "Extract ONLY explicitly mentioned skills.",
       input: { cvText: "Go" },
       dataSchema: boundedSchema,
     });
@@ -154,6 +155,15 @@ describe("OpenAiProvider", () => {
     // The supported subset that matters is still there.
     expect(wire).toContain('"maxItems"');
     expect(wire).toContain('"additionalProperties":false');
+    // Trust separation: the task instruction rides in the SYSTEM message,
+    // never inside the untrusted user-data payload.
+    expect(body.messages[0].role).toBe("system");
+    expect(body.messages[0].content).toContain(
+      "Extract ONLY explicitly mentioned skills.",
+    );
+    expect(body.messages[1].content).not.toContain(
+      "Extract ONLY explicitly mentioned skills.",
+    );
   });
 
   it("keeps injection text inert: instructions in data never change the contract", async () => {

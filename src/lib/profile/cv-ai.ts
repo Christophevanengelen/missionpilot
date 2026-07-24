@@ -18,6 +18,7 @@ import { createLogger } from "@/lib/observability/logger";
  */
 
 const CV_SKILLS_PROMPT_VERSION = "cv-skills-1";
+const CV_PROFILE_PROMPT_VERSION = "cv-profile-1";
 const MAX_CV_CHARS = 30_000; // cost bound — a CV fits well within this.
 
 const aiSkillsSchema = z
@@ -26,10 +27,78 @@ const aiSkillsSchema = z
   })
   .strict();
 
+/**
+ * Deep CV understanding (owner mandate: "le système doit savoir quel rôle je
+ * veux présenter en priorité — c'est de la logique sur base de mes
+ * expériences"). All fields REQUIRED (nullable, never optional) per the
+ * strict-structured-outputs dataSchema contract; length bounds are enforced
+ * by this local gate only (stripped from the wire schema).
+ */
+const cvProfileSchema = z
+  .object({
+    /** The ONE professional role this CV most credibly presents. */
+    roleTitle: z.string().trim().min(1).max(200),
+    /** Short user-facing justification, grounded in the experiences. */
+    roleRationale: z.string().trim().min(1).max(500),
+    seniorityLevel: z.string().trim().min(1).max(100).nullable(),
+    yearsExperience: z.number().int().min(0).max(80).nullable(),
+    /** 2-3 sentence professional summary, first person, factual. */
+    summary: z.string().trim().min(1).max(2000),
+    /** Core skills ONLY — recurrent/recent across experiences, most important
+     *  first. Not an exhaustive keyword dump. */
+    coreSkills: z.array(z.string().trim().min(1).max(120)).min(1).max(15),
+    /** 1-3 job-market métiers to search offers for, priority first. */
+    targetRoles: z.array(z.string().trim().min(1).max(120)).min(1).max(3),
+  })
+  .strict();
+
+export type CvProfileAnalysis = z.infer<typeof cvProfileSchema>;
+
+/** The analysis plus the model's own uncertainty signal — a `needs_review`
+ *  envelope must stay visible on a path that ends in CONFIRMED claims. */
+export type CvProfileUnderstanding = CvProfileAnalysis & {
+  needsReview: boolean;
+};
+
 const log = createLogger({ module: "cv-ai" });
 
 export function aiCvConfigured(): boolean {
   return env.AI_DEFAULT_PROVIDER === "openai" && Boolean(env.OPENAI_API_KEY);
+}
+
+/**
+ * Deep profile analysis of the CV, or `null` when AI is not configured or the
+ * call fails (the deterministic chip flow stands alone — an AI failure must
+ * never break the import). One call covers everything: priority role +
+ * rationale, seniority, years, summary, weighted core skills, target métiers.
+ */
+export async function aiAnalyzeCvProfile(
+  text: string,
+): Promise<CvProfileUnderstanding | null> {
+  if (!aiCvConfigured()) return null;
+  try {
+    const provider = getAiProvider();
+    const response = await provider.generateStructured({
+      taskName: "cv-profile-analysis",
+      promptVersion: CV_PROFILE_PROMPT_VERSION,
+      // Server-authored instruction on the TRUSTED side; the input carries
+      // only the untrusted CV text.
+      taskInstruction:
+        "Analyse le CV fourni dans inputData.cvText en profondeur comme un expert du recrutement. Déduis: (1) roleTitle — LE rôle professionnel que ce parcours présente le plus crédiblement en priorité (logique des expériences: récence, durée, progression); (2) roleRationale — 1-2 phrases en français justifiant ce choix à partir des expériences; (3) seniorityLevel (ex. Senior, Lead, Directeur) ou null si indécidable; (4) yearsExperience — années d'expérience pertinentes, ou null; (5) summary — résumé professionnel de 2-3 phrases en français, factuel, première personne; (6) coreSkills — UNIQUEMENT les compétences cœur, récurrentes et récentes à travers les expériences, la plus importante d'abord, max 15 — PAS une liste exhaustive de mots-clés; (7) targetRoles — 1 à 3 intitulés de métiers du marché de l'emploi à rechercher pour ce profil, prioritaire d'abord. N'invente RIEN qui ne soit pas dans le CV.",
+      input: { cvText: text.slice(0, MAX_CV_CHARS) },
+      dataSchema: cvProfileSchema,
+    });
+    if (response.envelope.status === "failed") return null;
+    return {
+      ...response.envelope.data,
+      needsReview: response.envelope.status === "needs_review",
+    };
+  } catch (error) {
+    log.warn("ai profile analysis unavailable", {
+      errorType: error instanceof Error ? error.constructor.name : "unknown",
+    });
+    return null;
+  }
 }
 
 /**
@@ -44,11 +113,9 @@ export async function aiDetectSkills(text: string): Promise<string[] | null> {
     const response = await provider.generateStructured({
       taskName: "cv-skill-extraction",
       promptVersion: CV_SKILLS_PROMPT_VERSION,
-      input: {
-        instruction:
-          "Extract the professional skills, tools and technologies this CV explicitly mentions. Return each as a short canonical name (e.g. 'React', 'Product Management'). Only skills present in the text — never infer or invent.",
-        cvText: text.slice(0, MAX_CV_CHARS),
-      },
+      taskInstruction:
+        "Extract the professional skills, tools and technologies the CV in inputData.cvText explicitly mentions. Return each as a short canonical name (e.g. 'React', 'Product Management'). Only skills present in the text — never infer or invent.",
+      input: { cvText: text.slice(0, MAX_CV_CHARS) },
       dataSchema: aiSkillsSchema,
     });
     if (response.envelope.status === "failed") return null;
