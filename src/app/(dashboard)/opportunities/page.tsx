@@ -3,12 +3,14 @@ import Link from "next/link";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { getOwnProfile, listOpportunities } from "@/lib/opportunity/logic";
-import { loadPreferences } from "@/lib/profile/logic";
+import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 import {
   evaluateHardConstraints,
   opportunityFactsFromRow,
   type EligibilityGate,
 } from "@/lib/matching/hard-constraints";
+import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
+import { compareRanked } from "@/lib/matching/rank";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { GateBadge } from "@/components/matching/gate-badge";
@@ -16,20 +18,14 @@ import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Opportunités" };
 
-// Triage priority: the opportunities that clear every hard constraint first,
-// then those needing a manual check, then the excluded ones.
-const GATE_ORDER: Record<EligibilityGate, number> = {
-  eligible: 0,
-  review: 1,
-  excluded: 2,
-};
 const GATES: readonly EligibilityGate[] = ["eligible", "review", "excluded"];
 
 /**
  * Opportunity inbox: paste-import a listing, then triage owned opportunities by
- * the deterministic hard-constraint gate (PR 1). Server-rendered from the
- * database (RLS: own rows); the eligibility filter is a plain searchParam so it
- * needs no client JS.
+ * the deterministic hard-constraint gate (PR 1) and the match score (PR 3) —
+ * best matches first within each gate. Server-rendered from the database (RLS:
+ * own rows); the eligibility filter is a plain searchParam so it needs no
+ * client JS.
  */
 export default async function OpportunitiesPage({
   searchParams,
@@ -39,19 +35,26 @@ export default async function OpportunitiesPage({
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const [opportunities, preferences] = await Promise.all([
+  const [opportunities, preferences, living] = await Promise.all([
     listOpportunities(client, profile.id),
     loadPreferences(client, profile.id),
+    loadLivingProfile(client, profile.id),
   ]);
   const copy = t().opportunities;
+  const signals = profileSignalsFromClaims(living.claims);
 
   const evaluated = opportunities
-    .map((o) => ({
-      o,
-      gate: evaluateHardConstraints(preferences, opportunityFactsFromRow(o))
-        .gate,
-    }))
-    .sort((a, b) => GATE_ORDER[a.gate] - GATE_ORDER[b.gate]);
+    .map((o) => {
+      const facts = opportunityFactsFromRow(o);
+      return {
+        o,
+        gate: evaluateHardConstraints(preferences, facts).gate,
+        score: scoreMatch(preferences, signals, facts).overall,
+      };
+    })
+    // Seeded by last_seen_at desc from the query; compareRanked is a stable
+    // gate-then-score sort, so ties keep recency order.
+    .sort(compareRanked);
 
   const counts: Record<EligibilityGate, number> = {
     eligible: 0,
@@ -105,7 +108,7 @@ export default async function OpportunitiesPage({
             <p className="text-muted-foreground text-sm">{copy.inbox.empty}</p>
           ) : (
             <ol className="flex flex-col gap-3">
-              {shown.map(({ o, gate }) => (
+              {shown.map(({ o, gate, score }) => (
                 <li key={o.id}>
                   <article
                     className={`border-border bg-card flex flex-col gap-1 rounded-xl border p-4 ${
@@ -119,11 +122,21 @@ export default async function OpportunitiesPage({
                         </h2>
                         <GateBadge gate={gate} />
                       </div>
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/opportunities/${o.id}`}>
-                          {copy.openDetail}
-                        </Link>
-                      </Button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {score !== null ? (
+                          <span
+                            className="text-muted-foreground text-xs tabular-nums"
+                            title={copy.matchScore.section}
+                          >
+                            {copy.matchScore.overall(score)}
+                          </span>
+                        ) : null}
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/opportunities/${o.id}`}>
+                            {copy.openDetail}
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                     <p className="text-muted-foreground text-xs">
                       {[
