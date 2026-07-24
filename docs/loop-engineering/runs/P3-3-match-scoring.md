@@ -59,14 +59,26 @@ profile read.
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                                                                  |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **144/144 unit** · build                                                                                                                     |
-| unit        | **144** (+14 scorer: skills overlap+evidence, currency/period rate, remote table, engagement, null-honesty, overall renormalization, confidence thresholds, `profileSignalsFromClaims`) |
-| integration | **33** (+1: real session + saved prefs + a CONFIRMED "Go" skill + extracted opportunity ⇒ skills score 50 with "Go" evidence, overall non-null)                                         |
-| e2e         | **33/33** — the match-score section renders on the detail page (axe-clean); honest "Données insuffisantes pour un score" with no prefs/skills                                           |
-| reviews     | (to fill after independent passes)                                                                                                                                                      |
-| CI          | (to fill after push)                                                                                                                                                                    |
+| Check       | Result                                                                                                                                                                                                                                                                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **144/144 unit** · build                                                                                                                                                                                                                                                                            |
+| unit        | **144** (+14 scorer: skills overlap+evidence, currency/period rate, remote table, engagement, null-honesty, overall renormalization, confidence thresholds, `profileSignalsFromClaims`)                                                                                                                                                        |
+| integration | **33** (+1: real session + saved prefs + a CONFIRMED "Go" skill + extracted opportunity ⇒ skills score 50 with "Go" evidence, overall non-null)                                                                                                                                                                                                |
+| e2e         | **33/33** — the match-score section renders on the detail page (axe-clean); honest "Données insuffisantes pour un score" with no prefs/skills                                                                                                                                                                                                  |
+| reviews     | Implementation **PASS**, Security **PASS** (0 findings — own-data-only RLS, no untrusted value in a RegExp, no XSS, no migration/grant/LLM/fetch; scores can't be gamed to leak). Impl flagged **1 minor** (evidence not de-duped) + **1 nit** (EN space-before-colon), both **fixed** (below). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit (both jobs SUCCESS); re-run after the fixes.                                                                                                                                                                                                                                                                  |
+
+## Review repairs (before merge)
+
+- **CONFIRMED minor — skills evidence not de-duplicated.** The ratio de-duped
+  the demand set but `evidence` was built from the raw `f.skills`, so `['Go',
+'GO']` produced redundant chips and `['Go','Go']` collided React keys on the
+  detail page. Fixed: `evidence` is de-duped by normalized token (first casing
+  kept); unit test now asserts `.evidence`.
+- **Nit — EN typography.** The confidence separator was hardcoded in JSX
+  (`… :{" "}`), giving the French space-before-colon in English too
+  ("Confidence : medium"). Fixed: the colon now lives in the per-locale label
+  ("Confiance :" / "Confidence:"), so each locale gets correct punctuation.
 
 ## Stop
 

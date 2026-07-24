@@ -176,7 +176,7 @@ export default async function OpportunityDetailPage({
         ) : (
           <>
             <p className="text-muted-foreground text-xs">
-              {copy.matchScore.confidenceLabel} :{" "}
+              {copy.matchScore.confidenceLabel}{" "}
               {copy.matchScore.confidence[score.confidence]}
             </p>
             <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">

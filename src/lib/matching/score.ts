@@ -71,10 +71,19 @@ function scoreSkills(
   const demandSet = [...new Set(demand)];
   const matched = demandSet.filter((d) => have.has(d));
   const score = Math.round((100 * matched.length) / demandSet.length);
-  // Evidence: the opportunity skill tokens the profile actually covers, in the
-  // opportunity's original casing.
+  // Evidence: the covered skills in the opportunity's original casing, each
+  // once (a listing may repeat a skill / vary its case — de-dup by normalized
+  // token so chips stay unique and keys never collide).
   const matchedSet = new Set(matched);
-  const evidence = f.skills.filter((s) => matchedSet.has(norm(s)));
+  const seen = new Set<string>();
+  const evidence: string[] = [];
+  for (const s of f.skills) {
+    const n = norm(s);
+    if (matchedSet.has(n) && !seen.has(n)) {
+      seen.add(n);
+      evidence.push(s);
+    }
+  }
   return { key: "skills", score, evidence };
 }
 

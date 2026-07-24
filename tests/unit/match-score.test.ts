@@ -69,7 +69,7 @@ describe("skills component (evidence-backed overlap)", () => {
     expect(c.score).toBe(50); // 1 of 2 demanded covered
     expect(c.evidence).toEqual(["Go"]); // opportunity casing
   });
-  it("is case-insensitive and de-duplicates the demand set", () => {
+  it("is case-insensitive and de-duplicates demand and evidence", () => {
     const c = comp(
       basePrefs,
       { skills: ["go"] },
@@ -77,6 +77,9 @@ describe("skills component (evidence-backed overlap)", () => {
       "skills",
     );
     expect(c.score).toBe(100);
+    // Evidence is de-duped by normalized token, keeping the first casing —
+    // no redundant chips, no colliding React keys.
+    expect(c.evidence).toEqual(["Go"]);
   });
   it("is null when either side has no skills", () => {
     expect(

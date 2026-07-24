@@ -284,7 +284,7 @@ export const copy = {
         note: "Score déterministe à partir de vos préférences et de vos compétences confirmées — indicatif, pas une recommandation.",
         overall: (n: number) => `${n} / 100`,
         none: "Données insuffisantes pour un score.",
-        confidenceLabel: "Confiance",
+        confidenceLabel: "Confiance :",
         confidence: {
           none: "—",
           low: "faible",
@@ -662,7 +662,7 @@ export const copy = {
         note: "A deterministic score from your preferences and confirmed skills — indicative, not a recommendation.",
         overall: (n: number) => `${n} / 100`,
         none: "Not enough data to score.",
-        confidenceLabel: "Confidence",
+        confidenceLabel: "Confidence:",
         confidence: {
           none: "—",
           low: "low",
