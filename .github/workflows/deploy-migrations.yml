@@ -1,0 +1,71 @@
+# Applies committed migrations to the HOSTED (production) Supabase database via
+# `supabase db push`. This is the ONLY workflow that consumes repository secrets
+# — ci.yml uses none. It runs automatically when a migration lands on `main`,
+# and can be triggered on demand from the Actions tab (workflow_dispatch) — use
+# that once, after adding the secrets, to apply the current backlog.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  — a Supabase personal access token (Account → Access Tokens)
+#   SUPABASE_DB_PASSWORD   — the hosted project's database password
+# Until BOTH are set the job skips gracefully and stays green (it never fails
+# just because the secrets are absent).
+#
+# Safety: triggers only on push-to-main and manual dispatch — NEVER on
+# pull_request — so a fork PR can never reach these secrets. Actions are pinned
+# to the same commit SHAs as ci.yml. The Supabase CLI is the repo-pinned version
+# (`pnpm exec supabase`) so local and CI stay identical.
+name: Deploy migrations (hosted)
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-migrations
+  cancel-in-progress: false
+
+jobs:
+  push:
+    name: supabase db push (production)
+    runs-on: ubuntu-latest
+    env:
+      # Production project ref — a public identifier (visible in the Supabase
+      # dashboard URL), NOT a secret. Confirm it matches your hosted project.
+      SUPABASE_PROJECT_ID: etnshuiduinewpcrrskb
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - name: Verify migration secrets are configured
+        id: guard
+        run: |
+          if [ -z "${SUPABASE_ACCESS_TOKEN}" ] || [ -z "${SUPABASE_DB_PASSWORD}" ]; then
+            echo "::notice::SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD not set — add them in Settings → Secrets and variables → Actions, then re-run this workflow. Skipping (no migration pushed)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.guard.outputs.ready == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - if: steps.guard.outputs.ready == 'true'
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - if: steps.guard.outputs.ready == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: steps.guard.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Link the hosted project
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Push pending migrations to the hosted database
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm exec supabase db push
