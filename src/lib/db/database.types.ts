@@ -629,6 +629,54 @@ export type Database = {
           },
         ];
       };
+      opportunity_tracking: {
+        Row: {
+          created_at: string;
+          follow_up_on: string | null;
+          id: string;
+          note: string;
+          opportunity_id: string;
+          profile_id: string;
+          stage: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          follow_up_on?: string | null;
+          id?: string;
+          note?: string;
+          opportunity_id: string;
+          profile_id: string;
+          stage?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          follow_up_on?: string | null;
+          id?: string;
+          note?: string;
+          opportunity_id?: string;
+          profile_id?: string;
+          stage?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_tracking_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "opportunity_tracking_profile_id_opportunity_id_fkey";
+            columns: ["profile_id", "opportunity_id"];
+            isOneToOne: true;
+            referencedRelation: "opportunities";
+            referencedColumns: ["profile_id", "id"];
+          },
+        ];
+      };
       profile_claims: {
         Row: {
           created_at: string;
