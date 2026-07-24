@@ -1,10 +1,12 @@
 "use server";
 
 /**
- * CV ingestion actions. `analyzeCvAction` reads an uploaded PDF (or pasted
- * text) and returns DETECTED skills — it stores nothing (privacy: the CV file
- * and text are never persisted). `addSkillsAction` saves the skills the user
- * kept selected as CONFIRMED claims (the chip selection is the validation).
+ * CV / LinkedIn ingestion actions. `analyzeCvAction` reads an uploaded PDF (or
+ * pasted text); `analyzeLinkedInAction` reads an uploaded LinkedIn OFFICIAL
+ * data-export ZIP. Both feed the SAME understanding pipeline and store nothing
+ * (privacy: the file and text are never persisted). `addSkillsAction` saves
+ * the skills the user kept selected as CONFIRMED claims (the chip selection is
+ * the validation).
  */
 import { z } from "zod";
 import { verifySession } from "@/lib/auth/dal";
@@ -19,6 +21,8 @@ import {
 import { addCvSkills, applyCvProfile, applyProfileSchema } from "./cv-apply";
 import { detectSkills } from "./cv-extract";
 import { CvPdfError, extractPdfText } from "./cv-pdf";
+import { buildCareerProfile } from "./linkedin-export";
+import { extractLinkedInFiles, LinkedInExportError } from "./linkedin-zip";
 
 const logger = createLogger({ module: "cv-actions" });
 
@@ -31,17 +35,55 @@ export type CvAnalysis =
        *  one-screen "voici ce que j'ai compris" flow. */
       profile: CvProfileUnderstanding | null;
     }
-  | { ok: false; error: "empty" | "pdf" | "generic" };
+  | { ok: false; error: "empty" | "pdf" | "linkedin" | "generic" };
 
 /**
- * Extract text from the uploaded PDF or pasted text, then understand it.
+ * Understand a career narrative — from a CV or a LinkedIn export, uniformly.
  * With AI configured, ONE deep analysis covers role/seniority/summary/core
  * skills/target métiers and the screen shows ONLY those curated core skills
  * (owner mandate: no keyword dumps). The deterministic taxonomy detector runs
  * ONLY in the fallback branch (AI off or failed), merged with the light AI
- * pass — an AI failure never breaks the flow, it degrades to the chip
- * experience.
+ * pass and any explicitly declared skills — an AI failure never breaks the
+ * flow, it degrades to the chip experience. `declaredSkills` (e.g. LinkedIn's
+ * Skills.csv) are surfaced even when the taxonomy does not know them.
  */
+async function analyzeText(
+  text: string,
+  declaredSkills: string[] = [],
+): Promise<CvAnalysis> {
+  if (!text.trim()) return { ok: false, error: "empty" };
+
+  const aiProfile = await aiAnalyzeCvProfile(text);
+  if (aiProfile) {
+    // Owner mandate: NO keyword dump. The deep analysis already curates the
+    // recurrence-weighted core skills — show exactly those.
+    return {
+      ok: true,
+      skills: aiProfile.coreSkills,
+      aiUsed: true,
+      profile: aiProfile,
+    };
+  }
+  // Fallback (AI off or failed): deterministic taxonomy + light AI pass +
+  // explicitly declared skills.
+  const deterministic = detectSkills(text);
+  const aiSkills = await aiDetectSkills(text);
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const skill of [
+    ...deterministic,
+    ...(aiSkills ?? []),
+    ...declaredSkills,
+  ]) {
+    const key = skill.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(skill.trim());
+  }
+  return { ok: true, skills: merged, aiUsed: aiSkills !== null, profile: null };
+}
+
+/** Analyse an uploaded CV (PDF) or pasted CV text. */
 export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
   try {
     await verifySession();
@@ -53,36 +95,7 @@ export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
     } else if (typeof pasted === "string") {
       text = pasted;
     }
-    if (!text.trim()) return { ok: false, error: "empty" };
-
-    const aiProfile = await aiAnalyzeCvProfile(text);
-    if (aiProfile) {
-      // Owner mandate: NO keyword dump. The deep analysis already curates the
-      // recurrence-weighted core skills — show exactly those.
-      return {
-        ok: true,
-        skills: aiProfile.coreSkills,
-        aiUsed: true,
-        profile: aiProfile,
-      };
-    }
-    // Fallback (AI off or failed): deterministic taxonomy + light AI pass.
-    const deterministic = detectSkills(text);
-    const aiSkills = await aiDetectSkills(text);
-    const seen = new Set(deterministic.map((s) => s.toLowerCase()));
-    const merged = [...deterministic];
-    for (const skill of aiSkills ?? []) {
-      const key = skill.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      merged.push(skill);
-    }
-    return {
-      ok: true,
-      skills: merged,
-      aiUsed: aiSkills !== null,
-      profile: null,
-    };
+    return await analyzeText(text);
   } catch (error) {
     logger.error("cv analyze failed", {
       reason: error instanceof Error ? error.message : "unknown",
@@ -90,6 +103,37 @@ export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
     return {
       ok: false,
       error: error instanceof CvPdfError ? "pdf" : "generic",
+    };
+  }
+}
+
+/**
+ * Analyse an uploaded LinkedIn OFFICIAL data-export ZIP (never scraping — the
+ * user downloads their own archive from LinkedIn and uploads it). The archive
+ * is unzipped in memory (bounded), the relevant CSVs are turned into a career
+ * narrative, and the SAME understanding pipeline runs.
+ */
+export async function analyzeLinkedInAction(
+  formData: FormData,
+): Promise<CvAnalysis> {
+  try {
+    await verifySession();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { ok: false, error: "empty" };
+    }
+    const files = extractLinkedInFiles(
+      new Uint8Array(await file.arrayBuffer()),
+    );
+    const { text, skills } = buildCareerProfile(files);
+    return await analyzeText(text, skills);
+  } catch (error) {
+    logger.error("linkedin analyze failed", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+    return {
+      ok: false,
+      error: error instanceof LinkedInExportError ? "linkedin" : "generic",
     };
   }
 }

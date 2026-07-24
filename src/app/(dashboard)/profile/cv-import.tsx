@@ -9,6 +9,7 @@ import { t } from "@/lib/copy";
 import {
   addSkillsAction,
   analyzeCvAction,
+  analyzeLinkedInAction,
   applyCvProfileAction,
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
@@ -47,6 +48,7 @@ export function CvImport() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const linkedinRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
   // Identity of the LATEST auto-discovery run: a stale completion from a
   // previous import cycle must never overwrite the current screen's result.
@@ -56,6 +58,35 @@ export function CvImport() {
     "aria-busy": busy || undefined,
     className: busy ? "pointer-events-none opacity-60" : undefined,
   } as const;
+
+  /** Route an analysis result (CV or LinkedIn — identical shape) to the right
+   *  screen. Returns false when it surfaced an error instead. */
+  function routeAnalysis(result: CvAnalysis): boolean {
+    if (!result.ok) {
+      setError(copy.errors[result.error]);
+      return false;
+    }
+    if (result.profile) {
+      // Deep AI understanding → the single review screen.
+      setStep({
+        name: "understood",
+        profile: result.profile,
+        chosen: new Set(result.profile.coreSkills),
+      });
+      return true;
+    }
+    if (result.skills.length === 0) {
+      setError(copy.noneDetected);
+      return false;
+    }
+    setStep({
+      name: "detected",
+      skills: result.skills,
+      chosen: new Set(result.skills),
+      aiUsed: result.aiUsed,
+    });
+    return true;
+  }
 
   async function analyze() {
     if (inFlightRef.current) return;
@@ -78,30 +109,33 @@ export function CvImport() {
       const formData = new FormData();
       if (file) formData.set("file", file);
       if (pasted.trim()) formData.set("text", pasted);
-      const result: CvAnalysis = await analyzeCvAction(formData);
-      if (!result.ok) {
-        setError(copy.errors[result.error]);
-        return;
-      }
-      if (result.profile) {
-        // Deep AI understanding → the single review screen.
-        setStep({
-          name: "understood",
-          profile: result.profile,
-          chosen: new Set(result.profile.coreSkills),
-        });
-        return;
-      }
-      if (result.skills.length === 0) {
-        setError(copy.noneDetected);
-        return;
-      }
-      setStep({
-        name: "detected",
-        skills: result.skills,
-        chosen: new Set(result.skills),
-        aiUsed: result.aiUsed,
-      });
+      routeAnalysis(await analyzeCvAction(formData));
+    } catch {
+      setError(copy.errors.generic);
+    } finally {
+      inFlightRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function analyzeLinkedIn() {
+    if (inFlightRef.current) return;
+    const file = linkedinRef.current?.files?.[0] ?? null;
+    if (!file) {
+      setError(copy.linkedin.needFile);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError(copy.errors.tooLarge);
+      return;
+    }
+    inFlightRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      routeAnalysis(await analyzeLinkedInAction(formData));
     } catch {
       setError(copy.errors.generic);
     } finally {
@@ -476,49 +510,79 @@ export function CvImport() {
   }
 
   return (
-    <form
-      className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void analyze();
-      }}
-    >
-      <p className="text-sm font-medium">{copy.title}</p>
-      <p className="text-muted-foreground text-xs">{copy.note}</p>
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="cv-file">{copy.fileLabel}</Label>
-        <input
-          id="cv-file"
-          ref={fileRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          disabled={busy}
-          className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="cv-text">{copy.pasteLabel}</Label>
-        <textarea
-          id="cv-text"
-          value={pasted}
-          onChange={(e) => setPasted(e.target.value)}
-          disabled={busy}
-          maxLength={100000}
-          rows={4}
-          placeholder={copy.pastePlaceholder}
-          className="border-input bg-background w-full min-w-0 rounded-lg border p-3 text-sm"
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" {...busyProps}>
-          {copy.analyze}
-        </Button>
-        {error ? (
-          <p role="alert" className="text-destructive text-sm">
-            {error}
-          </p>
-        ) : null}
-      </div>
-    </form>
+    <div className="flex flex-col gap-3">
+      <form
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void analyze();
+        }}
+      >
+        <p className="text-sm font-medium">{copy.title}</p>
+        <p className="text-muted-foreground text-xs">{copy.note}</p>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="cv-file">{copy.fileLabel}</Label>
+          <input
+            id="cv-file"
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={busy}
+            className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="cv-text">{copy.pasteLabel}</Label>
+          <textarea
+            id="cv-text"
+            value={pasted}
+            onChange={(e) => setPasted(e.target.value)}
+            disabled={busy}
+            maxLength={100000}
+            rows={4}
+            placeholder={copy.pastePlaceholder}
+            className="border-input bg-background w-full min-w-0 rounded-lg border p-3 text-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" size="sm" {...busyProps}>
+            {copy.analyze}
+          </Button>
+        </div>
+      </form>
+
+      <form
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void analyzeLinkedIn();
+        }}
+      >
+        <p className="text-sm font-medium">{copy.linkedin.title}</p>
+        <p className="text-muted-foreground text-xs">{copy.linkedin.note}</p>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="linkedin-file">{copy.linkedin.fileLabel}</Label>
+          <input
+            id="linkedin-file"
+            ref={linkedinRef}
+            type="file"
+            accept="application/zip,.zip"
+            disabled={busy}
+            className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" size="sm" variant="outline" {...busyProps}>
+            {copy.linkedin.analyze}
+          </Button>
+        </div>
+      </form>
+
+      {error ? (
+        <p role="alert" className="text-destructive text-sm">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
