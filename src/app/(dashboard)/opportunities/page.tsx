@@ -11,11 +11,14 @@ import {
 } from "@/lib/matching/hard-constraints";
 import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
 import { compareRanked } from "@/lib/matching/rank";
+import { aiInsightConfigured } from "@/lib/matching/ai-insight";
+import { loadInsights, type StoredInsight } from "@/lib/matching/insight-logic";
 import { adzunaConfigured } from "@/lib/discovery/adzuna";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { GateBadge } from "@/components/matching/gate-badge";
 import { DiscoverButton } from "./discover-button";
+import { ExplainButton } from "./explain-button";
 import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Opportunités" };
@@ -80,10 +83,11 @@ export default async function OpportunitiesPage({
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const [opportunities, preferences, living] = await Promise.all([
+  const [opportunities, preferences, living, insights] = await Promise.all([
     listOpportunities(client, profile.id),
     loadPreferences(client, profile.id),
     loadLivingProfile(client, profile.id),
+    loadInsights(client, profile.id),
   ]);
   const copy = t().opportunities;
   const signals = profileSignalsFromClaims(living.claims);
@@ -134,6 +138,10 @@ export default async function OpportunitiesPage({
           {copy.discover.unconfiguredNote}
         </p>
       )}
+
+      {aiInsightConfigured() && opportunities.length > 0 ? (
+        <ExplainButton />
+      ) : null}
 
       <ImportForm />
 
@@ -214,6 +222,7 @@ export default async function OpportunitiesPage({
                     className={`border-border bg-card flex flex-col gap-1 rounded-xl border p-4 ${
                       gate === "excluded" ? "opacity-70" : ""
                     }`}
+                    data-insight={insights.has(o.id) ? "true" : undefined}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-2">
@@ -257,6 +266,10 @@ export default async function OpportunitiesPage({
                         .filter(Boolean)
                         .join(" · ") || copy.none}
                     </p>
+                    <InsightBlock
+                      insight={insights.get(o.id)}
+                      copy={copy.insight}
+                    />
                   </article>
                 </li>
               ))}
@@ -264,6 +277,32 @@ export default async function OpportunitiesPage({
           )}
         </section>
       )}
+    </div>
+  );
+}
+
+/** The AI "pourquoi ce match" summary on a card — a PROPOSAL layered on top
+ *  of the deterministic gate + score, with the model's own uncertainty shown
+ *  when present. Renders nothing when the offer has no live insight. */
+function InsightBlock({
+  insight,
+  copy,
+}: {
+  insight: StoredInsight | undefined;
+  copy: ReturnType<typeof t>["opportunities"]["insight"];
+}) {
+  if (!insight) return null;
+  return (
+    <div className="border-border mt-1 flex flex-col gap-1 border-t pt-2">
+      <p className="text-xs font-medium">
+        {copy.whyTitle} · {copy.fit[insight.fit] ?? insight.fit}
+      </p>
+      <p className="text-muted-foreground text-xs">{insight.rationale}</p>
+      {insight.needs_review ? (
+        <p role="note" className="text-muted-foreground text-xs italic">
+          {copy.needsReview}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   opportunityFactsFromRow,
 } from "@/lib/matching/hard-constraints";
 import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
+import { loadInsights } from "@/lib/matching/insight-logic";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
@@ -50,15 +51,17 @@ export default async function OpportunityDetailPage({
   }
 
   const profile = await getOwnProfile(client);
-  const [opportunity, snapshot, seenCount, preferences, living] =
+  const [opportunity, snapshot, seenCount, preferences, living, insights] =
     await Promise.all([
       getOpportunity(client, id),
       getLatestSnapshot(client, id),
       countSnapshots(client, id),
       loadPreferences(client, profile.id),
       loadLivingProfile(client, profile.id),
+      loadInsights(client, profile.id),
     ]);
   if (!opportunity) return <NotFound />;
+  const insight = insights.get(opportunity.id);
 
   const facts = opportunityFactsFromRow(opportunity);
   const report = evaluateHardConstraints(preferences, facts);
@@ -153,6 +156,57 @@ export default async function OpportunityDetailPage({
           ))}
         </dl>
       </section>
+
+      {insight ? (
+        <section
+          aria-label={copy.insight.whyTitle}
+          className="border-border bg-card flex flex-col gap-3 rounded-xl border p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              {copy.insight.whyTitle}
+            </h2>
+            <span className="text-sm font-semibold">
+              {copy.insight.fit[insight.fit] ?? insight.fit}
+            </span>
+          </div>
+          <p className="text-sm">{insight.rationale}</p>
+          {insight.needs_review ? (
+            <p
+              role="note"
+              className="border-warning/40 bg-warning/10 text-foreground/80 rounded-lg border px-3 py-2 text-xs"
+            >
+              {copy.insight.needsReview}
+            </p>
+          ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {insight.strengths.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <h3 className="text-muted-foreground text-xs font-medium">
+                  {copy.insight.strengths}
+                </h3>
+                <ul className="list-disc pl-4 text-xs">
+                  {insight.strengths.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {insight.gaps.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <h3 className="text-muted-foreground text-xs font-medium">
+                  {copy.insight.gaps}
+                </h3>
+                <ul className="list-disc pl-4 text-xs">
+                  {insight.gaps.map((g) => (
+                    <li key={g}>{g}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section
         aria-label={copy.matchScore.section}

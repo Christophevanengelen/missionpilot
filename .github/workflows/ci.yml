@@ -40,6 +40,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Review-integrity guard: a raw NUL byte in a source file flips git to
+      # binary mode and makes the file unreviewable in diffs (happened once —
+      # PR #25). Sources must stay text.
+      - name: No NUL bytes in source files
+        run: |
+          if grep -rlP '\x00' src tests supabase/migrations supabase/tests; then
+            echo "::error::raw NUL byte found in a source file (binary to git — unreviewable)"
+            exit 1
+          fi
       # Same entry point as local development: format:check, lint, typecheck,
       # unit tests, production build.
       - run: pnpm verify

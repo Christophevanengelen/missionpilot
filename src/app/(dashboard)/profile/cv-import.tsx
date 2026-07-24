@@ -17,6 +17,7 @@ import {
   discoverOpportunitiesAction,
   type DiscoveryResult,
 } from "@/lib/discovery/actions";
+import { explainMatchesAction } from "@/lib/matching/insight-actions";
 
 /** Auto-chained discovery state on the success screens (owner mandate:
  *  validate once, then just discover the results — no more buttons). */
@@ -127,7 +128,27 @@ export function CvImport() {
     setStep((s) =>
       s.name === target ? { ...s, discovery: { phase: "done", result } } : s,
     );
-    if (result.ok && result.imported > 0) router.refresh();
+    if (result.ok && result.imported > 0) {
+      router.refresh();
+      // Full fluidity: the freshly imported offers get their "pourquoi ce
+      // match" analysis without another click. Server-side it is inert when
+      // AI is unconfigured, cost-bounded and freshness-aware; here it stays
+      // silent (the inbox shows the insights when ready) — same run-token
+      // guard so an obsolete completion refreshes nothing.
+      try {
+        const explained = await explainMatchesAction();
+        if (
+          run === discoverRunRef.current &&
+          explained.ok &&
+          explained.analyzed > 0
+        ) {
+          router.refresh();
+        }
+      } catch {
+        // Honest degradation: the offers are already there; the analysis can
+        // be relaunched from the inbox.
+      }
+    }
   }
 
   async function addChosen() {
