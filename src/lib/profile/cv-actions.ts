@@ -11,16 +11,22 @@ import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
 import * as profile from "./logic";
+import { aiDetectSkills } from "./cv-ai";
 import { detectSkills } from "./cv-extract";
 import { CvPdfError, extractPdfText } from "./cv-pdf";
 
 const logger = createLogger({ module: "cv-actions" });
 
 export type CvAnalysis =
-  | { ok: true; skills: string[] }
+  | { ok: true; skills: string[]; aiUsed: boolean }
   | { ok: false; error: "empty" | "pdf" | "generic" };
 
-/** Extract text from the uploaded PDF or pasted text, then detect skills. */
+/**
+ * Extract text from the uploaded PDF or pasted text, then detect skills:
+ * deterministic taxonomy detection always; AI reading on top when the OpenAI
+ * provider is configured (merged, de-duplicated case-insensitively — the
+ * deterministic casing wins). An AI failure never breaks the import.
+ */
 export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
   try {
     await verifySession();
@@ -33,7 +39,18 @@ export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
       text = pasted;
     }
     if (!text.trim()) return { ok: false, error: "empty" };
-    return { ok: true, skills: detectSkills(text) };
+
+    const deterministic = detectSkills(text);
+    const ai = await aiDetectSkills(text);
+    const seen = new Set(deterministic.map((s) => s.toLowerCase()));
+    const merged = [...deterministic];
+    for (const skill of ai ?? []) {
+      const key = skill.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(skill);
+    }
+    return { ok: true, skills: merged, aiUsed: ai !== null };
   } catch (error) {
     logger.error("cv analyze failed", {
       reason: error instanceof Error ? error.message : "unknown",
@@ -46,9 +63,10 @@ export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
 }
 
 const addSkillsSchema = z.object({
-  // Upper bound comfortably above the taxonomy size (66): a keyword-stuffed CV
-  // can legitimately select every detected chip.
-  skills: z.array(z.string().trim().min(1).max(120)).min(1).max(100),
+  // Upper bound covers the merged worst case by construction: the full
+  // taxonomy (66) + the AI list (bounded at 60) — an "add all" on a
+  // keyword-stuffed CV must always be submittable.
+  skills: z.array(z.string().trim().min(1).max(120)).min(1).max(130),
 });
 
 export type AddSkillsResult =

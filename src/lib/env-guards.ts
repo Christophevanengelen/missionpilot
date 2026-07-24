@@ -9,6 +9,22 @@ import { env } from "./env";
  * next.config.ts so violations fail the build.
  */
 export function assertProductionEnvInvariants(): void {
+  // Cross-field AI coherence — every environment: with the openai provider,
+  // a missing key or a leftover mock model would fail EVERY call at runtime
+  // (silently, behind graceful degradation). Fail the build loudly instead.
+  if (env.AI_DEFAULT_PROVIDER === "openai") {
+    if (!env.OPENAI_API_KEY) {
+      throw new Error(
+        "OPENAI_API_KEY is required when AI_DEFAULT_PROVIDER=openai.",
+      );
+    }
+    if (env.AI_DEFAULT_MODEL.startsWith("mock")) {
+      throw new Error(
+        "AI_DEFAULT_MODEL must be an OpenAI model (e.g. gpt-4o-mini) when AI_DEFAULT_PROVIDER=openai.",
+      );
+    }
+  }
+
   if (env.APP_ENV !== "production") {
     return;
   }

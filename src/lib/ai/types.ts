@@ -17,7 +17,16 @@ export type AiRequest<T> = {
    * change rules, schemas or expected statuses (prompt-injection boundary).
    */
   input: unknown;
-  /** Zod schema the envelope's `data` field must satisfy. */
+  /**
+   * Zod schema the envelope's `data` field must satisfy.
+   *
+   * CONTRACT for real providers with strict structured outputs (OpenAI):
+   * use strict objects with ALL fields required (no `.optional()` — model
+   * `?` as `.nullable()`), and constraints from the supported subset
+   * (pattern/format for strings, minimum/maximum for numbers,
+   * min/maxItems for arrays). String min/max length and `default` are
+   * stripped from the WIRE schema and enforced only by the local Zod gate.
+   */
   dataSchema: z.ZodType<T>;
 };
 
