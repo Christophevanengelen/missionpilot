@@ -184,10 +184,19 @@ explicitly approved step:
 1. **GitHub**: create the repository, push, protect `main`; CI starts
    running on its own (no secrets to configure).
 2. **Supabase hosted** (one project = production): disable sign-ups, enable
-   asymmetric JWT signing keys, then `supabase link --project-ref <ref>` and
-   `supabase db push` (never edit the hosted schema via the dashboard).
-   Local stays the dev environment; Vercel previews point at this single
-   project (accepted risk for a single-user beta); no Supabase branching.
+   asymmetric JWT signing keys. Migrations reach the hosted database through
+   the **`Deploy migrations (hosted)`** workflow
+   (`.github/workflows/deploy-migrations.yml`) — it runs `supabase db push`
+   automatically when a migration lands on `main`, and can be run on demand
+   from the Actions tab. Arm it once by adding two repository secrets
+   (Settings → Secrets and variables → Actions): `SUPABASE_ACCESS_TOKEN`
+   (Account → Access Tokens) and `SUPABASE_DB_PASSWORD` (the hosted project's
+   database password); until both exist the job skips and stays green. After
+   adding them, trigger the workflow once (Run workflow) to apply the current
+   backlog. Confirm `SUPABASE_PROJECT_ID` in the workflow matches your project
+   ref. Never edit the hosted schema via the dashboard. Local stays the dev
+   environment; Vercel previews point at this single project (accepted risk
+   for a single-user beta); no Supabase branching.
 3. **Vercel**: import the repo (Git integration deploys; CI stays the
    quality gate), Node 24, set env vars per environment — production values
    from the hosted Supabase project; enable Vercel Authentication for
