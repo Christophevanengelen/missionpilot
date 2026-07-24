@@ -15,7 +15,13 @@ import {
 } from "@/lib/matching/hard-constraints";
 import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
 import { loadInsights } from "@/lib/matching/insight-logic";
+import {
+  loadBreakdown,
+  type BreakdownRequirement,
+} from "@/lib/matching/breakdown-logic";
+import { aiBreakdownConfigured } from "@/lib/matching/ai-breakdown";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
+import { BreakdownButton } from "./breakdown-button";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
 import { GateBadge } from "@/components/matching/gate-badge";
@@ -51,15 +57,23 @@ export default async function OpportunityDetailPage({
   }
 
   const profile = await getOwnProfile(client);
-  const [opportunity, snapshot, seenCount, preferences, living, insights] =
-    await Promise.all([
-      getOpportunity(client, id),
-      getLatestSnapshot(client, id),
-      countSnapshots(client, id),
-      loadPreferences(client, profile.id),
-      loadLivingProfile(client, profile.id),
-      loadInsights(client, profile.id),
-    ]);
+  const [
+    opportunity,
+    snapshot,
+    seenCount,
+    preferences,
+    living,
+    insights,
+    breakdown,
+  ] = await Promise.all([
+    getOpportunity(client, id),
+    getLatestSnapshot(client, id),
+    countSnapshots(client, id),
+    loadPreferences(client, profile.id),
+    loadLivingProfile(client, profile.id),
+    loadInsights(client, profile.id),
+    loadBreakdown(client, profile.id, id),
+  ]);
   if (!opportunity) return <NotFound />;
   const insight = insights.get(opportunity.id);
 
@@ -205,6 +219,46 @@ export default async function OpportunityDetailPage({
               </div>
             ) : null}
           </div>
+        </section>
+      ) : null}
+
+      {aiBreakdownConfigured() ? (
+        <section
+          aria-label={copy.breakdown.title}
+          className="border-border bg-card flex flex-col gap-3 rounded-xl border p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              {copy.breakdown.title}
+            </h2>
+          </div>
+          {breakdown ? (
+            <>
+              <p className="text-sm">{breakdown.summary}</p>
+              {breakdown.needs_review ? (
+                <p
+                  role="note"
+                  className="border-warning/40 bg-warning/10 text-foreground/80 rounded-lg border px-3 py-2 text-xs"
+                >
+                  {copy.breakdown.needsReview}
+                </p>
+              ) : null}
+              <ul className="flex flex-col gap-2">
+                {breakdown.requirements.map((r, i) => (
+                  <RequirementRow key={i} req={r} copy={copy.breakdown} />
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              {copy.breakdown.empty}
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">{copy.breakdown.note}</p>
+          <BreakdownButton
+            opportunityId={opportunity.id}
+            hasResult={breakdown !== null}
+          />
         </section>
       ) : null}
 
@@ -395,6 +449,45 @@ function computeUnknowns(o: Record<string, unknown>): string[] {
     const v = o[snake[f]];
     return v === null || (Array.isArray(v) && v.length === 0);
   });
+}
+
+/** One requirement line: status (conveyed by TEXT, not colour alone — a11y),
+ *  importance, the requirement, its evidence, and an honest upgrade tip. */
+function RequirementRow({
+  req,
+  copy,
+}: {
+  req: BreakdownRequirement;
+  copy: ReturnType<typeof t>["opportunities"]["breakdown"];
+}) {
+  const tint =
+    req.status === "covered"
+      ? "border-success/40 bg-success/10"
+      : req.status === "partial"
+        ? "border-warning/40 bg-warning/10"
+        : "border-destructive/40 bg-destructive/10";
+  return (
+    <li className="border-border flex flex-col gap-1 border-b border-dashed pb-2 last:border-0">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span
+          className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${tint}`}
+        >
+          {copy.status[req.status] ?? req.status}
+        </span>
+        <span className="text-muted-foreground text-[11px]">
+          {copy.importance[req.importance] ?? req.importance}
+        </span>
+        <span className="text-sm font-medium">{req.text}</span>
+      </div>
+      <p className="text-muted-foreground text-xs">{req.evidence}</p>
+      {req.suggestion.trim() !== "" ? (
+        <p className="text-foreground/80 text-xs">
+          <span className="font-medium">{copy.suggestionLabel} : </span>
+          {req.suggestion}
+        </p>
+      ) : null}
+    </li>
+  );
 }
 
 function NotFound() {
