@@ -128,11 +128,11 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
     page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
   ).toHaveCount(1);
 
-  // Inbox triage: the eligibility filter is present (accessible), and with no
+  // Inbox triage: the filters are present (accessible), and with no
   // preferences set the opportunity is Éligible. Filtering to "Exclu (0)"
   // shows the empty state; "Tout" brings it back.
   const filterNav = page.getByRole("navigation", {
-    name: "Filtrer par éligibilité",
+    name: "Filtrer les opportunités",
   });
   await expect(
     filterNav.getByRole("link", { name: /Éligible \(1\)/ }),
@@ -149,6 +149,33 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
     page.getByText("Aucune opportunité dans ce filtre."),
   ).toBeVisible();
   await filterNav.getByRole("link", { name: /Tout \(/ }).click();
+  // Anchor each navigation before the next click: chip hrefs are recomputed
+  // per render, so clicking a chip of the PREVIOUS page would carry its stale
+  // filters along.
+  await expect(page).toHaveURL(/\/opportunities$/);
+  // Contract-type + remote filters (owner request: "triables CDI/CDD/remote").
+  // The listing is Freelance (TJM) + Hybride; filters combine and mismatches
+  // show the empty state; hrefs preserve the other active groups.
+  await filterNav.getByRole("link", { name: "Freelance" }).click();
+  await expect(page).toHaveURL(/\/opportunities\?type=freelance$/);
+  await expect(
+    page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
+  ).toHaveCount(1);
+  await filterNav.getByRole("link", { name: "Hybride" }).click();
+  await expect(page).toHaveURL(/type=freelance/); // preserved
+  await expect(page).toHaveURL(/remote=hybrid/);
+  await expect(
+    page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
+  ).toHaveCount(1);
+  await filterNav.getByRole("link", { name: "Sur site" }).click();
+  await expect(page).toHaveURL(/remote=onsite/);
+  await expect(
+    page.getByText("Aucune opportunité dans ce filtre."),
+  ).toBeVisible();
+  await filterNav.getByRole("link", { name: "Tout télétravail" }).click();
+  await expect(page).toHaveURL(/\/opportunities\?type=freelance$/);
+  await filterNav.getByRole("link", { name: "Tous les types" }).click();
+  await expect(page).toHaveURL(/\/opportunities$/);
   await expect(
     page.getByRole("article").filter({ hasText: "Senior Platform Engineer" }),
   ).toHaveCount(1);

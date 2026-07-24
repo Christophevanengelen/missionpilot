@@ -357,7 +357,11 @@ export const copy = {
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
-        filterLabel: "Filtrer par éligibilité",
+        filterLabel: "Filtrer les opportunités",
+        typeLabel: "Filtrer par type d'engagement",
+        allTypes: "Tous les types",
+        remoteLabel: "Filtrer par télétravail",
+        allRemotes: "Tout télétravail",
       },
       listEmpty:
         "Aucune opportunité pour le moment. Importez une première annonce ci-dessus.",
@@ -789,7 +793,11 @@ export const copy = {
       inbox: {
         all: "All",
         empty: "No opportunity in this filter.",
-        filterLabel: "Filter by eligibility",
+        filterLabel: "Filter opportunities",
+        typeLabel: "Filter by engagement type",
+        allTypes: "All types",
+        remoteLabel: "Filter by remote",
+        allRemotes: "Any remote mode",
       },
       listEmpty: "No opportunities yet. Import a first listing above.",
       unknownsNote: (n: number) =>
