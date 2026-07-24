@@ -398,6 +398,37 @@ export const copy = {
         unconfiguredNote:
           "Découverte automatique : ajoutez des clés API Adzuna (gratuites) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
       },
+      insight: {
+        button: "Expliquer mes matchs (IA)",
+        analyzing: "Analyse des meilleures offres…",
+        whyTitle: "Pourquoi ce match",
+        fit: {
+          strong: "Très bon match",
+          good: "Bon match",
+          weak: "Match faible",
+        } as Record<string, string>,
+        strengths: "Forces",
+        gaps: "Points d'attention",
+        needsReview:
+          "Analyse incertaine — l'IA manque d'éléments, à lire avec recul.",
+        result: (analyzed: number, failed: number) => {
+          if (analyzed === 0 && failed === 0)
+            return "Toutes vos meilleures offres sont déjà analysées.";
+          const parts = [
+            `${analyzed} ${analyzed > 1 ? "offres analysées" : "offre analysée"}`,
+          ];
+          if (failed > 0)
+            parts.push(`${failed} en échec (réessayez plus tard)`);
+          return `${parts.join(", ")}.`;
+        },
+        errors: {
+          unconfigured:
+            "L'explication des matchs n'est pas encore activée (clé OpenAI manquante).",
+          no_profile:
+            "Confirmez d'abord votre profil (rôle, compétences) — importez votre CV pour aller vite.",
+          generic: "L'analyse n'a pas abouti. Réessayez.",
+        },
+      },
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
@@ -873,6 +904,36 @@ export const copy = {
         },
         unconfiguredNote:
           "Auto-discovery: add (free) Adzuna API keys in the configuration so MissionPilot can search offers matching your profile.",
+      },
+      insight: {
+        button: "Explain my matches (AI)",
+        analyzing: "Analyzing your best offers…",
+        whyTitle: "Why this match",
+        fit: {
+          strong: "Strong match",
+          good: "Good match",
+          weak: "Weak match",
+        } as Record<string, string>,
+        strengths: "Strengths",
+        gaps: "Watch out for",
+        needsReview:
+          "Uncertain analysis — the AI lacks elements, read with caution.",
+        result: (analyzed: number, failed: number) => {
+          if (analyzed === 0 && failed === 0)
+            return "All your best offers are already analyzed.";
+          const parts = [
+            `${analyzed} offer${analyzed > 1 ? "s" : ""} analyzed`,
+          ];
+          if (failed > 0) parts.push(`${failed} failed (try again later)`);
+          return `${parts.join(", ")}.`;
+        },
+        errors: {
+          unconfigured:
+            "Match explanations are not enabled yet (OpenAI key missing).",
+          no_profile:
+            "Confirm your profile first (role, skills) — import your CV to go fast.",
+          generic: "The analysis did not go through. Try again.",
+        },
       },
       inbox: {
         all: "All",
