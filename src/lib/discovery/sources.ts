@@ -3,6 +3,7 @@ import "server-only";
 import type { DiscoveredAd } from "./adzuna";
 import { adzunaConfigured, searchAdzuna } from "./adzuna";
 import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
+import { remotiveConfigured, searchRemotive } from "./remotive";
 import type { DiscoverySource } from "./plan";
 
 /**
@@ -18,6 +19,9 @@ export function configuredSources(): DiscoverySource<DiscoveredAd>[] {
   }
   if (franceTravailConfigured()) {
     sources.push({ name: "France Travail", search: searchFranceTravail });
+  }
+  if (remotiveConfigured()) {
+    sources.push({ name: "Remotive", search: searchRemotive });
   }
   return sources;
 }

@@ -38,6 +38,12 @@ export const env = createEnv({
     // it is simply inert (same graceful degradation as Adzuna).
     FRANCE_TRAVAIL_CLIENT_ID: z.string().min(1).optional(),
     FRANCE_TRAVAIL_CLIENT_SECRET: z.string().min(1).optional(),
+    // Remotive remote/freelance feed — opt-in so the deployment explicitly
+    // accepts its attribution + polling terms (no key needed, public API).
+    REMOTIVE_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {
