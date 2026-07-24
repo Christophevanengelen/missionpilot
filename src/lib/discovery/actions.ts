@@ -2,18 +2,19 @@
 
 /**
  * Auto-discovery action: build search plans from the profile (target métiers
- * first, confirmed role + skills as fallback — see `plan.ts`), query the
- * configured legal source (Adzuna), and run each ad through the standard
- * import pipeline (immutable snapshot, per-owner dedup, gate + score on
- * read). Honest outcomes: how many were new vs already known; a specific
- * reason when discovery cannot run.
+ * first, confirmed role + skills as fallback — see `plan.ts`), query EVERY
+ * configured legal source (Adzuna, France Travail, …), and run each ad through
+ * the standard import pipeline (immutable snapshot, per-owner dedup, gate +
+ * score on read). Honest outcomes: how many were new vs already known; a
+ * specific reason when discovery cannot run.
  */
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
-import { adzunaConfigured, searchAdzuna, type DiscoveredAd } from "./adzuna";
-import { buildSearchPlans, runSearchPlans } from "./plan";
+import type { DiscoveredAd } from "./adzuna";
+import { buildSearchPlans, runMultiSourceDiscovery } from "./plan";
+import { configuredSources } from "./sources";
 import * as opportunity from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 
@@ -36,7 +37,8 @@ export type DiscoveryResult =
 export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
   try {
     await verifySession();
-    if (!adzunaConfigured()) return { ok: false, error: "unconfigured" };
+    const sources = configuredSources();
+    if (sources.length === 0) return { ok: false, error: "unconfigured" };
 
     const client = await createClient();
     const profile = await opportunity.getOwnProfile(client);
@@ -45,30 +47,37 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     const plans = buildSearchPlans(living.claims, prefs.targetRoleFamilies);
     if (plans.length === 0) return { ok: false, error: "no_keywords" };
 
-    // Per-search isolation + cross-search dedup live in the testable runner;
-    // only when EVERY search failed is the whole run an error, and a partial
-    // failure count travels to the UI (honesty: never present a possibly
-    // incomplete result as a complete one).
-    const { ads, failedSearches } = await runSearchPlans<DiscoveredAd>(
-      plans,
-      (keywords, mode) => searchAdzuna(keywords, mode),
-      (plan, error) => {
-        logger.error("discovery search failed", {
-          mode: plan.mode,
-          reason: error instanceof Error ? error.message : "unknown",
-        });
-      },
-    );
-    if (failedSearches === plans.length) return { ok: false, error: "generic" };
+    // Per-search isolation + cross-source/cross-search dedup live in the
+    // testable runner; only when EVERY search failed is the whole run an
+    // error, and a partial failure count travels to the UI (honesty: never
+    // present a possibly-incomplete result as a complete one).
+    const { items, failedSearches, totalSearches } =
+      await runMultiSourceDiscovery<DiscoveredAd>(
+        plans,
+        sources,
+        (sourceName, plan, error) => {
+          logger.error("discovery search failed", {
+            source: sourceName,
+            mode: plan.mode,
+            reason: error instanceof Error ? error.message : "unknown",
+          });
+        },
+      );
+    if (failedSearches === totalSearches)
+      return { ok: false, error: "generic" };
 
     let imported = 0;
     let duplicates = 0;
     let failed = 0;
-    for (const ad of ads) {
+    for (const { ad, sourceName } of items) {
       // Per-ad isolation: one malformed ad must not void the batch — the
       // successful imports are committed and reported honestly.
       try {
-        const result = await opportunity.importDiscovered(client, ad, "Adzuna");
+        const result = await opportunity.importDiscovered(
+          client,
+          ad,
+          sourceName,
+        );
         if (result.created) imported += 1;
         else duplicates += 1;
       } catch (error) {
@@ -89,7 +98,7 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     }
     return {
       ok: true,
-      found: ads.length,
+      found: items.length,
       imported,
       duplicates,
       failed,

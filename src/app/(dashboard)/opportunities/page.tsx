@@ -13,7 +13,7 @@ import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
 import { compareRanked } from "@/lib/matching/rank";
 import { aiInsightConfigured } from "@/lib/matching/ai-insight";
 import { loadInsights, type StoredInsight } from "@/lib/matching/insight-logic";
-import { adzunaConfigured } from "@/lib/discovery/adzuna";
+import { discoveryConfigured } from "@/lib/discovery/sources";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { GateBadge } from "@/components/matching/gate-badge";
@@ -131,7 +131,7 @@ export default async function OpportunitiesPage({
         <p className="text-muted-foreground text-sm">{copy.subtitle}</p>
       </header>
 
-      {adzunaConfigured() ? (
+      {discoveryConfigured() ? (
         <DiscoverButton />
       ) : (
         <p className="text-muted-foreground text-xs">

@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSearchPlans,
-  runSearchPlans,
+  runMultiSourceDiscovery,
+  type DiscoverySource,
   type SearchPlan,
 } from "@/lib/discovery/plan";
+
+type Ad = { sourceUrl: string | null; rawText: string };
+const src = (
+  name: string,
+  search: DiscoverySource<Ad>["search"],
+): DiscoverySource<Ad> => ({ name, search });
 
 const claim = (kind: string, state: string, value: unknown) => ({
   kind,
@@ -55,68 +62,75 @@ describe("buildSearchPlans", () => {
   });
 });
 
-describe("runSearchPlans", () => {
+describe("runMultiSourceDiscovery", () => {
   const plans: SearchPlan[] = [
     { keywords: ["Data Engineer"], mode: "title" },
     { keywords: ["Head of Data"], mode: "title" },
   ];
-  const ad = (sourceUrl: string | null, rawText: string) => ({
+  const ad = (sourceUrl: string | null, rawText: string): Ad => ({
     sourceUrl,
     rawText,
   });
 
-  it("isolates a failing search and REPORTS it (honest partial results)", async () => {
-    const errors: unknown[] = [];
-    const { ads, failedSearches } = await runSearchPlans(
-      plans,
-      async (keywords) => {
-        if (keywords[0] === "Head of Data") throw new Error("adzuna 429");
-        return [ad("https://a.example/1", "Offre A")];
-      },
-      (_plan, error) => errors.push(error),
-    );
-    expect(ads).toHaveLength(1);
-    expect(failedSearches).toBe(1); // surfaced, not just logged
-    expect(errors).toHaveLength(1);
+  it("isolates a failing (source, search) and REPORTS it with its source name", async () => {
+    const errors: string[] = [];
+    const { items, failedSearches, totalSearches } =
+      await runMultiSourceDiscovery(
+        plans,
+        [
+          src("Adzuna", async (keywords) => {
+            if (keywords[0] === "Head of Data") throw new Error("429");
+            return [ad("https://a.example/1", "Offre A")];
+          }),
+        ],
+        (sourceName) => errors.push(sourceName),
+      );
+    expect(items).toHaveLength(1);
+    expect(items[0].sourceName).toBe("Adzuna");
+    expect(failedSearches).toBe(1);
+    expect(totalSearches).toBe(2); // 1 source × 2 plans
+    expect(errors).toEqual(["Adzuna"]);
   });
 
-  it("dedups ads across searches by provenance URL (fallback: verbatim text)", async () => {
-    const byPlan: Record<
-      string,
-      { sourceUrl: string | null; rawText: string }[]
-    > = {
-      "Data Engineer": [
-        ad("https://a.example/1", "Offre A"),
-        ad(null, "Offre sans URL"),
-      ],
-      "Head of Data": [
-        ad("https://a.example/1", "Offre A vue autrement"), // same URL — once
-        ad(null, "Offre sans URL"), // same verbatim text — once
-        ad("https://a.example/2", "Offre B"),
-      ],
-    };
-    const { ads, failedSearches } = await runSearchPlans(
+  it("dedups ACROSS sources and plans, keeping the first source's provenance", async () => {
+    const { items, failedSearches } = await runMultiSourceDiscovery(
       plans,
-      async (keywords) => byPlan[keywords[0]],
+      [
+        src("Adzuna", async () => [ad("https://x/1", "A"), ad(null, "noUrl")]),
+        src("France Travail", async () => [
+          ad("https://x/1", "A vue autrement"), // same URL — dropped
+          ad(null, "noUrl"), // same verbatim text — dropped
+          ad("https://x/2", "B"), // new — kept, tagged France Travail
+        ]),
+      ],
       () => {},
     );
     expect(failedSearches).toBe(0);
-    expect(ads.map((a) => a.sourceUrl ?? a.rawText)).toEqual([
-      "https://a.example/1",
-      "Offre sans URL",
-      "https://a.example/2",
+    expect(
+      items.map((i) => [i.ad.sourceUrl ?? i.ad.rawText, i.sourceName]),
+    ).toEqual([
+      ["https://x/1", "Adzuna"],
+      ["noUrl", "Adzuna"],
+      ["https://x/2", "France Travail"],
     ]);
   });
 
   it("counts every search as failed when they all throw", async () => {
-    const { ads, failedSearches } = await runSearchPlans(
-      plans,
-      async () => {
-        throw new Error("down");
-      },
-      () => {},
-    );
-    expect(ads).toEqual([]);
-    expect(failedSearches).toBe(plans.length);
+    const { items, failedSearches, totalSearches } =
+      await runMultiSourceDiscovery(
+        plans,
+        [
+          src("Adzuna", async () => {
+            throw new Error("down");
+          }),
+          src("France Travail", async () => {
+            throw new Error("down");
+          }),
+        ],
+        () => {},
+      );
+    expect(items).toEqual([]);
+    expect(failedSearches).toBe(4); // 2 sources × 2 plans
+    expect(totalSearches).toBe(4);
   });
 });

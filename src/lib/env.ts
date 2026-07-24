@@ -33,6 +33,11 @@ export const env = createEnv({
       .string()
       .regex(/^[a-z]{2}$/)
       .default("fr"),
+    // France Travail official "Offres d'emploi v2" API (OAuth2 client-
+    // credentials) — optional second legal discovery source; without both,
+    // it is simply inert (same graceful degradation as Adzuna).
+    FRANCE_TRAVAIL_CLIENT_ID: z.string().min(1).optional(),
+    FRANCE_TRAVAIL_CLIENT_SECRET: z.string().min(1).optional(),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {
