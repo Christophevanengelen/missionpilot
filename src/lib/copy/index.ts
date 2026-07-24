@@ -36,6 +36,18 @@ export const copy = {
         noOffersHint:
           "Complétez votre profil ou importez votre CV pour lancer la découverte d'offres.",
       },
+      positioning: {
+        title: "Votre positionnement",
+        coverage: (pct: number) => `${pct} % du top 8 couvert`,
+        note: (n: number) =>
+          `D'après les ${n} offres découvertes qui listent leurs compétences — les 8 compétences les plus demandées de ce marché, et celles que votre profil couvre. Ce n'est pas un classement face à d'autres candidats.`,
+        // label · part des offres du sous-corpus qui demandent cette compétence
+        chip: (label: string, share: number) =>
+          `${label} · ${share} % des offres`,
+        legend: "✓ couvert par votre profil · + absent de votre profil",
+        covered: "(couvert par votre profil)",
+        missing: "(absent de votre profil)",
+      },
     },
     applications: {
       title: "Suivi des candidatures",
@@ -726,6 +738,17 @@ export const copy = {
         refreshCta: "Import a new CV / complete my profile",
         noOffersHint:
           "Complete your profile or import your CV to start discovering offers.",
+      },
+      positioning: {
+        title: "Your positioning",
+        coverage: (pct: number) => `${pct}% of the top 8 covered`,
+        note: (n: number) =>
+          `Based on the ${n} discovered offers that list their skills — the 8 most demanded skills of this market, and the ones your profile covers. This is not a ranking against other candidates.`,
+        chip: (label: string, share: number) =>
+          `${label} · ${share}% of offers`,
+        legend: "✓ covered by your profile · + missing from your profile",
+        covered: "(covered by your profile)",
+        missing: "(missing from your profile)",
       },
     },
     applications: {
