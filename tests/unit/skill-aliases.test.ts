@@ -39,4 +39,16 @@ describe("canonicalizeSkill", () => {
     // Salesforce IS a CRM but they are not the same skill — must stay distinct.
     expect(canonicalizeSkill("Salesforce")).not.toBe(canonicalizeSkill("CRM"));
   });
+
+  it("keeps a subset skill distinct from its superset (CI ≠ CI/CD)", () => {
+    // Continuous Integration is a subset of CI/CD, not an equivalence — folding
+    // them would inflate the match score. FR↔EN CI translations DO align.
+    expect(canonicalizeSkill("Continuous Integration")).not.toBe(
+      canonicalizeSkill("CI/CD"),
+    );
+    expect(canonicalizeSkill("intégration continue")).toBe(
+      canonicalizeSkill("Continuous Integration"),
+    );
+    expect(canonicalizeSkill("CICD")).toBe(canonicalizeSkill("CI/CD"));
+  });
 });

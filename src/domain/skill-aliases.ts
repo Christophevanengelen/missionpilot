@@ -30,7 +30,11 @@ const ALIAS_GROUPS: Record<string, string[]> = {
   "google cloud": ["gcp", "google cloud platform"],
   aws: ["amazon web services"],
   azure: ["ms azure", "microsoft azure"],
-  "ci/cd": ["cicd", "ci cd", "intégration continue", "continuous integration"],
+  // CI/CD (integration AND delivery/deployment) and Continuous Integration
+  // (integration only) are kept DISTINCT — CI is a subset of CI/CD, not an
+  // equivalence; folding them would inflate the score (honesty boundary).
+  "ci/cd": ["cicd", "ci cd"],
+  "continuous integration": ["intégration continue"],
   "machine learning": ["ml", "apprentissage automatique"],
   "artificial intelligence": ["ai", "ia", "intelligence artificielle"],
   "project management": ["gestion de projet", "gestion de projets"],
