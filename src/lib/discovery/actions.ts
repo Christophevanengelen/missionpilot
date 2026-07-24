@@ -13,7 +13,7 @@ import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
 import { adzunaConfigured, searchAdzuna, type DiscoveredAd } from "./adzuna";
-import { buildSearchPlans } from "./plan";
+import { buildSearchPlans, runSearchPlans } from "./plan";
 import * as opportunity from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 
@@ -27,6 +27,9 @@ export type DiscoveryResult =
       duplicates: number;
       /** Ads that individually failed to import (logged; the rest landed). */
       failed: number;
+      /** Métier searches that errored while others succeeded — surfaced so a
+       *  possibly-incomplete result is never presented as a complete one. */
+      failedSearches: number;
     }
   | { ok: false; error: "unconfigured" | "no_keywords" | "generic" };
 
@@ -42,29 +45,20 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     const plans = buildSearchPlans(living.claims, prefs.targetRoleFamilies);
     if (plans.length === 0) return { ok: false, error: "no_keywords" };
 
-    // Per-search isolation: one métier's search failing must not void the
-    // others. Only when EVERY search failed is the whole run an error.
-    // Cross-search dedup by provenance URL (fallback: verbatim text) so an ad
-    // matching two target métiers is counted once, honestly.
-    const seen = new Set<string>();
-    const ads: DiscoveredAd[] = [];
-    let failedSearches = 0;
-    for (const plan of plans) {
-      try {
-        for (const ad of await searchAdzuna(plan.keywords, plan.mode)) {
-          const key = ad.sourceUrl ?? ad.rawText;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          ads.push(ad);
-        }
-      } catch (error) {
-        failedSearches += 1;
+    // Per-search isolation + cross-search dedup live in the testable runner;
+    // only when EVERY search failed is the whole run an error, and a partial
+    // failure count travels to the UI (honesty: never present a possibly
+    // incomplete result as a complete one).
+    const { ads, failedSearches } = await runSearchPlans<DiscoveredAd>(
+      plans,
+      (keywords, mode) => searchAdzuna(keywords, mode),
+      (plan, error) => {
         logger.error("discovery search failed", {
           mode: plan.mode,
           reason: error instanceof Error ? error.message : "unknown",
         });
-      }
-    }
+      },
+    );
     if (failedSearches === plans.length) return { ok: false, error: "generic" };
 
     let imported = 0;
@@ -93,7 +87,14 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
         reason: error instanceof Error ? error.message : "unknown",
       });
     }
-    return { ok: true, found: ads.length, imported, duplicates, failed };
+    return {
+      ok: true,
+      found: ads.length,
+      imported,
+      duplicates,
+      failed,
+      failedSearches,
+    };
   } catch (error) {
     logger.error("discovery failed", {
       reason: error instanceof Error ? error.message : "unknown",

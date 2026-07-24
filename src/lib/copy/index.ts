@@ -22,7 +22,7 @@ export const copy = {
         "Aucune compétence connue détectée dans ce document. Vous pouvez les ajouter via l'entretien ci-dessous.",
       detectedTitle: "Compétences détectées dans votre CV",
       detectedNote:
-        "Désélectionnez ce qui ne vous correspond pas, puis ajoutez : chaque compétence rejoindra votre profil comme proposition à confirmer.",
+        "Désélectionnez ce qui ne vous correspond pas, puis ajoutez : votre sélection vaut validation, les compétences rejoignent votre profil confirmées et la recherche d'offres se lance automatiquement.",
       aiNote:
         "L'IA a aussi lu votre CV pour repérer des compétences hors liste — vérifiez-les avant d'ajouter.",
       chooseOne: "Sélectionnez au moins une compétence.",
@@ -31,7 +31,7 @@ export const copy = {
       added: (n: number) =>
         n === 0
           ? "Ces compétences étaient déjà dans votre profil."
-          : `${n} ${n > 1 ? "compétences ajoutées" : "compétence ajoutée"} à votre profil (à confirmer dans l'entretien).`,
+          : `${n} ${n > 1 ? "compétences confirmées" : "compétence confirmée"} dans votre profil.`,
       again: "Importer un autre document",
       applied: (n: number) =>
         `Profil mis à jour — ${n} ${n > 1 ? "éléments confirmés" : "élément confirmé"}.`,
@@ -386,6 +386,8 @@ export const copy = {
             parts.push(`${failed} en échec (réessayez plus tard)`);
           return `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${parts.join(", ")}.`;
         },
+        partial: (n: number) =>
+          `(${n} ${n > 1 ? "recherches métier en échec" : "recherche métier en échec"} — résultats possiblement incomplets, réessayez plus tard.)`,
         errors: {
           unconfigured:
             "La découverte automatique n'est pas encore activée (clés Adzuna manquantes).",
@@ -517,7 +519,7 @@ export const copy = {
         "No known skill detected in this document. You can add them through the interview below.",
       detectedTitle: "Skills detected in your CV",
       detectedNote:
-        "Unselect what doesn't fit, then add: each skill joins your profile as a proposal to confirm.",
+        "Unselect what doesn't fit, then add: your selection is the validation — skills join your profile confirmed and the offer search starts automatically.",
       aiNote:
         "AI also read your CV to spot skills beyond the curated list — check them before adding.",
       chooseOne: "Select at least one skill.",
@@ -526,7 +528,7 @@ export const copy = {
       added: (n: number) =>
         n === 0
           ? "Those skills were already in your profile."
-          : `${n} skill${n > 1 ? "s" : ""} added to your profile (to confirm in the interview).`,
+          : `${n} skill${n > 1 ? "s" : ""} confirmed in your profile.`,
       again: "Import another document",
       applied: (n: number) =>
         `Profile updated — ${n} ${n > 1 ? "items confirmed" : "item confirmed"}.`,
@@ -860,6 +862,8 @@ export const copy = {
           if (failed > 0) parts.push(`${failed} failed (try again later)`);
           return `${found} ${found > 1 ? "offers" : "offer"} found: ${parts.join(", ")}.`;
         },
+        partial: (n: number) =>
+          `(${n} target-job search${n > 1 ? "es" : ""} failed — results may be incomplete, try again later.)`,
         errors: {
           unconfigured:
             "Auto-discovery is not enabled yet (Adzuna keys missing).",

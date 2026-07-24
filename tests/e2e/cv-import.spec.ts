@@ -3,9 +3,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 
-// e2e: paste CV text → deterministic skill detection → chosen skills join the
-// profile as proposals (visible in the interview panel). Dedicated synthetic
-// user per run.
+// e2e: paste CV text → deterministic skill detection → the kept selection is
+// the validation (skills join the profile CONFIRMED) → discovery auto-chains.
+// Dedicated synthetic user per run.
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const secretKey = process.env.SUPABASE_SECRET_KEY ?? "";
@@ -84,7 +84,7 @@ test("import de CV : texte collé → compétences détectées → ajout au prof
   ).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: "Ajouter à mon profil" }).click();
   await expect(page.getByRole("status")).toContainText(
-    "4 compétences ajoutées",
+    "4 compétences confirmées",
   );
 
   // Discovery auto-chains after the validation (no button). Keyless CI: the

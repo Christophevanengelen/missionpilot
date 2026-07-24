@@ -102,3 +102,46 @@ export async function applyCvProfile(
 
   return { confirmed };
 }
+
+/**
+ * Add the skills the user kept selected on the CHIP screen (the fallback flow
+ * without deep AI). Same honesty semantics as `applyCvProfile`: the explicit
+ * per-chip selection IS the validation, so skills land CONFIRMED — which also
+ * lets the auto-chained discovery search on them immediately. A kept selection
+ * confirms an existing proposed/needs_review claim; confirmed claims need
+ * nothing; rejected claims are DELIBERATELY untouched (an explicit rejection
+ * is never silently overridden — the interview's restore flow exists for
+ * that).
+ */
+export async function addCvSkills(
+  client: Client,
+  profileId: string,
+  skills: string[],
+): Promise<{ added: number }> {
+  const living = await loadLivingProfile(client, profileId);
+  const existing = new Map<string, { id: string; state: string }>();
+  for (const c of living.claims) {
+    if (c.kind !== "skill") continue;
+    const key = String((c.value as { name?: unknown })?.name ?? "")
+      .trim()
+      .toLowerCase();
+    if (key) existing.set(key, { id: c.id, state: c.state });
+  }
+  let added = 0;
+  for (const name of skills) {
+    const key = name.trim().toLowerCase();
+    const prior = existing.get(key);
+    if (prior) {
+      if (prior.state === "proposed" || prior.state === "needs_review") {
+        await setClaimState(client, prior.id, "confirmed");
+        added += 1;
+      }
+      continue;
+    }
+    const claimId = await submitClaim(client, profileId, "skill", { name });
+    await setClaimState(client, claimId, "confirmed");
+    existing.set(key, { id: claimId, state: "confirmed" });
+    added += 1;
+  }
+  return { added };
+}

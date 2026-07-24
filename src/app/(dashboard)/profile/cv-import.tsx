@@ -31,10 +31,11 @@ type Step =
   | { name: "applied"; count: number; discovery: AutoDiscovery };
 
 /**
- * "Import my CV" — upload a PDF (or paste the text) → deterministic skill
- * detection → the user picks which skills to add to their profile (they enter
- * the normal claim lifecycle as proposals). The CV itself is NEVER stored —
- * analysis happens in-memory and only the chosen skills are saved.
+ * "Import my CV" — upload a PDF (or paste the text) → deep AI understanding
+ * (one review screen) or, as fallback, detected-skill chips. In both flows the
+ * user's single validation confirms the claims AND auto-chains the offer
+ * discovery. The CV itself is NEVER stored — analysis happens in-memory and
+ * only the validated claims are saved.
  */
 export function CvImport() {
   const router = useRouter();
@@ -46,6 +47,9 @@ export function CvImport() {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
+  // Identity of the LATEST auto-discovery run: a stale completion from a
+  // previous import cycle must never overwrite the current screen's result.
+  const discoverRunRef = useRef(0);
 
   const busyProps = {
     "aria-busy": busy || undefined,
@@ -112,12 +116,14 @@ export function CvImport() {
    * a screen the user has since left.
    */
   async function autoDiscover(target: "added" | "applied") {
+    const run = ++discoverRunRef.current;
     let result: DiscoveryResult;
     try {
       result = await discoverOpportunitiesAction();
     } catch {
       result = { ok: false, error: "generic" };
     }
+    if (run !== discoverRunRef.current) return; // a newer run owns the screen
     setStep((s) =>
       s.name === target ? { ...s, discovery: { phase: "done", result } } : s,
     );
@@ -221,6 +227,9 @@ export function CvImport() {
             result.duplicates,
             result.failed,
           )}
+          {result.failedSearches > 0
+            ? ` ${discoverCopy.partial(result.failedSearches)}`
+            : ""}
         </p>
       );
     }

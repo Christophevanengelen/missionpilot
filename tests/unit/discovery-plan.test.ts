@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildSearchPlans } from "@/lib/discovery/plan";
+import {
+  buildSearchPlans,
+  runSearchPlans,
+  type SearchPlan,
+} from "@/lib/discovery/plan";
 
 const claim = (kind: string, state: string, value: unknown) => ({
   kind,
@@ -48,5 +52,71 @@ describe("buildSearchPlans", () => {
     expect(
       buildSearchPlans([claim("skill", "proposed", { name: "Go" })], ["  "]),
     ).toEqual([]);
+  });
+});
+
+describe("runSearchPlans", () => {
+  const plans: SearchPlan[] = [
+    { keywords: ["Data Engineer"], mode: "title" },
+    { keywords: ["Head of Data"], mode: "title" },
+  ];
+  const ad = (sourceUrl: string | null, rawText: string) => ({
+    sourceUrl,
+    rawText,
+  });
+
+  it("isolates a failing search and REPORTS it (honest partial results)", async () => {
+    const errors: unknown[] = [];
+    const { ads, failedSearches } = await runSearchPlans(
+      plans,
+      async (keywords) => {
+        if (keywords[0] === "Head of Data") throw new Error("adzuna 429");
+        return [ad("https://a.example/1", "Offre A")];
+      },
+      (_plan, error) => errors.push(error),
+    );
+    expect(ads).toHaveLength(1);
+    expect(failedSearches).toBe(1); // surfaced, not just logged
+    expect(errors).toHaveLength(1);
+  });
+
+  it("dedups ads across searches by provenance URL (fallback: verbatim text)", async () => {
+    const byPlan: Record<
+      string,
+      { sourceUrl: string | null; rawText: string }[]
+    > = {
+      "Data Engineer": [
+        ad("https://a.example/1", "Offre A"),
+        ad(null, "Offre sans URL"),
+      ],
+      "Head of Data": [
+        ad("https://a.example/1", "Offre A vue autrement"), // same URL — once
+        ad(null, "Offre sans URL"), // same verbatim text — once
+        ad("https://a.example/2", "Offre B"),
+      ],
+    };
+    const { ads, failedSearches } = await runSearchPlans(
+      plans,
+      async (keywords) => byPlan[keywords[0]],
+      () => {},
+    );
+    expect(failedSearches).toBe(0);
+    expect(ads.map((a) => a.sourceUrl ?? a.rawText)).toEqual([
+      "https://a.example/1",
+      "Offre sans URL",
+      "https://a.example/2",
+    ]);
+  });
+
+  it("counts every search as failed when they all throw", async () => {
+    const { ads, failedSearches } = await runSearchPlans(
+      plans,
+      async () => {
+        throw new Error("down");
+      },
+      () => {},
+    );
+    expect(ads).toEqual([]);
+    expect(failedSearches).toBe(plans.length);
   });
 });

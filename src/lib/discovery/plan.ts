@@ -52,3 +52,36 @@ export function buildSearchPlans(
   );
   return keywords.length > 0 ? [{ keywords, mode: "any" }] : [];
 }
+
+/**
+ * Run the plans with per-search isolation: one métier's search failing must
+ * not void the others, and the failure COUNT is returned so callers can
+ * surface a possibly-incomplete result honestly (never silently). Ads are
+ * deduped across searches by provenance URL (fallback: verbatim text) so an
+ * ad matching two target métiers is counted once.
+ */
+export async function runSearchPlans<
+  Ad extends { sourceUrl: string | null; rawText: string },
+>(
+  plans: readonly SearchPlan[],
+  search: (keywords: string[], mode: SearchPlan["mode"]) => Promise<Ad[]>,
+  onSearchError: (plan: SearchPlan, error: unknown) => void,
+): Promise<{ ads: Ad[]; failedSearches: number }> {
+  const seen = new Set<string>();
+  const ads: Ad[] = [];
+  let failedSearches = 0;
+  for (const plan of plans) {
+    try {
+      for (const ad of await search(plan.keywords, plan.mode)) {
+        const key = ad.sourceUrl ?? ad.rawText;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        ads.push(ad);
+      }
+    } catch (error) {
+      failedSearches += 1;
+      onSearchError(plan, error);
+    }
+  }
+  return { ads, failedSearches };
+}
