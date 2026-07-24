@@ -21,8 +21,11 @@ import {
   type BreakdownRequirement,
 } from "@/lib/matching/breakdown-logic";
 import { aiBreakdownConfigured } from "@/lib/matching/ai-breakdown";
+import { aiTailorConfigured } from "@/lib/matching/ai-tailor";
+import { loadDraft } from "@/lib/matching/tailor-logic";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
 import { BreakdownButton } from "./breakdown-button";
+import { ApplicationDraftPanel } from "./application-panel";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
 import { GateBadge } from "@/components/matching/gate-badge";
@@ -66,6 +69,7 @@ export default async function OpportunityDetailPage({
     living,
     insights,
     breakdown,
+    draft,
   ] = await Promise.all([
     getOpportunity(client, id),
     getLatestSnapshot(client, id),
@@ -74,6 +78,7 @@ export default async function OpportunityDetailPage({
     loadLivingProfile(client, profile.id),
     loadInsights(client, profile.id),
     loadBreakdown(client, profile.id, id),
+    loadDraft(client, profile.id, id),
   ]);
   if (!opportunity) return <NotFound />;
   const insight = insights.get(opportunity.id);
@@ -267,6 +272,10 @@ export default async function OpportunityDetailPage({
             hasResult={breakdown !== null}
           />
         </section>
+      ) : null}
+
+      {aiTailorConfigured() ? (
+        <ApplicationDraftPanel opportunityId={opportunity.id} draft={draft} />
       ) : null}
 
       <section

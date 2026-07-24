@@ -517,6 +517,30 @@ export const copy = {
           generic: "L'analyse n'a pas abouti. Réessayez.",
         },
       },
+      application: {
+        section: "Préparer ma candidature",
+        note: "Un brouillon ancré sur votre profil validé : relisez-le, complétez les [crochets] avec vos vrais chiffres, puis envoyez-le vous-même depuis le site de l'offre. MissionPilot n'envoie jamais rien à votre place.",
+        empty:
+          "Générez une lettre de motivation taillée pour cette offre, plus vos points forts à mettre en avant.",
+        button: "Préparer ma candidature",
+        generating: "Préparation…",
+        refreshCta: "Régénérer",
+        coverLabel: "Lettre de motivation (brouillon modifiable)",
+        highlightsLabel: "Points à mettre en avant",
+        copy: "Copier la lettre",
+        copied: "Copié !",
+        needsReview:
+          "Brouillon incertain — l'IA manque d'éléments, relisez attentivement.",
+        errors: {
+          unconfigured:
+            "La préparation de candidature n'est pas encore activée (clé OpenAI manquante).",
+          no_profile:
+            "Confirmez d'abord votre profil (rôle, compétences) — importez votre CV pour aller vite.",
+          not_found:
+            "Cette offre n'a pas assez de contenu pour préparer une candidature.",
+          generic: "La préparation n'a pas abouti. Réessayez.",
+        },
+      },
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
@@ -1107,6 +1131,30 @@ export const copy = {
             "Confirm your profile first (role, skills) — import your CV to go fast.",
           not_found: "This offer does not have enough content to analyze.",
           generic: "The analysis did not go through. Try again.",
+        },
+      },
+      application: {
+        section: "Prepare my application",
+        note: "A draft grounded in your validated profile: review it, fill the [brackets] with your real figures, then send it yourself from the offer's site. MissionPilot never sends anything on your behalf.",
+        empty:
+          "Generate a cover letter tailored to this offer, plus your strengths to highlight.",
+        button: "Prepare my application",
+        generating: "Preparing…",
+        refreshCta: "Regenerate",
+        coverLabel: "Cover letter (editable draft)",
+        highlightsLabel: "Points to highlight",
+        copy: "Copy the letter",
+        copied: "Copied!",
+        needsReview:
+          "Uncertain draft — the AI lacks elements, review carefully.",
+        errors: {
+          unconfigured:
+            "Application preparation is not enabled yet (OpenAI key missing).",
+          no_profile:
+            "Confirm your profile first (role, skills) — import your CV to go fast.",
+          not_found:
+            "This offer does not have enough content to prepare an application.",
+          generic: "The preparation did not go through. Try again.",
         },
       },
       inbox: {
