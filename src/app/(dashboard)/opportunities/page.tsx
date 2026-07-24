@@ -19,18 +19,61 @@ import { ImportForm } from "./import-form";
 export const metadata: Metadata = { title: "Opportunités" };
 
 const GATES: readonly EligibilityGate[] = ["eligible", "review", "excluded"];
+const ENGAGEMENTS = ["freelance", "part_time", "interim", "permanent"] as const;
+const REMOTES = ["remote_only", "hybrid", "onsite"] as const;
+
+type Filters = {
+  filter: EligibilityGate | null;
+  type: (typeof ENGAGEMENTS)[number] | null;
+  remote: (typeof REMOTES)[number] | null;
+};
+
+function pick(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+function parseFilters(
+  sp: Record<string, string | string[] | undefined>,
+): Filters {
+  const filter = pick(sp.filter);
+  const type = pick(sp.type);
+  const remote = pick(sp.remote);
+  return {
+    filter: GATES.includes(filter as EligibilityGate)
+      ? (filter as Filters["filter"])
+      : null,
+    type: ENGAGEMENTS.includes(type as (typeof ENGAGEMENTS)[number])
+      ? (type as Filters["type"])
+      : null,
+    remote: REMOTES.includes(remote as (typeof REMOTES)[number])
+      ? (remote as Filters["remote"])
+      : null,
+  };
+}
+
+/** Href for the inbox with the given filters (nulls omitted) — every chip
+ *  link PRESERVES the other active filter groups. */
+function inboxHref(filters: Filters): string {
+  const params = new URLSearchParams();
+  if (filters.filter) params.set("filter", filters.filter);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.remote) params.set("remote", filters.remote);
+  const query = params.toString();
+  return query ? `/opportunities?${query}` : "/opportunities";
+}
 
 /**
  * Opportunity inbox: paste-import a listing, then triage owned opportunities by
  * the deterministic hard-constraint gate (PR 1) and the match score (PR 3) —
- * best matches first within each gate. Server-rendered from the database (RLS:
- * own rows); the eligibility filter is a plain searchParam so it needs no
- * client JS.
+ * best matches first within each gate — and filter by eligibility, contract
+ * type and remote mode (owner request: "triables CDI/CDD/remote").
+ * Server-rendered from the database (RLS: own rows); every filter is a plain
+ * searchParam so it needs no client JS.
  */
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await verifySession();
   const client = await createClient();
@@ -56,21 +99,24 @@ export default async function OpportunitiesPage({
     // gate-then-score sort, so ties keep recency order.
     .sort(compareRanked);
 
+  const active = parseFilters(await searchParams);
+  // Rows passing the type/remote groups — the gate chips count over THESE, so
+  // a chip's number always predicts exactly what clicking it will show
+  // (honesty: never "Éligible (2)" leading to an empty state).
+  const base = evaluated.filter(
+    (e) =>
+      (active.type === null || e.o.engagement_type === active.type) &&
+      (active.remote === null || e.o.remote_type === active.remote),
+  );
   const counts: Record<EligibilityGate, number> = {
     eligible: 0,
     review: 0,
     excluded: 0,
   };
-  for (const e of evaluated) counts[e.gate]++;
-
-  const sp = await searchParams;
-  const filterParam = Array.isArray(sp.filter) ? sp.filter[0] : sp.filter;
-  const activeFilter = GATES.includes(filterParam as EligibilityGate)
-    ? (filterParam as EligibilityGate)
-    : null;
-  const shown = activeFilter
-    ? evaluated.filter((e) => e.gate === activeFilter)
-    : evaluated;
+  for (const e of base) counts[e.gate]++;
+  const shown = base.filter(
+    (e) => active.filter === null || e.gate === active.filter,
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
@@ -87,21 +133,65 @@ export default async function OpportunitiesPage({
         <section aria-label={copy.title} className="flex flex-col gap-3">
           <nav
             aria-label={copy.inbox.filterLabel}
-            className="flex flex-wrap gap-2"
+            className="flex flex-col gap-2"
           >
-            <FilterChip
-              href="/opportunities"
-              label={`${copy.inbox.all} (${opportunities.length})`}
-              active={activeFilter === null}
-            />
-            {GATES.map((g) => (
+            <div
+              role="group"
+              className="flex flex-wrap gap-2"
+              aria-label={copy.inbox.gateLabel}
+            >
               <FilterChip
-                key={g}
-                href={`/opportunities?filter=${g}`}
-                label={`${copy.gate[g]} (${counts[g]})`}
-                active={activeFilter === g}
+                href={inboxHref({ ...active, filter: null })}
+                label={`${copy.inbox.all} (${base.length})`}
+                active={active.filter === null}
               />
-            ))}
+              {GATES.map((g) => (
+                <FilterChip
+                  key={g}
+                  href={inboxHref({ ...active, filter: g })}
+                  label={`${copy.gate[g]} (${counts[g]})`}
+                  active={active.filter === g}
+                />
+              ))}
+            </div>
+            <div
+              role="group"
+              className="flex flex-wrap gap-2"
+              aria-label={copy.inbox.typeLabel}
+            >
+              <FilterChip
+                href={inboxHref({ ...active, type: null })}
+                label={copy.inbox.allTypes}
+                active={active.type === null}
+              />
+              {ENGAGEMENTS.map((e) => (
+                <FilterChip
+                  key={e}
+                  href={inboxHref({ ...active, type: e })}
+                  label={copy.engagementTypes[e]}
+                  active={active.type === e}
+                />
+              ))}
+            </div>
+            <div
+              role="group"
+              className="flex flex-wrap gap-2"
+              aria-label={copy.inbox.remoteLabel}
+            >
+              <FilterChip
+                href={inboxHref({ ...active, remote: null })}
+                label={copy.inbox.allRemotes}
+                active={active.remote === null}
+              />
+              {REMOTES.map((r) => (
+                <FilterChip
+                  key={r}
+                  href={inboxHref({ ...active, remote: r })}
+                  label={copy.remoteTypes[r]}
+                  active={active.remote === r}
+                />
+              ))}
+            </div>
           </nav>
 
           {shown.length === 0 ? (
