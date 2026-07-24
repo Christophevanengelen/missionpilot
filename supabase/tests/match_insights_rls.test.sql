@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(10);
+select plan(15);
 
 -- Fixtures: users M and N (signup trigger creates their profiles).
 insert into auth.users
@@ -122,6 +122,48 @@ select throws_ok(
     current_setting('test.m_profile'),
     (current_setting('test.m_import')::jsonb ->> 'opportunity_id')),
   '42501', null, 'N cannot insert an insight into M''s profile');
+
+-- The OTHER leg of the invariant: N claiming its OWN profile but pointing at
+-- M's opportunity — the RLS with-check passes, ONLY the composite FK blocks
+-- attaching an insight to another profile's opportunity.
+select throws_ok(
+  format(
+    $$insert into public.ai_match_insights
+        (profile_id, opportunity_id, fit, rationale, model,
+         prompt_version, input_hash)
+      values ('%s', '%s', 'weak', 'intrusion', 'gpt-test',
+              'match-insight-1', repeat('d', 64))$$,
+    (select id from public.candidate_profiles),
+    (current_setting('test.m_import')::jsonb ->> 'opportunity_id')),
+  '23503', null,
+  'composite FK blocks N attaching an insight to M''s opportunity');
+
+-- Cross-user UPDATE/DELETE: RLS filters M's rows out of N's statements — no
+-- error, zero rows affected (data integrity re-asserted as M just below).
+select lives_ok(
+  $$update public.ai_match_insights set rationale = 'tamper'$$,
+  'N''s blanket update runs against zero visible rows');
+select lives_ok(
+  $$delete from public.ai_match_insights$$,
+  'N''s blanket delete runs against zero visible rows');
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- 7) back as M: the insight survived N's tampering attempts intact.
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', '99999999-9999-9999-9999-999999999999',
+    'role', 'authenticated')::text, true);
+set local role authenticated;
+
+select is(
+  (select count(*)::int from public.ai_match_insights), 1,
+  'M''s insight survived N''s delete');
+select is(
+  (select rationale from public.ai_match_insights),
+  'Analyse rafraîchie après mise à jour du profil.',
+  'M''s insight rationale untouched by N''s update');
 
 reset role;
 

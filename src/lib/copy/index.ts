@@ -426,6 +426,9 @@ export const copy = {
             "L'explication des matchs n'est pas encore activée (clé OpenAI manquante).",
           no_profile:
             "Confirmez d'abord votre profil (rôle, compétences) — importez votre CV pour aller vite.",
+          no_candidates:
+            "Aucune offre analysable — vos offres sont exclues par vos critères ou sans texte.",
+          busy: "Une analyse est déjà en cours — patientez un instant.",
           generic: "L'analyse n'a pas abouti. Réessayez.",
         },
       },
@@ -932,6 +935,9 @@ export const copy = {
             "Match explanations are not enabled yet (OpenAI key missing).",
           no_profile:
             "Confirm your profile first (role, skills) — import your CV to go fast.",
+          no_candidates:
+            "No offer can be analyzed — your offers are excluded by your constraints or have no text.",
+          busy: "An analysis is already running — hang on a moment.",
           generic: "The analysis did not go through. Try again.",
         },
       },

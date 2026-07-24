@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   buildOfferText,
@@ -43,6 +44,17 @@ describe("buildProfileDossier", () => {
       }),
     ).toBe("");
   });
+
+  it("stays empty with target métiers but ZERO confirmed claims (préférences ≠ faits de profil)", () => {
+    // Regression (review PR #25): judging "your match" on preferences alone
+    // would fabricate a profile the user never confirmed — no_profile must
+    // hold even when targetRoleFamilies is set.
+    expect(
+      buildProfileDossier([claim("skill", "proposed", { name: "Go" })], {
+        targetRoleFamilies: ["Data Engineer"],
+      }),
+    ).toBe("");
+  });
 });
 
 describe("buildOfferText", () => {
@@ -75,6 +87,12 @@ describe("insightInputHash", () => {
     expect(insightInputHash("profil", "offre2")).not.toBe(h);
     // The separator prevents boundary ambiguity ("ab"+"c" vs "a"+"bc").
     expect(insightInputHash("ab", "c")).not.toBe(insightInputHash("a", "bc"));
+    // The separator BYTE is pinned: NUL (which Postgres text can never
+    // contain) — a silent change (e.g. a tool normalizing the escape) would
+    // invalidate every stored input_hash.
+    expect(insightInputHash("a", "b")).toBe(
+      createHash("sha256").update("a\x00b").digest("hex"),
+    );
   });
 });
 
