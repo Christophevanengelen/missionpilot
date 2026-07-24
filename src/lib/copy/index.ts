@@ -38,10 +38,13 @@ export const copy = {
       },
       positioning: {
         title: "Votre positionnement",
-        coverage: (pct: number) =>
-          `${pct} % des compétences les plus demandées`,
+        coverage: (pct: number) => `${pct} % du top 8 couvert`,
         note: (n: number) =>
-          `D'après les ${n} offres que vous avez découvertes — ce que ce marché demande le plus, et ce que votre profil couvre. Ce n'est pas un classement face à d'autres candidats.`,
+          `D'après les ${n} offres découvertes qui listent leurs compétences — les 8 compétences les plus demandées de ce marché, et celles que votre profil couvre. Ce n'est pas un classement face à d'autres candidats.`,
+        // label · part des offres du sous-corpus qui demandent cette compétence
+        chip: (label: string, share: number) =>
+          `${label} · ${share} % des offres`,
+        legend: "✓ couvert par votre profil · + absent de votre profil",
         covered: "(couvert par votre profil)",
         missing: "(absent de votre profil)",
       },
@@ -738,9 +741,12 @@ export const copy = {
       },
       positioning: {
         title: "Your positioning",
-        coverage: (pct: number) => `${pct}% of the most demanded skills`,
+        coverage: (pct: number) => `${pct}% of the top 8 covered`,
         note: (n: number) =>
-          `Based on the ${n} offers you discovered — what this market asks for most, and what your profile covers. This is not a ranking against other candidates.`,
+          `Based on the ${n} discovered offers that list their skills — the 8 most demanded skills of this market, and the ones your profile covers. This is not a ranking against other candidates.`,
+        chip: (label: string, share: number) =>
+          `${label} · ${share}% of offers`,
+        legend: "✓ covered by your profile · + missing from your profile",
         covered: "(covered by your profile)",
         missing: "(missing from your profile)",
       },

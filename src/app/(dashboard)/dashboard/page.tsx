@@ -158,13 +158,16 @@ function StatusView({
             {positioning.topSkills.map((s) => (
               <li key={s.label}>
                 <span
-                  className={`rounded-full border px-2 py-0.5 text-xs ${
+                  className={`text-foreground rounded-full border px-2 py-0.5 text-xs ${
                     s.covered
                       ? "border-success/50 bg-success/10"
-                      : "border-border text-muted-foreground"
+                      : "border-border bg-muted/40"
                   }`}
                 >
-                  {s.label} · {s.share}%
+                  {/* Status carried by a VISIBLE marker, not colour alone
+                      (WCAG 1.4.1) — the sr-only text spells it out for AT. */}
+                  <span aria-hidden="true">{s.covered ? "✓ " : "+ "}</span>
+                  {copy.positioning.chip(s.label, s.share)}
                   <span className="sr-only">
                     {" "}
                     {s.covered
@@ -175,6 +178,9 @@ function StatusView({
               </li>
             ))}
           </ul>
+          <p className="text-muted-foreground text-xs">
+            {copy.positioning.legend}
+          </p>
         </section>
       ) : null}
 

@@ -58,6 +58,42 @@ describe("buildPositioning", () => {
     expect(p.topSkills[0]).toMatchObject({ label: "Go", offers: 3, share: 75 });
   });
 
+  it("caps the picture at the top 8 demanded skills, most demanded first", () => {
+    // 12 distinct skills with strictly decreasing demand: only the top 8 show.
+    const offers = Array.from({ length: 12 }, (_, i) =>
+      // skill i appears in (12 - i) offers
+      Array.from({ length: 12 - i }, () => `skill-${i}`),
+    )
+      .flat()
+      .map((sk) => offer([sk]));
+    const p = buildPositioning(offers, [])!;
+    expect(p.topSkills).toHaveLength(8);
+    expect(p.topSkills.map((s) => s.label)).toEqual([
+      "skill-0",
+      "skill-1",
+      "skill-2",
+      "skill-3",
+      "skill-4",
+      "skill-5",
+      "skill-6",
+      "skill-7",
+    ]);
+  });
+
+  it("computes coverage over the TOP skills only (the copy says 'top 8')", () => {
+    // 9 demanded skills; the profile covers only the 9th (rank 9 ⇒ outside the
+    // top 8) ⇒ coverage is 0%, not 11%: the denominator is the shown top list.
+    const offers = Array.from({ length: 9 }, (_, i) =>
+      Array.from({ length: 9 - i }, () => `sk-${i}`),
+    )
+      .flat()
+      .map((sk) => offer([sk]));
+    const p = buildPositioning(offers, ["sk-8"])!;
+    expect(p.topSkills).toHaveLength(8);
+    expect(p.topSkills.some((s) => s.label === "sk-8")).toBe(false);
+    expect(p.coverage).toBe(0);
+  });
+
   it("aligns aliases (k8s ↔ Kubernetes) on both demand and profile sides", () => {
     const p = buildPositioning(
       [offer(["k8s"]), offer(["Kubernetes"]), offer(["K8S"])],
