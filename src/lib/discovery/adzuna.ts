@@ -40,15 +40,18 @@ const searchResponseSchema = z.object({
   results: z.array(resultSchema).default([]),
 });
 
-/** A discovered ad, mapped honestly (null = the source did not say). */
+/** A discovered ad, mapped honestly (null = the source did not say). Shared
+ *  by every legal discovery source (Adzuna, France Travail, Remotive, …). */
 export type DiscoveredAd = {
   title: string | null;
   organization: string | null;
   description: string | null;
   locationText: string | null;
   sourceUrl: string | null;
-  /** permanent | contract mapping when Adzuna states it, else null. */
-  engagementType: "permanent" | "interim" | null;
+  /** The engagement the source EXPLICITLY states, else null — the domain
+   *  vocabulary, so a source that distinguishes freelance/part-time is not
+   *  flattened into an approximation. */
+  engagementType: "freelance" | "part_time" | "interim" | "permanent" | null;
   /** Salary bounds when Adzuna states them (ANNUAL figures), else null. */
   compensationMin: number | null;
   compensationMax: number | null;
