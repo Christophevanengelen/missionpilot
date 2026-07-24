@@ -13,7 +13,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 const { OpenAiProvider } = await import("@/lib/ai/openai-provider");
-const { AiProviderError, AiValidationError } =
+const { AiConfigurationError, AiProviderError, AiValidationError } =
   await import("@/lib/security/errors");
 
 const dataSchema = z.strictObject({ skills: z.array(z.string()) });
@@ -121,6 +121,39 @@ describe("OpenAiProvider", () => {
         dataSchema,
       }),
     ).rejects.toBeInstanceOf(AiProviderError);
+  });
+
+  it("rejects a leftover mock model as a typed configuration error", () => {
+    expect(() => new OpenAiProvider("mock-v1")).toThrow(AiConfigurationError);
+  });
+
+  it("strips OpenAI-unsupported keywords from the wire schema (real cv-ai shape)", async () => {
+    // The exact constraint shape cv-ai uses: bounded strings + bounded array.
+    // OpenAI strict mode 400s on minLength/maxLength/default — they must be
+    // enforced ONLY by the local Zod gate, never sent on the wire.
+    const boundedSchema = z
+      .strictObject({
+        skills: z.array(z.string().trim().min(1).max(120)).max(60),
+      })
+      .strict();
+    fetchMock.mockResolvedValue(
+      completionWith({ ...validEnvelope, data: { skills: ["Go"] } }),
+    );
+    await new OpenAiProvider().generateStructured({
+      taskName: "cv-skill-extraction",
+      promptVersion: "cv-skills-1",
+      input: { cvText: "Go" },
+      dataSchema: boundedSchema,
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse((init as RequestInit).body as string);
+    const wire = JSON.stringify(body.response_format.json_schema.schema);
+    expect(wire).not.toContain('"minLength"');
+    expect(wire).not.toContain('"maxLength"');
+    expect(wire).not.toContain('"default"');
+    // The supported subset that matters is still there.
+    expect(wire).toContain('"maxItems"');
+    expect(wire).toContain('"additionalProperties":false');
   });
 
   it("keeps injection text inert: instructions in data never change the contract", async () => {

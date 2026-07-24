@@ -63,9 +63,10 @@ export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
 }
 
 const addSkillsSchema = z.object({
-  // Upper bound comfortably above the taxonomy size (66): a keyword-stuffed CV
-  // can legitimately select every detected chip.
-  skills: z.array(z.string().trim().min(1).max(120)).min(1).max(100),
+  // Upper bound covers the merged worst case by construction: the full
+  // taxonomy (66) + the AI list (bounded at 60) — an "add all" on a
+  // keyword-stuffed CV must always be submittable.
+  skills: z.array(z.string().trim().min(1).max(120)).min(1).max(130),
 });
 
 export type AddSkillsResult =

@@ -90,7 +90,10 @@ export async function checkAiProviderStep(input: {
     attempt: input.attempt,
   });
   try {
-    const provider = getAiProvider();
+    // Pinned to the MOCK on purpose: the probe verifies the AI abstraction's
+    // wiring (envelope validation, step recording), and must stay free and
+    // deterministic even when the app's default provider is a paid one.
+    const provider = getAiProvider("mock");
     const response = await provider.generateStructured({
       taskName: "system-health-probe",
       promptVersion: HEALTH_PROBE_PROMPT_VERSION,

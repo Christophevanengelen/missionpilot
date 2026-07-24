@@ -70,6 +70,31 @@ const completionSchema = z.object({
     .nullish(),
 });
 
+/**
+ * Keywords OpenAI's STRICT structured-outputs mode rejects with a 400.
+ * The full Zod constraints still apply locally (the second validation gate),
+ * so stripping them from the WIRE schema loses no app-side safety.
+ * (Strings support only pattern/format in strict mode — minLength/maxLength
+ * are refused; `default` is refused everywhere.)
+ */
+const OPENAI_UNSUPPORTED_KEYWORDS = ["minLength", "maxLength", "default"];
+
+function sanitizeForOpenAi(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(sanitizeForOpenAi);
+  if (typeof node !== "object" || node === null) return node;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (OPENAI_UNSUPPORTED_KEYWORDS.includes(key)) continue;
+    out[key] = sanitizeForOpenAi(value);
+  }
+  return out;
+}
+
+/** Exported for the payload-shape unit test only. */
+export function wireSchemaFor(envelopeSchema: z.ZodType): unknown {
+  return sanitizeForOpenAi(z.toJSONSchema(envelopeSchema));
+}
+
 const log = createLogger({ module: "ai-openai-provider" });
 
 export class OpenAiProvider implements AiProvider {
@@ -80,12 +105,28 @@ export class OpenAiProvider implements AiProvider {
     if (!env.OPENAI_API_KEY) {
       throw new AiConfigurationError("OPENAI_API_KEY is not configured");
     }
+    // A leftover mock model with the openai provider is a misconfiguration
+    // that would 404 on every call — fail fast and typed instead of silently.
+    if (model.startsWith("mock")) {
+      throw new AiConfigurationError(
+        "AI_DEFAULT_MODEL must be an OpenAI model when the openai provider is used",
+      );
+    }
     this.model = model;
   }
 
   async generateStructured<T>(request: AiRequest<T>): Promise<AiResponse<T>> {
     const envelopeSchema = envelopeSchemaFor(request.dataSchema);
-    const jsonSchema = z.toJSONSchema(envelopeSchema);
+    let jsonSchema: unknown;
+    try {
+      jsonSchema = wireSchemaFor(envelopeSchema);
+    } catch {
+      // A dataSchema Zod cannot express as JSON Schema is a CONFIG defect of
+      // the calling task, not a provider/runtime failure.
+      throw new AiConfigurationError(
+        "dataSchema could not be converted to a JSON schema",
+      );
+    }
     const startedAt = performance.now();
 
     let httpStatus = 0;

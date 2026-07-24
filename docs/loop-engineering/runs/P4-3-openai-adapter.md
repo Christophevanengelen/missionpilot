@@ -56,14 +56,42 @@
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **167/167 unit** · build                                                                                                                                                     |
-| unit        | **167** (+6: validated envelope + usage-based cost; out-of-contract ⇒ AiValidationError; non-JSON ⇒ AiValidationError; HTTP ⇒ AiProviderError, no body leak; injection inert; unconfigured gating ⇒ null, zero network) |
-| integration | **34** (unchanged)                                                                                                                                                                                                      |
-| e2e         | **35** (unchanged — keyless path identical to PR 2)                                                                                                                                                                     |
-| reviews     | (to fill after independent passes)                                                                                                                                                                                      |
-| CI          | (to fill after push)                                                                                                                                                                                                    |
+| Check       | Result                                                                                                                                                                                                                                                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **167/167 unit** · build                                                                                                                                                                                                                                                                                           |
+| unit        | **167** (+6: validated envelope + usage-based cost; out-of-contract ⇒ AiValidationError; non-JSON ⇒ AiValidationError; HTTP ⇒ AiProviderError, no body leak; injection inert; unconfigured gating ⇒ null, zero network)                                                                                                                                       |
+| integration | **34** (unchanged)                                                                                                                                                                                                                                                                                                                                            |
+| e2e         | **35** (unchanged — keyless path identical to PR 2)                                                                                                                                                                                                                                                                                                           |
+| reviews     | Security **PASS** (key only in the Authorization header — verified absent from logs/errors/body; CV egress bounded to the approved call; injection boundary holds; fake test key). Implementation **CHANGES_REQUESTED** → **1 CRITICAL + 5 minors confirmed and repaired** (below); re-gated green (169 unit). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit; re-run after the repairs.                                                                                                                                                                                                                                                                                                   |
+
+## Review repairs (before merge)
+
+- **CONFIRMED CRITICAL — first real call would 400.** `z.toJSONSchema` emits
+  `minLength`/`maxLength` for the skills strings, and OpenAI's STRICT
+  structured-outputs mode rejects those keywords (strings: pattern/format
+  only) → every real call → 400 → graceful degradation → `aiUsed:false`: the
+  flagship feature shipped dead-on-arrival, silently, and mocked-fetch tests
+  could never catch it (the verifier executed the repo's zod to prove the
+  emitted payload). **Fixed:** the provider now sanitizes the WIRE schema
+  (recursive strip of `minLength`/`maxLength`/`default`) while the full Zod
+  constraints still gate locally; `toJSONSchema` failures map to
+  `AiConfigurationError`. Regression test asserts the actual outgoing
+  `response_format` payload (real cv-ai shape) contains none of the rejected
+  keywords and keeps the supported ones.
+- **Minor — merged list > add cap.** Deterministic (≤66) + AI (≤60) could
+  exceed the 100-skill cap, breaking "add all". Fixed: cap 130 (bounded by
+  construction).
+- **Minor — health probe repointed at the paid API.** Flipping the default
+  provider would have made the /diagnostics probe call OpenAI. Fixed: probe
+  pinned to `getAiProvider("mock")` (it verifies the abstraction's wiring).
+- **Minor — model never validated.** `openai` + leftover `mock-v1` would 404
+  every call silently. Fixed twice: build-time cross-field guard in
+  `env-guards.ts` (openai ⇒ key present + non-mock model) + a typed
+  constructor guard (`AiConfigurationError`), both tested.
+- **Minor — latent strict-mode hazards.** dataSchema contract documented at
+  the `AiRequest` boundary (all fields required, `.nullable()` over
+  `.optional()`, supported keyword subset).
 
 ## Stop
 
