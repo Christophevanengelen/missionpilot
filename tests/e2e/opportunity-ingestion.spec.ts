@@ -90,6 +90,15 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
   const constraints = page.getByRole("region", { name: "Contraintes dures" });
   await expect(constraints).toBeVisible();
   await expect(constraints.getByText("Éligible")).toBeVisible();
+  // Deterministic match score renders; with no preferences or confirmed skills
+  // it is honestly "insufficient data".
+  const scoreSection = page.getByRole("region", {
+    name: "Score de correspondance",
+  });
+  await expect(scoreSection).toBeVisible();
+  await expect(
+    scoreSection.getByText("Données insuffisantes pour un score."),
+  ).toBeVisible();
   // Honesty: the unverified banner is present (scoped to the note landmark —
   // the hard-constraints section also mentions "non vérifiées").
   await expect(page.getByRole("note")).toContainText("non vérifiées");
