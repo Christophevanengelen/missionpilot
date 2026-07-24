@@ -87,6 +87,12 @@ test("import de CV : texte collé → compétences détectées → ajout au prof
     "4 compétences ajoutées",
   );
 
+  // Discovery auto-chains after the validation (no button). Keyless CI: the
+  // honest outcome is the specific "not configured" explanation.
+  await expect(page.getByRole("status")).toContainText(
+    "La découverte automatique n'est pas encore activée",
+  );
+
   const axe = await new AxeBuilder({ page }).analyze();
   expect(
     axe.violations.filter(

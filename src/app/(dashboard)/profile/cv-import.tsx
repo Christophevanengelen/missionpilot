@@ -13,13 +13,22 @@ import {
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
 import type { CvProfileUnderstanding } from "@/lib/profile/cv-ai";
+import {
+  discoverOpportunitiesAction,
+  type DiscoveryResult,
+} from "@/lib/discovery/actions";
+
+/** Auto-chained discovery state on the success screens (owner mandate:
+ *  validate once, then just discover the results — no more buttons). */
+type AutoDiscovery =
+  { phase: "searching" } | { phase: "done"; result: DiscoveryResult };
 
 type Step =
   | { name: "idle" }
   | { name: "detected"; skills: string[]; chosen: Set<string>; aiUsed: boolean }
   | { name: "understood"; profile: CvProfileUnderstanding; chosen: Set<string> }
-  | { name: "added"; count: number }
-  | { name: "applied"; count: number };
+  | { name: "added"; count: number; discovery: AutoDiscovery }
+  | { name: "applied"; count: number; discovery: AutoDiscovery };
 
 /**
  * "Import my CV" — upload a PDF (or paste the text) → deterministic skill
@@ -30,6 +39,7 @@ type Step =
 export function CvImport() {
   const router = useRouter();
   const copy = t().cvImport;
+  const discoverCopy = t().opportunities.discover;
   const [step, setStep] = useState<Step>({ name: "idle" });
   const [pasted, setPasted] = useState("");
   const [busy, setBusy] = useState(false);
@@ -95,6 +105,25 @@ export function CvImport() {
     }
   }
 
+  /**
+   * The auto-chained discovery (owner mandate: after the one validation, the
+   * offers just arrive). Runs OUTSIDE the busy window so the user can already
+   * navigate; the functional update keeps a stale completion from clobbering
+   * a screen the user has since left.
+   */
+  async function autoDiscover(target: "added" | "applied") {
+    let result: DiscoveryResult;
+    try {
+      result = await discoverOpportunitiesAction();
+    } catch {
+      result = { ok: false, error: "generic" };
+    }
+    setStep((s) =>
+      s.name === target ? { ...s, discovery: { phase: "done", result } } : s,
+    );
+    if (result.ok && result.imported > 0) router.refresh();
+  }
+
   async function addChosen() {
     if (inFlightRef.current || step.name !== "detected") return;
     const skills = [...step.chosen];
@@ -111,16 +140,22 @@ export function CvImport() {
         setError(copy.errors.generic);
         return;
       }
-      setStep({ name: "added", count: result.added });
+      setStep({
+        name: "added",
+        count: result.added,
+        discovery: { phase: "searching" },
+      });
       setPasted("");
       if (fileRef.current) fileRef.current.value = "";
       router.refresh();
     } catch {
       setError(copy.errors.generic);
+      return;
     } finally {
       inFlightRef.current = false;
       setBusy(false);
     }
+    await autoDiscover("added");
   }
 
   function toggle(skill: string) {
@@ -150,16 +185,50 @@ export function CvImport() {
         setError(copy.errors.generic);
         return;
       }
-      setStep({ name: "applied", count: result.confirmed });
+      setStep({
+        name: "applied",
+        count: result.confirmed,
+        discovery: { phase: "searching" },
+      });
       setPasted("");
       if (fileRef.current) fileRef.current.value = "";
       router.refresh();
     } catch {
       setError(copy.errors.generic);
+      return;
     } finally {
       inFlightRef.current = false;
       setBusy(false);
     }
+    await autoDiscover("applied");
+  }
+
+  /** The discovery status line shared by the two success screens. */
+  function discoveryLine(discovery: AutoDiscovery) {
+    if (discovery.phase === "searching") {
+      return (
+        <p className="text-muted-foreground text-xs motion-safe:animate-pulse">
+          {discoverCopy.searching}
+        </p>
+      );
+    }
+    const { result } = discovery;
+    if (result.ok) {
+      return (
+        <p className="text-muted-foreground text-xs">
+          {discoverCopy.result(
+            result.imported,
+            result.duplicates,
+            result.failed,
+          )}
+        </p>
+      );
+    }
+    return (
+      <p className="text-muted-foreground text-xs">
+        {discoverCopy.errors[result.error]}
+      </p>
+    );
   }
 
   if (step.name === "applied") {
@@ -170,6 +239,7 @@ export function CvImport() {
       >
         <p className="text-sm font-medium">{copy.applied(step.count)}</p>
         <p className="text-muted-foreground text-xs">{copy.appliedNote}</p>
+        {discoveryLine(step.discovery)}
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm">
             <Link href="/opportunities">{copy.seeOffers}</Link>
@@ -302,7 +372,13 @@ export function CvImport() {
         className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
       >
         <p className="text-sm font-medium">{copy.added(step.count)}</p>
-        <div>
+        {discoveryLine(step.discovery)}
+        <div className="flex flex-wrap gap-2">
+          {step.discovery.phase === "done" && step.discovery.result.ok ? (
+            <Button asChild size="sm">
+              <Link href="/opportunities">{copy.seeOffers}</Link>
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="sm"

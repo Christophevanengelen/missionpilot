@@ -1,19 +1,21 @@
 "use server";
 
 /**
- * Auto-discovery action: derive search keywords from the CONFIRMED profile
- * (role + skills), query the configured legal source (Adzuna), and run each
- * ad through the standard import pipeline (immutable snapshot, per-owner
- * dedup, gate + score on read). Honest outcomes: how many were new vs
- * already known; a specific reason when discovery cannot run.
+ * Auto-discovery action: build search plans from the profile (target métiers
+ * first, confirmed role + skills as fallback — see `plan.ts`), query the
+ * configured legal source (Adzuna), and run each ad through the standard
+ * import pipeline (immutable snapshot, per-owner dedup, gate + score on
+ * read). Honest outcomes: how many were new vs already known; a specific
+ * reason when discovery cannot run.
  */
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
-import { adzunaConfigured, searchAdzuna } from "./adzuna";
+import { adzunaConfigured, searchAdzuna, type DiscoveredAd } from "./adzuna";
+import { buildSearchPlans } from "./plan";
 import * as opportunity from "@/lib/opportunity/logic";
-import { loadLivingProfile } from "@/lib/profile/logic";
+import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 
 const logger = createLogger({ module: "discovery-actions" });
 
@@ -28,22 +30,6 @@ export type DiscoveryResult =
     }
   | { ok: false; error: "unconfigured" | "no_keywords" | "generic" };
 
-/** Keywords from the confirmed profile: the role title first, then skills. */
-function deriveKeywords(
-  claims: { kind: string; state: string; value: unknown }[],
-): string[] {
-  const confirmed = claims.filter((c) => c.state === "confirmed");
-  const role = confirmed
-    .filter((c) => c.kind === "role")
-    .map((c) => (c.value as { title?: unknown })?.title)
-    .find((v): v is string => typeof v === "string" && v.trim() !== "");
-  const skills = confirmed
-    .filter((c) => c.kind === "skill")
-    .map((c) => (c.value as { name?: unknown })?.name)
-    .filter((v): v is string => typeof v === "string" && v.trim() !== "");
-  return [...(role ? [role] : []), ...skills].slice(0, 4);
-}
-
 export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
   try {
     await verifySession();
@@ -52,10 +38,35 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     const client = await createClient();
     const profile = await opportunity.getOwnProfile(client);
     const living = await loadLivingProfile(client, profile.id);
-    const keywords = deriveKeywords(living.claims);
-    if (keywords.length === 0) return { ok: false, error: "no_keywords" };
+    const prefs = await loadPreferences(client, profile.id);
+    const plans = buildSearchPlans(living.claims, prefs.targetRoleFamilies);
+    if (plans.length === 0) return { ok: false, error: "no_keywords" };
 
-    const ads = await searchAdzuna(keywords);
+    // Per-search isolation: one métier's search failing must not void the
+    // others. Only when EVERY search failed is the whole run an error.
+    // Cross-search dedup by provenance URL (fallback: verbatim text) so an ad
+    // matching two target métiers is counted once, honestly.
+    const seen = new Set<string>();
+    const ads: DiscoveredAd[] = [];
+    let failedSearches = 0;
+    for (const plan of plans) {
+      try {
+        for (const ad of await searchAdzuna(plan.keywords, plan.mode)) {
+          const key = ad.sourceUrl ?? ad.rawText;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          ads.push(ad);
+        }
+      } catch (error) {
+        failedSearches += 1;
+        logger.error("discovery search failed", {
+          mode: plan.mode,
+          reason: error instanceof Error ? error.message : "unknown",
+        });
+      }
+    }
+    if (failedSearches === plans.length) return { ok: false, error: "generic" };
+
     let imported = 0;
     let duplicates = 0;
     let failed = 0;
