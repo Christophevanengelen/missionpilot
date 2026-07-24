@@ -46,15 +46,11 @@ export async function applyCvProfile(
     kind: "role" | "seniority" | "years_experience" | "summary" | "skill",
     value: unknown,
   ) => {
-    // Re-analysis: a single-valued kind may already have an ACTIVE claim —
-    // supersede it through the normal replacement lifecycle.
-    const activeSameKind =
-      kind === "skill"
-        ? undefined
-        : living.claims.find((c) => c.kind === kind)?.id;
+    // Single-valued kinds go through the replace RPC, whose ATOMIC auto-close
+    // supersedes the current active claim — passing an id read from our own
+    // (potentially stale) snapshot would only add a failure path.
     const claimId = await submitClaim(client, profileId, kind, value, {
       origin: "assistant",
-      claimToSupersede: activeSameKind,
     });
     await setClaimState(client, claimId, "confirmed");
     confirmed += 1;
@@ -69,19 +65,31 @@ export async function applyCvProfile(
   }
   await confirmClaim("summary", { text: input.summary });
 
-  const existing = new Set(
-    living.claims
-      .filter((c) => c.kind === "skill")
-      .map((c) =>
-        String((c.value as { name?: unknown })?.name ?? "")
-          .trim()
-          .toLowerCase(),
-      ),
-  );
+  // Existing skill claims by normalized name, WITH their state: a kept
+  // selection must not silently no-op against a proposed/needs_review claim —
+  // the review-screen validation IS the confirmation.
+  const existing = new Map<string, { id: string; state: string }>();
+  for (const c of living.claims) {
+    if (c.kind !== "skill") continue;
+    const key = String((c.value as { name?: unknown })?.name ?? "")
+      .trim()
+      .toLowerCase();
+    if (key) existing.set(key, { id: c.id, state: c.state });
+  }
   for (const name of input.skills) {
     const key = name.trim().toLowerCase();
-    if (existing.has(key)) continue;
-    existing.add(key);
+    const prior = existing.get(key);
+    if (prior) {
+      if (prior.state === "proposed" || prior.state === "needs_review") {
+        await setClaimState(client, prior.id, "confirmed");
+        confirmed += 1;
+      }
+      // "confirmed" needs nothing; "rejected" is DELIBERATELY left untouched —
+      // an explicit rejection is not silently overridden by a re-import (the
+      // interview's restore flow exists for that).
+      continue;
+    }
+    existing.set(key, { id: "new", state: "confirmed" });
     await confirmClaim("skill", { name });
   }
 

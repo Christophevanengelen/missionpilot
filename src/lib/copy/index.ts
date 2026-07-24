@@ -47,6 +47,8 @@ export const copy = {
         skillsLabel: "Compétences cœur (récurrentes dans vos expériences)",
         targetsLabel: "Métiers cibles pour la recherche d'offres",
         apply: "C'est bien moi — tout ajouter",
+        unsureNote:
+          "L'assistant n'était pas certain de sa lecture — vérifiez attentivement avant de valider.",
       },
       errors: {
         empty: "Le document semble vide.",
@@ -540,6 +542,8 @@ export const copy = {
         skillsLabel: "Core skills (recurrent across your experiences)",
         targetsLabel: "Target jobs for offer discovery",
         apply: "That's me — add everything",
+        unsureNote:
+          "The assistant was not fully sure of its reading — check carefully before validating.",
       },
       errors: {
         empty: "The document looks empty.",

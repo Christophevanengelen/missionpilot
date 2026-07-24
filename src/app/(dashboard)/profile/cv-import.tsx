@@ -12,12 +12,12 @@ import {
   applyCvProfileAction,
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
-import type { CvProfileAnalysis } from "@/lib/profile/cv-ai";
+import type { CvProfileUnderstanding } from "@/lib/profile/cv-ai";
 
 type Step =
   | { name: "idle" }
   | { name: "detected"; skills: string[]; chosen: Set<string>; aiUsed: boolean }
-  | { name: "understood"; profile: CvProfileAnalysis; chosen: Set<string> }
+  | { name: "understood"; profile: CvProfileUnderstanding; chosen: Set<string> }
   | { name: "added"; count: number }
   | { name: "applied"; count: number };
 
@@ -197,6 +197,14 @@ export function CvImport() {
             {copy.understood.note}
           </p>
         </div>
+        {p.needsReview ? (
+          <p
+            role="note"
+            className="border-warning/40 bg-warning/10 text-foreground/80 rounded-lg border px-3 py-2 text-xs"
+          >
+            {copy.understood.unsureNote}
+          </p>
+        ) : null}
 
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground text-xs">

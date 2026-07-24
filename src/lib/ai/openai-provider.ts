@@ -152,7 +152,14 @@ export class OpenAiProvider implements AiProvider {
             },
           },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            {
+              role: "system",
+              // The task instruction is SERVER-AUTHORED and rides on the
+              // trusted side; `input` stays pure untrusted data.
+              content: request.taskInstruction
+                ? `${SYSTEM_PROMPT}\n\nTask instruction:\n${request.taskInstruction}`
+                : SYSTEM_PROMPT,
+            },
             {
               role: "user",
               content: JSON.stringify({

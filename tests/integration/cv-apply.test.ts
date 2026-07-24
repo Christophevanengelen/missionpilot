@@ -7,6 +7,7 @@ import {
   getOwnProfile,
   loadLivingProfile,
   loadPreferences,
+  submitClaim,
 } from "@/lib/profile/logic";
 
 // Integration proof: the one-click "voici ce que j'ai compris" application —
@@ -109,5 +110,28 @@ describe("applyCvProfile (through the DB, RLS)", () => {
 
     const prefs = await loadPreferences(session, profileId);
     expect(prefs.targetRoleFamilies).toEqual(["Head of Data"]);
+  });
+
+  it("a kept selection CONFIRMS an existing proposed skill (no silent no-op)", async () => {
+    // A skill added through the old chip flow sits in state "proposed".
+    await submitClaim(session, profileId, "skill", { name: "Kafka" });
+
+    const { confirmed } = await applyCvProfile(session, profileId, {
+      roleTitle: "Head of Data",
+      seniorityLevel: "Lead",
+      yearsExperience: 10,
+      summary: "Direction data et plateformes analytiques.",
+      skills: ["Kafka"], // kept selected on the review screen
+      targetRoles: ["Head of Data"],
+    });
+    // role + seniority + years + summary + the CONFIRMED Kafka claim.
+    expect(confirmed).toBe(5);
+
+    const living = await loadLivingProfile(session, profileId);
+    const kafka = living.claims.find(
+      (c) =>
+        c.kind === "skill" && (c.value as { name?: string })?.name === "Kafka",
+    );
+    expect(kafka?.state).toBe("confirmed");
   });
 });

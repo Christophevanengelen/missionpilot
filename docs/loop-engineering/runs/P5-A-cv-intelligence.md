@@ -54,14 +54,35 @@ input)` — creates AND confirms role/seniority/years/summary/skills
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                    |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **176/176 unit** · build                                                                       |
-| unit        | **176** (+1: profile-analysis gating — unconfigured ⇒ null, zero network)                                                                 |
-| integration | **38** (+2: one-step apply ⇒ 7 CONFIRMED claims + targetRoleFamilies; re-analysis supersedes single-valued claims and skips known skills) |
-| e2e         | **35/35** — keyless path (chip flow) unchanged                                                                                            |
-| reviews     | (to fill after independent passes)                                                                                                        |
-| CI          | (to fill after push)                                                                                                                      |
+| Check       | Result                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **176/176 unit** · build                                                                                                                                                                                                                                                                                                  |
+| unit        | **176** (+1: profile-analysis gating — unconfigured ⇒ null, zero network)                                                                                                                                                                                                                                                                                            |
+| integration | **38** (+2: one-step apply ⇒ 7 CONFIRMED claims + targetRoleFamilies; re-analysis supersedes single-valued claims and skips known skills)                                                                                                                                                                                                                            |
+| e2e         | **35/35** — keyless path (chip flow) unchanged                                                                                                                                                                                                                                                                                                                       |
+| reviews     | Implementation **PASS** (wire schema verified empirically against OpenAI's strict subset; supersede semantics verified against the SQL), Security **PASS** (mandatory human review screen is the only path to persistence; no new capability delta; no dangerous sinks). **5 minors confirmed and repaired** (below). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit; re-run after the repairs.                                                                                                                                                                                                                                                                                                          |
+
+## Review repairs (before merge)
+
+- **Docstring** contradicted the deep path (claimed the deterministic detector
+  "always runs") — reworded.
+- **Kept-selected skills silently no-oped** against existing
+  `proposed`/`needs_review` claims: the review-screen validation now CONFIRMS
+  them (legal transitions), counted honestly; `rejected` stays deliberately
+  untouched (a rejection is never silently overridden). Integration test
+  added (Kafka case).
+- **Stale `claimToSupersede`** from our own snapshot added a failure path —
+  dropped; the replace RPC's ATOMIC auto-close supersedes the current active
+  claim (verified against the SQL by the reviewer).
+- **Task instruction rode inside the untrusted-data envelope** (same trust
+  level as hostile CV text). `AiRequest.taskInstruction` added: server-
+  authored instructions now ride on the TRUSTED side (system message);
+  `input` carries only untrusted content. Provider test asserts the
+  separation on the actual request body.
+- **`needs_review` was discarded** on a path ending in CONFIRMED claims:
+  `CvProfileUnderstanding.needsReview` now propagates and the review screen
+  shows a visible caution banner ("l'assistant n'était pas certain…").
 
 ## Stop
 

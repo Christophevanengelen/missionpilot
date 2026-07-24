@@ -14,7 +14,7 @@ import * as profile from "./logic";
 import {
   aiAnalyzeCvProfile,
   aiDetectSkills,
-  type CvProfileAnalysis,
+  type CvProfileUnderstanding,
 } from "./cv-ai";
 import { applyCvProfile, applyProfileSchema } from "./cv-apply";
 import { detectSkills } from "./cv-extract";
@@ -29,17 +29,18 @@ export type CvAnalysis =
       aiUsed: boolean;
       /** Deep AI understanding (null when AI is off or failed) — drives the
        *  one-screen "voici ce que j'ai compris" flow. */
-      profile: CvProfileAnalysis | null;
+      profile: CvProfileUnderstanding | null;
     }
   | { ok: false; error: "empty" | "pdf" | "generic" };
 
 /**
  * Extract text from the uploaded PDF or pasted text, then understand it.
  * With AI configured, ONE deep analysis covers role/seniority/summary/core
- * skills/target métiers (owner mandate: no keyword dumps — recurrence-weighted
- * core skills only). The deterministic taxonomy detector always runs and its
- * hits are merged in (chips stay complete when AI misses one). An AI failure
- * never breaks the flow — it degrades to the chip experience.
+ * skills/target métiers and the screen shows ONLY those curated core skills
+ * (owner mandate: no keyword dumps). The deterministic taxonomy detector runs
+ * ONLY in the fallback branch (AI off or failed), merged with the light AI
+ * pass — an AI failure never breaks the flow, it degrades to the chip
+ * experience.
  */
 export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
   try {
