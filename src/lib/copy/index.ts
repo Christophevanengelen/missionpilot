@@ -552,6 +552,28 @@ export const copy = {
           generic: "La préparation n'a pas abouti. Réessayez.",
         },
       },
+      interview: {
+        section: "Préparer l'entretien",
+        note: "Les questions probables pour cette offre, avec l'expérience de votre profil à mobiliser pour y répondre. Matériel de préparation — pas un script, et aucune garantie de résultat.",
+        empty:
+          "Générez votre brief d'entretien : questions probables et points à amener.",
+        button: "Préparer l'entretien",
+        preparing: "Préparation…",
+        refreshCta: "Régénérer",
+        questionsLabel: "Questions probables",
+        talkingPointsLabel: "Points à amener",
+        needsReview:
+          "Brief incertain — l'IA manque d'éléments, à lire avec recul.",
+        errors: {
+          unconfigured:
+            "La préparation d'entretien n'est pas encore activée (clé OpenAI manquante).",
+          no_profile:
+            "Confirmez d'abord votre profil (rôle, compétences) — importez votre CV pour aller vite.",
+          not_found:
+            "Cette offre n'a pas assez de contenu pour préparer un entretien.",
+          generic: "La préparation n'a pas abouti. Réessayez.",
+        },
+      },
       tracking: {
         section: "Suivi de candidature",
         note: "Suivez cette offre dans votre pipeline. Ces informations restent privées.",
@@ -1195,6 +1217,28 @@ export const copy = {
             "Confirm your profile first (role, skills) — import your CV to go fast.",
           not_found:
             "This offer does not have enough content to prepare an application.",
+          generic: "The preparation did not go through. Try again.",
+        },
+      },
+      interview: {
+        section: "Prepare the interview",
+        note: "The likely questions for this offer, with the experience from your profile to draw on. Preparation material — not a script, and no guarantee of outcome.",
+        empty:
+          "Generate your interview brief: likely questions and points to raise.",
+        button: "Prepare the interview",
+        preparing: "Preparing…",
+        refreshCta: "Regenerate",
+        questionsLabel: "Likely questions",
+        talkingPointsLabel: "Points to raise",
+        needsReview:
+          "Uncertain brief — the AI lacks elements, read with caution.",
+        errors: {
+          unconfigured:
+            "Interview preparation is not enabled yet (OpenAI key missing).",
+          no_profile:
+            "Confirm your profile first (role, skills) — import your CV to go fast.",
+          not_found:
+            "This offer does not have enough content to prepare an interview.",
           generic: "The preparation did not go through. Try again.",
         },
       },

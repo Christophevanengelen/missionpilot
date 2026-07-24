@@ -198,6 +198,60 @@ export type Database = {
           },
         ];
       };
+      ai_interview_briefs: {
+        Row: {
+          created_at: string;
+          id: string;
+          input_hash: string;
+          model: string;
+          needs_review: boolean;
+          opportunity_id: string;
+          profile_id: string;
+          prompt_version: string;
+          questions: Json;
+          talking_points: Json;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          input_hash: string;
+          model: string;
+          needs_review?: boolean;
+          opportunity_id: string;
+          profile_id: string;
+          prompt_version: string;
+          questions?: Json;
+          talking_points?: Json;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          input_hash?: string;
+          model?: string;
+          needs_review?: boolean;
+          opportunity_id?: string;
+          profile_id?: string;
+          prompt_version?: string;
+          questions?: Json;
+          talking_points?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_interview_briefs_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_interview_briefs_profile_id_opportunity_id_fkey";
+            columns: ["profile_id", "opportunity_id"];
+            isOneToOne: true;
+            referencedRelation: "opportunities";
+            referencedColumns: ["profile_id", "id"];
+          },
+        ];
+      };
       ai_match_breakdowns: {
         Row: {
           created_at: string;
