@@ -354,6 +354,31 @@ export const copy = {
         unscored: "—",
         matchedSkills: "Compétences couvertes",
       },
+      discover: {
+        button: "Découvrir des offres",
+        searching: "Recherche en cours…",
+        result: (imported: number, duplicates: number, failed: number) => {
+          const found = imported + duplicates + failed;
+          if (found === 0)
+            return "Aucune offre trouvée pour votre profil cette fois-ci.";
+          const parts = [
+            `${imported} ${imported > 1 ? "nouvelles" : "nouvelle"}`,
+            `${duplicates} déjà ${duplicates > 1 ? "connues" : "connue"}`,
+          ];
+          if (failed > 0)
+            parts.push(`${failed} en échec (réessayez plus tard)`);
+          return `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${parts.join(", ")}.`;
+        },
+        errors: {
+          unconfigured:
+            "La découverte automatique n'est pas encore activée (clés Adzuna manquantes).",
+          no_keywords:
+            "Confirmez d'abord un rôle ou des compétences dans votre profil (ou importez votre CV) pour guider la recherche.",
+          generic: "La recherche n'a pas abouti. Réessayez.",
+        },
+        unconfiguredNote:
+          "Découverte automatique : ajoutez des clés API Adzuna (gratuites) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
+      },
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
@@ -790,6 +815,26 @@ export const copy = {
         },
         unscored: "—",
         matchedSkills: "Covered skills",
+      },
+      discover: {
+        button: "Discover offers",
+        searching: "Searching…",
+        result: (imported: number, duplicates: number, failed: number) => {
+          const found = imported + duplicates + failed;
+          if (found === 0) return "No offer found for your profile this time.";
+          const parts = [`${imported} new`, `${duplicates} already known`];
+          if (failed > 0) parts.push(`${failed} failed (try again later)`);
+          return `${found} ${found > 1 ? "offers" : "offer"} found: ${parts.join(", ")}.`;
+        },
+        errors: {
+          unconfigured:
+            "Auto-discovery is not enabled yet (Adzuna keys missing).",
+          no_keywords:
+            "Confirm a role or skills in your profile first (or import your CV) to guide the search.",
+          generic: "The search did not go through. Try again.",
+        },
+        unconfiguredNote:
+          "Auto-discovery: add (free) Adzuna API keys in the configuration so MissionPilot can search offers matching your profile.",
       },
       inbox: {
         all: "All",

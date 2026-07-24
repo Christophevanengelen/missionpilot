@@ -11,9 +11,11 @@ import {
 } from "@/lib/matching/hard-constraints";
 import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
 import { compareRanked } from "@/lib/matching/rank";
+import { adzunaConfigured } from "@/lib/discovery/adzuna";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { GateBadge } from "@/components/matching/gate-badge";
+import { DiscoverButton } from "./discover-button";
 import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Opportunités" };
@@ -124,6 +126,14 @@ export default async function OpportunitiesPage({
         <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
         <p className="text-muted-foreground text-sm">{copy.subtitle}</p>
       </header>
+
+      {adzunaConfigured() ? (
+        <DiscoverButton />
+      ) : (
+        <p className="text-muted-foreground text-xs">
+          {copy.discover.unconfiguredNote}
+        </p>
+      )}
 
       <ImportForm />
 

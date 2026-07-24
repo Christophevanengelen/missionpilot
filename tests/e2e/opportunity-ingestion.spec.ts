@@ -70,6 +70,13 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
   await expect(
     page.getByRole("heading", { name: "Opportunités" }),
   ).toBeVisible();
+  // Auto-discovery is keyless in CI: the inbox explains what to activate
+  // instead of showing a button that cannot work (honest degradation).
+  await expect(
+    page.getByText("Découverte automatique : ajoutez des clés API Adzuna", {
+      exact: false,
+    }),
+  ).toBeVisible();
 
   // Paste + import → honest "created" status (no auto-navigation).
   await page.getByLabel("Coller le texte d'une annonce").fill(LISTING);
