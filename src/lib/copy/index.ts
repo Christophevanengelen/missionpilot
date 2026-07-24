@@ -36,6 +36,15 @@ export const copy = {
         noOffersHint:
           "Complétez votre profil ou importez votre CV pour lancer la découverte d'offres.",
       },
+      positioning: {
+        title: "Votre positionnement",
+        coverage: (pct: number) =>
+          `${pct} % des compétences les plus demandées`,
+        note: (n: number) =>
+          `D'après les ${n} offres que vous avez découvertes — ce que ce marché demande le plus, et ce que votre profil couvre. Ce n'est pas un classement face à d'autres candidats.`,
+        covered: "(couvert par votre profil)",
+        missing: "(absent de votre profil)",
+      },
     },
     applications: {
       title: "Suivi des candidatures",
@@ -726,6 +735,14 @@ export const copy = {
         refreshCta: "Import a new CV / complete my profile",
         noOffersHint:
           "Complete your profile or import your CV to start discovering offers.",
+      },
+      positioning: {
+        title: "Your positioning",
+        coverage: (pct: number) => `${pct}% of the most demanded skills`,
+        note: (n: number) =>
+          `Based on the ${n} offers you discovered — what this market asks for most, and what your profile covers. This is not a ranking against other candidates.`,
+        covered: "(covered by your profile)",
+        missing: "(missing from your profile)",
       },
     },
     applications: {
