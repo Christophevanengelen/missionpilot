@@ -24,9 +24,12 @@ import { aiBreakdownConfigured } from "@/lib/matching/ai-breakdown";
 import { aiTailorConfigured } from "@/lib/matching/ai-tailor";
 import { loadDraft } from "@/lib/matching/tailor-logic";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
+import { aiInterviewConfigured } from "@/lib/matching/ai-interview";
+import { loadBrief } from "@/lib/matching/interview-logic";
 import { loadTracking } from "@/lib/tracking/logic";
 import { BreakdownButton } from "./breakdown-button";
 import { ApplicationDraftPanel } from "./application-panel";
+import { InterviewBriefPanel } from "./interview-panel";
 import { TrackingPanel } from "./tracking-panel";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
@@ -73,6 +76,7 @@ export default async function OpportunityDetailPage({
     breakdown,
     draft,
     tracking,
+    brief,
   ] = await Promise.all([
     getOpportunity(client, id),
     getLatestSnapshot(client, id),
@@ -83,6 +87,7 @@ export default async function OpportunityDetailPage({
     loadBreakdown(client, profile.id, id),
     loadDraft(client, profile.id, id),
     loadTracking(client, profile.id, id),
+    loadBrief(client, profile.id, id),
   ]);
   if (!opportunity) return <NotFound />;
   const insight = insights.get(opportunity.id);
@@ -280,6 +285,10 @@ export default async function OpportunityDetailPage({
 
       {aiTailorConfigured() ? (
         <ApplicationDraftPanel opportunityId={opportunity.id} draft={draft} />
+      ) : null}
+
+      {aiInterviewConfigured() ? (
+        <InterviewBriefPanel opportunityId={opportunity.id} brief={brief} />
       ) : null}
 
       <TrackingPanel opportunityId={opportunity.id} tracking={tracking} />
