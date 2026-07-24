@@ -77,9 +77,19 @@ export const copy = {
         unsureNote:
           "L'assistant n'était pas certain de sa lecture — vérifiez attentivement avant de valider.",
       },
+      linkedin: {
+        title: "…ou importez votre export LinkedIn",
+        note: "Sur LinkedIn : Préférences → Confidentialité des données → « Obtenir une copie de vos données » → cochez au moins Profil, Postes et Compétences, puis déposez l'archive .zip ici. Rien n'est récupéré automatiquement — c'est votre propre export officiel.",
+        fileLabel: "Archive d'export LinkedIn (.zip)",
+        analyze: "Analyser mon export LinkedIn",
+        needFile: "Déposez votre archive d'export LinkedIn (.zip).",
+        detectedTitle: "Compétences détectées dans votre export LinkedIn",
+      },
       errors: {
         empty: "Le document semble vide.",
         pdf: "Ce PDF n'a pas pu être lu. Collez plutôt le texte de votre CV.",
+        linkedin:
+          "Cette archive ne semble pas être un export LinkedIn. Vérifiez que c'est bien l'archive « Obtenir une copie de vos données ».",
         tooLarge:
           "Ce fichier dépasse 10 Mo. Exportez une version plus légère ou collez le texte de votre CV.",
         generic: "L'analyse n'a pas abouti. Réessayez.",
@@ -633,9 +643,19 @@ export const copy = {
         unsureNote:
           "The assistant was not fully sure of its reading — check carefully before validating.",
       },
+      linkedin: {
+        title: "…or import your LinkedIn export",
+        note: 'On LinkedIn: Settings → Data privacy → "Get a copy of your data" → tick at least Profile, Positions and Skills, then drop the .zip archive here. Nothing is fetched automatically — it is your own official export.',
+        fileLabel: "LinkedIn export archive (.zip)",
+        analyze: "Analyze my LinkedIn export",
+        needFile: "Drop your LinkedIn export archive (.zip).",
+        detectedTitle: "Skills detected in your LinkedIn export",
+      },
       errors: {
         empty: "The document looks empty.",
         pdf: "This PDF could not be read. Paste your CV's text instead.",
+        linkedin:
+          'This archive does not look like a LinkedIn export. Make sure it is the "Get a copy of your data" archive.',
         tooLarge:
           "This file exceeds 10 MB. Export a lighter version or paste your CV's text.",
         generic: "The analysis did not go through. Try again.",
