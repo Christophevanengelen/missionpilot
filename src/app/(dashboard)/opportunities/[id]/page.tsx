@@ -14,6 +14,7 @@ import {
   opportunityFactsFromRow,
 } from "@/lib/matching/hard-constraints";
 import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
+import { estimateDayRate } from "@/lib/matching/day-rate";
 import { loadInsights } from "@/lib/matching/insight-logic";
 import {
   loadBreakdown,
@@ -86,6 +87,12 @@ export default async function OpportunityDetailPage({
   );
   const matchedSkills =
     score.components.find((c) => c.key === "skills")?.evidence ?? [];
+  const dayRate = estimateDayRate({
+    compensationMin: opportunity.compensation_min,
+    compensationMax: opportunity.compensation_max,
+    compensationCurrency: opportunity.compensation_currency,
+    compensationPeriod: opportunity.compensation_period,
+  });
 
   const remote = opportunity.remote_type
     ? copy.remoteTypes[opportunity.remote_type as keyof typeof copy.remoteTypes]
@@ -324,6 +331,23 @@ export default async function OpportunityDetailPage({
           </>
         )}
       </section>
+
+      {dayRate ? (
+        <section
+          aria-label={copy.dayRate.section}
+          className="border-border bg-card flex flex-col gap-2 rounded-xl border p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              {copy.dayRate.section}
+            </h2>
+            <span className="text-base font-semibold tabular-nums">
+              {copy.dayRate.range(dayRate.low, dayRate.high, dayRate.currency)}
+            </span>
+          </div>
+          <p className="text-muted-foreground text-xs">{copy.dayRate.note}</p>
+        </section>
+      ) : null}
 
       <section
         aria-label={copy.sections.normalized}

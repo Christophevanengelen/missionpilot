@@ -106,13 +106,16 @@ function detectCompensation(raw: string): {
   period: NormalizedOpportunity["compensationPeriod"];
 } {
   const t = raw.replace(/ /g, " ");
-  const currency = /€|eur\b/i.test(t)
+  // Word-boundary BEFORE the code too, else "eur" matches the "-eur" tail of
+  // words like "Ingénieur"/"Développeur" and fabricates a currency; "euro(s)"
+  // is accepted since France Travail spells the amount out ("… Euros").
+  const currency = /€|\beuros?\b|\beur\b/i.test(t)
     ? "EUR"
-    : /\$|usd\b/i.test(t)
+    : /\$|\busd\b/i.test(t)
       ? "USD"
-      : /£|gbp\b/i.test(t)
+      : /£|\bgbp\b/i.test(t)
         ? "GBP"
-        : /chf\b/i.test(t)
+        : /\bchf\b/i.test(t)
           ? "CHF"
           : null;
   const period = /\b(tjm|\/\s*jour|per day|\/day|par jour)\b/i.test(t)
@@ -125,7 +128,16 @@ function detectCompensation(raw: string): {
           ? "year"
           : null;
   const toInt = (s: string) => {
-    const n = Number.parseInt(s.replace(/[.,]/g, ""), 10);
+    // A trailing 1-2 digit group after a . or , is a cents fraction ("45000.00"
+    // / "45000,50") — drop it; then remove thousands separators. Stripping ALL
+    // separators indiscriminately turned "45000.00" into 4500000 (a x100
+    // fabrication surfaced downstream as an absurd salary / day rate).
+    const cleaned = s
+      .trim()
+      .replace(/[.,]\d{1,2}$/, "")
+      .replace(/[\s.,'  ]/g, "");
+    if (!/^\d+$/.test(cleaned)) return null;
+    const n = Number.parseInt(cleaned, 10);
     return Number.isNaN(n) || n > 100000000 ? null : n;
   };
   // A figure is only compensation when it is ADJACENT to a money/rate signal
@@ -133,11 +145,19 @@ function detectCompensation(raw: string): {
   // pay keyword right before it. This never surfaces a stray number (e.g. a
   // "8-10 ans" experience range, or the first digit elsewhere in the text).
   // Character classes exclude whitespace, so a match can't span lines.
+  const money = "(?:€|k€|euros?|eur|\\$|usd|£|gbp|chf)";
+  // France Travail spells a range with the currency AFTER EACH bound
+  // ("45000 Euros à 60000 Euros") — capture both, most specific first.
+  const rangeWithCurrency = new RegExp(
+    `(\\d[\\d.,]{0,8})\\s*${money}\\s*[-–à]\\s*(\\d[\\d.,]{0,8})\\s*${money}`,
+    "i",
+  );
   const moneyAfter =
-    /(\d[\d.,]{0,8})(?:\s*[-–à]\s*(\d[\d.,]{0,8}))?\s*(?:€|k€|eur|\$|usd|£|gbp|chf|\/\s*(?:jour|day|h|hour|mois|month|an|year))/i;
+    /(\d[\d.,]{0,8})(?:\s*[-–à]\s*(\d[\d.,]{0,8}))?\s*(?:€|k€|euros?|eur|\$|usd|£|gbp|chf|\/\s*(?:jour|day|h|hour|mois|month|an|year))/i;
   const keywordBefore =
     /(?:tjm|salaire|salary|r[ée]mun[ée]ration|compensation|day rate|package)\s*:?\s*(\d[\d.,]{0,8})(?:\s*[-–à]\s*(\d[\d.,]{0,8}))?/i;
-  const m = t.match(moneyAfter) ?? t.match(keywordBefore);
+  const m =
+    t.match(rangeWithCurrency) ?? t.match(moneyAfter) ?? t.match(keywordBefore);
   if (m) {
     const a = toInt(m[1]);
     const b = m[2] ? toInt(m[2]) : a;

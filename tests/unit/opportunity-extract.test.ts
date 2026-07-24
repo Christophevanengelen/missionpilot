@@ -52,6 +52,31 @@ describe("extractFromPastedText", () => {
     expect(unknowns).toContain("sourceName");
   });
 
+  it("parses a France-Travail-style annual salary WITHOUT the ×100 decimal bug", () => {
+    // FT embeds the salary as free text with dot-decimals ("45000.00"); the
+    // extractor must read 45000, not 4 500 000 (a x100 fabrication that used to
+    // surface an absurd salary and a ~30 960 €/jour "day rate").
+    const ft =
+      "Ingénieur logiciel senior (H/F)\nchez Nova\n" +
+      "Salaire : Annuel de 45000.00 Euros à 60000.00 Euros\n\n" +
+      "Conception de services back-end.";
+    const { normalized } = extractFromPastedText(ft);
+    expect(normalized.compensationMin).toBe(45000);
+    expect(normalized.compensationMax).toBe(60000);
+    expect(normalized.compensationCurrency).toBe("EUR"); // from "Euros"
+    expect(normalized.compensationPeriod).toBe("year");
+  });
+
+  it("does not read a currency from the '-eur' tail of a job title alone", () => {
+    // "Ingénieur"/"Développeur" must NOT fabricate EUR when no money figure and
+    // no real currency word is present.
+    const { normalized } = extractFromPastedText(
+      "Ingénieur / Développeur\nchez Acme\nMissions variées, équipe soudée.",
+    );
+    expect(normalized.compensationCurrency).toBeNull();
+    expect(normalized.compensationMin).toBeNull();
+  });
+
   it("marks everything unknown for opaque text (never guesses)", () => {
     const { normalized, unknowns } = extractFromPastedText("random blob text");
     expect(normalized.organization).toBeNull();
