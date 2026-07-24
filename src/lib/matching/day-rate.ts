@@ -20,6 +20,10 @@ export const BILLABLE_DAYS = 218;
 /** Disclosed rule-of-thumb uplift band for a freelance vs. an employee. */
 export const FREELANCE_UPLIFT_LOW = 1.5;
 export const FREELANCE_UPLIFT_HIGH = 2;
+/** Plausibility ceiling on the ANNUAL figure: above this it is almost
+ *  certainly a mis-extraction (e.g. a decimal-strip bug inflating a salary
+ *  ×100), and an authoritative "day rate" must never be built from it. */
+export const MAX_PLAUSIBLE_ANNUAL = 1_000_000;
 
 export type DayRateEstimate = {
   low: number;
@@ -49,6 +53,9 @@ export function estimateDayRate(comp: {
   const annualHigh = max ?? min;
   if (annualLow === null || annualHigh === null) return null;
   if (annualLow <= 0 || annualHigh <= 0) return null;
+  // Never surface a "day rate" from an implausible salary (mis-extraction
+  // guard): honesty over coverage — better no benchmark than a fabricated one.
+  if (annualHigh > MAX_PLAUSIBLE_ANNUAL) return null;
 
   let low = roundTo10((annualLow / BILLABLE_DAYS) * FREELANCE_UPLIFT_LOW);
   let high = roundTo10((annualHigh / BILLABLE_DAYS) * FREELANCE_UPLIFT_HIGH);

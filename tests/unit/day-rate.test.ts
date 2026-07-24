@@ -88,4 +88,17 @@ describe("estimateDayRate", () => {
       }),
     ).toBeNull();
   });
+
+  it("rejects an implausibly large annual figure (mis-extraction guard)", () => {
+    // e.g. a decimal-strip bug turning 45000.00 into 4 500 000 must NOT surface
+    // a confident ~30 960 €/jour rate.
+    expect(
+      estimateDayRate({
+        compensationMin: 4_500_000,
+        compensationMax: 4_500_000,
+        compensationCurrency: "EUR",
+        compensationPeriod: "year",
+      }),
+    ).toBeNull();
+  });
 });
