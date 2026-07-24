@@ -99,19 +99,23 @@ export default async function OpportunitiesPage({
     // gate-then-score sort, so ties keep recency order.
     .sort(compareRanked);
 
+  const active = parseFilters(await searchParams);
+  // Rows passing the type/remote groups — the gate chips count over THESE, so
+  // a chip's number always predicts exactly what clicking it will show
+  // (honesty: never "Éligible (2)" leading to an empty state).
+  const base = evaluated.filter(
+    (e) =>
+      (active.type === null || e.o.engagement_type === active.type) &&
+      (active.remote === null || e.o.remote_type === active.remote),
+  );
   const counts: Record<EligibilityGate, number> = {
     eligible: 0,
     review: 0,
     excluded: 0,
   };
-  for (const e of evaluated) counts[e.gate]++;
-
-  const active = parseFilters(await searchParams);
-  const shown = evaluated.filter(
-    (e) =>
-      (active.filter === null || e.gate === active.filter) &&
-      (active.type === null || e.o.engagement_type === active.type) &&
-      (active.remote === null || e.o.remote_type === active.remote),
+  for (const e of base) counts[e.gate]++;
+  const shown = base.filter(
+    (e) => active.filter === null || e.gate === active.filter,
   );
 
   return (
@@ -131,10 +135,14 @@ export default async function OpportunitiesPage({
             aria-label={copy.inbox.filterLabel}
             className="flex flex-col gap-2"
           >
-            <div className="flex flex-wrap gap-2">
+            <div
+              role="group"
+              className="flex flex-wrap gap-2"
+              aria-label={copy.inbox.gateLabel}
+            >
               <FilterChip
                 href={inboxHref({ ...active, filter: null })}
-                label={`${copy.inbox.all} (${opportunities.length})`}
+                label={`${copy.inbox.all} (${base.length})`}
                 active={active.filter === null}
               />
               {GATES.map((g) => (
@@ -147,6 +155,7 @@ export default async function OpportunitiesPage({
               ))}
             </div>
             <div
+              role="group"
               className="flex flex-wrap gap-2"
               aria-label={copy.inbox.typeLabel}
             >
@@ -165,6 +174,7 @@ export default async function OpportunitiesPage({
               ))}
             </div>
             <div
+              role="group"
               className="flex flex-wrap gap-2"
               aria-label={copy.inbox.remoteLabel}
             >

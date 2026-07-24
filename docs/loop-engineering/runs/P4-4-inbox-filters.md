@@ -34,13 +34,26 @@
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                                   |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **169/169 unit** · build                                                                                      |
-| integration | **34** (unchanged — filtering is in-memory over the same RLS-scoped reads)                                                                               |
-| e2e         | **35/35** — freelance filter keeps the listing; hybrid combines (URL preserves `type=freelance`); onsite ⇒ honest empty state; resets restore; axe clean |
-| reviews     | (to fill after independent passes)                                                                                                                       |
-| CI          | (to fill after push)                                                                                                                                     |
+| Check       | Result                                                                                                                                                                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **169/169 unit** · build                                                                                                                                                                                 |
+| integration | **34** (unchanged — filtering is in-memory over the same RLS-scoped reads)                                                                                                                                                                          |
+| e2e         | **35/35** — freelance filter keeps the listing; hybrid combines (URL preserves `type=freelance`); onsite ⇒ honest empty state; resets restore; axe clean                                                                                            |
+| reviews     | Implementation **PASS**, Security **PASS** (0 findings — params validated against closed enums, hrefs enum-built only, RLS unchanged, no new exposure). **2 minors confirmed and repaired** (below). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit; re-run after the repairs.                                                                                                                                                                                         |
+
+## Review repairs (before merge)
+
+- **CONFIRMED minor — prohibited ARIA on the group divs.** `aria-label` on a
+  role-less `<div>` maps to role `generic`, where naming is prohibited (axe
+  files it as "incomplete" at serious impact, so the violations-only e2e
+  assertion couldn't see it). Fixed: `role="group"` on all three chip rows +
+  the eligibility row got its own label (`inbox.gateLabel`, FR+EN).
+- **CONFIRMED minor — misleading gate counts.** Gate-chip counts were computed
+  over ALL rows, so with a type/remote filter active a chip could read
+  "Éligible (2)" yet click through to the empty state. Fixed: gate counts (and
+  the "Tout" count) are computed over the rows passing the OTHER active
+  groups — a chip's number now always predicts exactly what clicking shows.
 
 ## Fix found by e2e during implementation
 
