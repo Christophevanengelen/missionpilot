@@ -79,9 +79,10 @@ test("import export LinkedIn : archive → narratif → compétences déclarées
     .click();
 
   // Keyless env → the deterministic chip flow, seeded with the DECLARED skills
-  // from Skills.csv (surfaced even if the taxonomy does not know them).
+  // from Skills.csv (surfaced even if the taxonomy does not know them). The
+  // heading is LinkedIn-specific (not "…dans votre CV").
   await expect(
-    page.getByText("Compétences détectées dans votre CV"),
+    page.getByText("Compétences détectées dans votre export LinkedIn"),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "GraphQL", exact: true }),

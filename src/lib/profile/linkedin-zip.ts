@@ -40,18 +40,27 @@ export function extractLinkedInFiles(bytes: Uint8Array): LinkedInFiles {
 
   let entries: Record<string, Uint8Array>;
   try {
-    // Only decompress the files we actually want (fflate filter) — the rest of
-    // the archive is never expanded, which also caps a decompression bomb to
-    // the whitelist.
+    // Only decompress the whitelisted files (fflate filter) — everything else
+    // is skipped WITHOUT expansion. Ordering matters: the whitelist test comes
+    // first, so a large unrelated member (e.g. messages.csv) never triggers a
+    // false rejection; then the per-file cap; then a cumulative ceiling that
+    // is enforced BEFORE decompression, so duplicate whitelisted basenames
+    // cannot inflate past the ceiling (fflate allocates originalSize per
+    // matched entry as it iterates — the post-loop check would run too late).
     let count = 0;
+    let wantedTotal = 0;
     entries = unzipSync(bytes, {
       filter(file) {
         count++;
         if (count > MAX_ENTRIES)
           throw new LinkedInExportError("too many entries");
+        if (!WANTED.some((w) => w.base === basename(file.name))) return false;
         if (file.originalSize > MAX_FILE_BYTES)
           throw new LinkedInExportError("entry too large");
-        return WANTED.some((w) => w.base === basename(file.name));
+        wantedTotal += file.originalSize;
+        if (wantedTotal > MAX_TOTAL_BYTES)
+          throw new LinkedInExportError("archive too large");
+        return true;
       },
     });
   } catch (error) {
@@ -60,11 +69,7 @@ export function extractLinkedInFiles(bytes: Uint8Array): LinkedInFiles {
   }
 
   const files: LinkedInFiles = {};
-  let total = 0;
   for (const [name, data] of Object.entries(entries)) {
-    total += data.byteLength;
-    if (total > MAX_TOTAL_BYTES)
-      throw new LinkedInExportError("archive too large");
     const match = WANTED.find((w) => w.base === basename(name));
     if (match) files[match.key] = strFromU8(data);
   }

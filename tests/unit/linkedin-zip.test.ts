@@ -54,4 +54,32 @@ describe("extractLinkedInFiles", () => {
       extractLinkedInFiles(zip({ "Ads_Clicked.csv": "a\n1\n" })),
     ).toThrow(LinkedInExportError);
   });
+
+  it("tolerates a large NON-whitelisted member (no false rejection)", () => {
+    // A big unrelated CSV (e.g. messages.csv) must not sink a valid export —
+    // it is filtered out WITHOUT decompression, so its size is irrelevant.
+    const big = "x".repeat(8 * 1024 * 1024); // >5MB uncompressed, compresses tiny
+    const files = extractLinkedInFiles(
+      zip({
+        "Profile.csv": "Headline\nEngineer\n",
+        "messages.csv": `body\n${big}\n`,
+      }),
+    );
+    expect(files.profile).toContain("Engineer");
+  });
+
+  it("bounds cumulative decompressed size across duplicate whitelisted names", () => {
+    // Many entries all resolving to a whitelisted basename, each individually
+    // under the per-file cap but together over the total ceiling — the filter
+    // must abort BEFORE inflating past the ceiling (bomb guard).
+    const chunk = "y".repeat(4 * 1024 * 1024); // 4MB each, compresses tiny
+    const entries: Record<string, string> = {};
+    for (let i = 0; i < 20; i++) {
+      // Distinct paths, same basename → all match the whitelist.
+      entries[`dir${i}/Skills.csv`] = `Name\n${chunk}\n`;
+    }
+    expect(() => extractLinkedInFiles(zip(entries))).toThrow(
+      LinkedInExportError,
+    );
+  });
 });

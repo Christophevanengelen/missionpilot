@@ -25,9 +25,17 @@ import { explainMatchesAction } from "@/lib/matching/insight-actions";
 type AutoDiscovery =
   { phase: "searching" } | { phase: "done"; result: DiscoveryResult };
 
+type Source = "cv" | "linkedin";
+
 type Step =
   | { name: "idle" }
-  | { name: "detected"; skills: string[]; chosen: Set<string>; aiUsed: boolean }
+  | {
+      name: "detected";
+      skills: string[];
+      chosen: Set<string>;
+      aiUsed: boolean;
+      source: Source;
+    }
   | { name: "understood"; profile: CvProfileUnderstanding; chosen: Set<string> }
   | { name: "added"; count: number; discovery: AutoDiscovery }
   | { name: "applied"; count: number; discovery: AutoDiscovery };
@@ -60,8 +68,9 @@ export function CvImport() {
   } as const;
 
   /** Route an analysis result (CV or LinkedIn — identical shape) to the right
-   *  screen. Returns false when it surfaced an error instead. */
-  function routeAnalysis(result: CvAnalysis): boolean {
+   *  screen. `source` only tailors the detected-screen heading wording.
+   *  Returns false when it surfaced an error instead. */
+  function routeAnalysis(result: CvAnalysis, source: Source): boolean {
     if (!result.ok) {
       setError(copy.errors[result.error]);
       return false;
@@ -84,6 +93,7 @@ export function CvImport() {
       skills: result.skills,
       chosen: new Set(result.skills),
       aiUsed: result.aiUsed,
+      source,
     });
     return true;
   }
@@ -109,7 +119,7 @@ export function CvImport() {
       const formData = new FormData();
       if (file) formData.set("file", file);
       if (pasted.trim()) formData.set("text", pasted);
-      routeAnalysis(await analyzeCvAction(formData));
+      routeAnalysis(await analyzeCvAction(formData), "cv");
     } catch {
       setError(copy.errors.generic);
     } finally {
@@ -135,7 +145,7 @@ export function CvImport() {
     try {
       const formData = new FormData();
       formData.set("file", file);
-      routeAnalysis(await analyzeLinkedInAction(formData));
+      routeAnalysis(await analyzeLinkedInAction(formData), "linkedin");
     } catch {
       setError(copy.errors.generic);
     } finally {
@@ -459,7 +469,11 @@ export function CvImport() {
   if (step.name === "detected") {
     return (
       <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4">
-        <p className="text-sm font-medium">{copy.detectedTitle}</p>
+        <p className="text-sm font-medium">
+          {step.source === "linkedin"
+            ? copy.linkedin.detectedTitle
+            : copy.detectedTitle}
+        </p>
         <p className="text-muted-foreground text-xs">
           {copy.detectedNote}
           {step.aiUsed ? ` ${copy.aiNote}` : ""}

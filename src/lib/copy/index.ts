@@ -83,6 +83,7 @@ export const copy = {
         fileLabel: "Archive d'export LinkedIn (.zip)",
         analyze: "Analyser mon export LinkedIn",
         needFile: "Déposez votre archive d'export LinkedIn (.zip).",
+        detectedTitle: "Compétences détectées dans votre export LinkedIn",
       },
       errors: {
         empty: "Le document semble vide.",
@@ -648,6 +649,7 @@ export const copy = {
         fileLabel: "LinkedIn export archive (.zip)",
         analyze: "Analyze my LinkedIn export",
         needFile: "Drop your LinkedIn export archive (.zip).",
+        detectedTitle: "Skills detected in your LinkedIn export",
       },
       errors: {
         empty: "The document looks empty.",
