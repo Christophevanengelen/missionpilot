@@ -24,6 +24,12 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
     AI_DEFAULT_PROVIDER: z.enum(["mock", "openai"]).default("mock"),
     AI_DEFAULT_MODEL: z.string().default("mock-v1"),
+    // Adzuna job-search API (official, ToS-permissive) — optional: without
+    // both, discovery degrades gracefully to an explanatory note.
+    ADZUNA_APP_ID: z.string().min(1).optional(),
+    ADZUNA_APP_KEY: z.string().min(1).optional(),
+    /** Adzuna country market to search (ISO-ish site code). */
+    ADZUNA_COUNTRY: z.string().length(2).default("fr"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {

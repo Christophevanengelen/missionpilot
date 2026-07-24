@@ -5,6 +5,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/database.types";
+import { NORMALIZED_FIELDS } from "@/domain/opportunity";
 import { getOwnProfile } from "@/lib/profile/logic";
 import {
   canonicalFingerprint,
@@ -22,7 +23,7 @@ function fail(step: string, message: string): never {
 }
 
 type ImportSource = {
-  retrievalMethod: "paste" | "url";
+  retrievalMethod: "paste" | "url" | "import";
   sourcePolicyDecision: "allowed" | "manual_only";
   /** Provenance overrides (URL import records where the text came from). */
   sourceUrl?: string | null;
@@ -40,8 +41,11 @@ async function runImport(
   client: Client,
   rawText: string,
   source: ImportSource,
+  /** Prepared extraction (discovery merges structured source fields); when
+   *  omitted the deterministic extractor runs on `rawText`. */
+  prepared?: ReturnType<typeof extractFromPastedText>,
 ) {
-  const { normalized, unknowns } = extractFromPastedText(rawText);
+  const { normalized, unknowns } = prepared ?? extractFromPastedText(rawText);
   const fingerprint = canonicalFingerprint(normalized);
   const hash = contentHash(rawText);
 
@@ -109,6 +113,63 @@ export async function importFromUrl(
     sourceUrl: url.trim(),
     sourceName: policy.host,
   });
+}
+
+/**
+ * Import an AUTO-DISCOVERED ad (legal source connector, e.g. Adzuna). The
+ * source's structured fields take precedence over what the deterministic
+ * extractor reads from the ad text (they come typed from the API); everything
+ * the source did not state stays honestly null. Same pipeline as every other
+ * import: immutable snapshot, per-owner dedup by canonical fingerprint,
+ * gate + score computed on read.
+ */
+export async function importDiscovered(
+  client: Client,
+  ad: import("@/lib/discovery/adzuna").DiscoveredAd,
+  sourceName: string,
+) {
+  const base = extractFromPastedText(ad.rawText);
+  const adHasSalary =
+    ad.compensationMin !== null || ad.compensationMax !== null;
+  const normalized: typeof base.normalized = {
+    ...base.normalized,
+    title: ad.title?.slice(0, 500) ?? base.normalized.title,
+    organization:
+      ad.organization?.slice(0, 300) ?? base.normalized.organization,
+    description: ad.description?.slice(0, 20000) ?? base.normalized.description,
+    locationText:
+      ad.locationText?.slice(0, 300) ?? base.normalized.locationText,
+    engagementType: ad.engagementType ?? base.normalized.engagementType,
+    // The compensation block is taken WHOLE from one side — mixing an API
+    // figure with an extractor currency/period would fabricate a claim.
+    compensationMin: adHasSalary
+      ? ad.compensationMin
+      : base.normalized.compensationMin,
+    compensationMax: adHasSalary
+      ? ad.compensationMax
+      : base.normalized.compensationMax,
+    compensationCurrency: adHasSalary
+      ? ad.compensationCurrency
+      : base.normalized.compensationCurrency,
+    compensationPeriod: adHasSalary
+      ? ad.compensationPeriod
+      : base.normalized.compensationPeriod,
+  };
+  const unknowns = NORMALIZED_FIELDS.filter((f) => {
+    const v = normalized[f];
+    return v === null || (Array.isArray(v) && v.length === 0);
+  });
+  return runImport(
+    client,
+    ad.rawText,
+    {
+      retrievalMethod: "import",
+      sourcePolicyDecision: "allowed",
+      sourceUrl: ad.sourceUrl?.slice(0, 2000) ?? null,
+      sourceName,
+    },
+    { normalized, unknowns },
+  );
 }
 
 /** The caller's own opportunities, most-recently-seen first. */

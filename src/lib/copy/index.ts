@@ -354,6 +354,23 @@ export const copy = {
         unscored: "—",
         matchedSkills: "Compétences couvertes",
       },
+      discover: {
+        button: "Découvrir des offres",
+        searching: "Recherche en cours…",
+        result: (found: number, imported: number) =>
+          found === 0
+            ? "Aucune offre trouvée pour votre profil cette fois-ci."
+            : `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${imported} ${imported > 1 ? "nouvelles" : "nouvelle"}, ${found - imported} déjà ${found - imported > 1 ? "connues" : "connue"}.`,
+        errors: {
+          unconfigured:
+            "La découverte automatique n'est pas encore activée (clés Adzuna manquantes).",
+          no_keywords:
+            "Confirmez d'abord un rôle ou des compétences dans votre profil (ou importez votre CV) pour guider la recherche.",
+          generic: "La recherche n'a pas abouti. Réessayez.",
+        },
+        unconfiguredNote:
+          "Découverte automatique : ajoutez des clés API Adzuna (gratuites) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
+      },
       inbox: {
         all: "Tout",
         empty: "Aucune opportunité dans ce filtre.",
@@ -790,6 +807,23 @@ export const copy = {
         },
         unscored: "—",
         matchedSkills: "Covered skills",
+      },
+      discover: {
+        button: "Discover offers",
+        searching: "Searching…",
+        result: (found: number, imported: number) =>
+          found === 0
+            ? "No offer found for your profile this time."
+            : `${found} ${found > 1 ? "offers" : "offer"} found: ${imported} new, ${found - imported} already known.`,
+        errors: {
+          unconfigured:
+            "Auto-discovery is not enabled yet (Adzuna keys missing).",
+          no_keywords:
+            "Confirm a role or skills in your profile first (or import your CV) to guide the search.",
+          generic: "The search did not go through. Try again.",
+        },
+        unconfiguredNote:
+          "Auto-discovery: add (free) Adzuna API keys in the configuration so MissionPilot can search offers matching your profile.",
       },
       inbox: {
         all: "All",
