@@ -8,11 +8,12 @@ import {
   getOpportunity,
   getOwnProfile,
 } from "@/lib/opportunity/logic";
-import { loadPreferences } from "@/lib/profile/logic";
+import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 import {
   evaluateHardConstraints,
   opportunityFactsFromRow,
 } from "@/lib/matching/hard-constraints";
+import { profileSignalsFromClaims, scoreMatch } from "@/lib/matching/score";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
 import { t } from "@/lib/copy";
 import { CardField } from "@/components/cards/card-shell";
@@ -49,18 +50,25 @@ export default async function OpportunityDetailPage({
   }
 
   const profile = await getOwnProfile(client);
-  const [opportunity, snapshot, seenCount, preferences] = await Promise.all([
-    getOpportunity(client, id),
-    getLatestSnapshot(client, id),
-    countSnapshots(client, id),
-    loadPreferences(client, profile.id),
-  ]);
+  const [opportunity, snapshot, seenCount, preferences, living] =
+    await Promise.all([
+      getOpportunity(client, id),
+      getLatestSnapshot(client, id),
+      countSnapshots(client, id),
+      loadPreferences(client, profile.id),
+      loadLivingProfile(client, profile.id),
+    ]);
   if (!opportunity) return <NotFound />;
 
-  const report = evaluateHardConstraints(
+  const facts = opportunityFactsFromRow(opportunity);
+  const report = evaluateHardConstraints(preferences, facts);
+  const score = scoreMatch(
     preferences,
-    opportunityFactsFromRow(opportunity),
+    profileSignalsFromClaims(living.claims),
+    facts,
   );
+  const matchedSkills =
+    score.components.find((c) => c.key === "skills")?.evidence ?? [];
 
   const remote = opportunity.remote_type
     ? copy.remoteTypes[opportunity.remote_type as keyof typeof copy.remoteTypes]
@@ -144,6 +152,69 @@ export default async function OpportunityDetailPage({
             </div>
           ))}
         </dl>
+      </section>
+
+      <section
+        aria-label={copy.matchScore.section}
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-5"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {copy.matchScore.section}
+          </h2>
+          {score.overall !== null ? (
+            <span className="text-lg font-semibold">
+              {copy.matchScore.overall(score.overall)}
+            </span>
+          ) : null}
+        </div>
+        <p className="text-muted-foreground text-xs">{copy.matchScore.note}</p>
+        {score.overall === null ? (
+          <p className="text-muted-foreground text-sm">
+            {copy.matchScore.none}
+          </p>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-xs">
+              {copy.matchScore.confidenceLabel} :{" "}
+              {copy.matchScore.confidence[score.confidence]}
+            </p>
+            <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              {score.components.map((c) => (
+                <div
+                  key={c.key}
+                  className="flex items-baseline justify-between gap-2 border-b border-dashed py-1 last:border-0"
+                >
+                  <dt className="text-muted-foreground text-xs">
+                    {copy.matchScore.components[c.key]}
+                  </dt>
+                  <dd className="text-xs">
+                    {c.score !== null
+                      ? copy.matchScore.overall(c.score)
+                      : copy.matchScore.unscored}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {matchedSkills.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-muted-foreground text-xs">
+                  {copy.matchScore.matchedSkills}
+                </p>
+                <ul className="flex flex-wrap gap-1">
+                  {matchedSkills.map((s) => (
+                    <li
+                      key={s}
+                      className="border-border bg-background rounded-full border px-2 py-0.5 text-xs"
+                    >
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </>
+        )}
       </section>
 
       <section
