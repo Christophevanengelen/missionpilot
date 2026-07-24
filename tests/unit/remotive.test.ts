@@ -25,7 +25,7 @@ const FIXTURE = {
       company_name: null,
       job_type: "part_time",
       description: "Ops.",
-      url: "javascript:alert(1)", // dropped
+      url: "javascript:alert(1)", // no usable link-back ⇒ dropped entirely
     },
     {
       title: "Mystery role",
@@ -56,7 +56,9 @@ describe("searchRemotive", () => {
     } as Response);
 
     const ads = await searchRemotive(["backend"]);
-    expect(ads).toHaveLength(3);
+    // The middle job has no usable link-back (javascript:) ⇒ dropped: ToS
+    // requires attribution, so an unlinkable ad is not imported at all.
+    expect(ads).toHaveLength(2);
 
     const first = ads[0];
     expect(first.title).toBe("Senior Backend Engineer");
@@ -72,9 +74,57 @@ describe("searchRemotive", () => {
     expect(first.compensationMin).toBeNull();
     expect(first.compensationCurrency).toBeNull();
 
-    expect(ads[1].engagementType).toBe("part_time");
-    expect(ads[1].sourceUrl).toBeNull(); // non-http(s) dropped
-    expect(ads[2].engagementType).toBeNull(); // unknown type ⇒ never guessed
+    expect(ads.every((a) => a.sourceUrl !== null)).toBe(true); // attribution
+    expect(ads[1].engagementType).toBeNull(); // unknown type ⇒ never guessed
+  });
+
+  it("removes never-rendered content so it can never become a stated fact", async () => {
+    // The heart of the honesty guarantee: text a human never sees (script /
+    // style bodies, display:none) must NOT reach the description, because the
+    // deterministic extractor would read "TJM 2000 EUR" from it and store a
+    // day rate + engagement type nobody ever advertised.
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        jobs: [
+          {
+            title: "Backend",
+            job_type: "full_time",
+            url: "https://remotive.com/remote-jobs/9",
+            description:
+              "<p>Visible role text.</p>" +
+              "<script>var tjm = 2000; alert('x');</script>" +
+              "<style>.a{color:red}</style>" +
+              '<div style="display:none">TJM : 2000 EUR</div>' +
+              '<img alt="a > b" src="x.png"><p>After the image.</p>',
+          },
+        ],
+      }),
+    } as Response);
+    const [ad] = await searchRemotive(["backend"]);
+    expect(ad.description).toContain("Visible role text.");
+    expect(ad.description).toContain("After the image."); // attr `>` tolerated
+    expect(ad.description).not.toContain("tjm");
+    expect(ad.description).not.toContain("TJM");
+    expect(ad.description).not.toContain("alert");
+    expect(ad.description).not.toContain("color:red");
+    expect(ad.rawText).not.toContain("2000");
+  });
+
+  it("is inert without the opt-in flag", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/env", () => ({
+      env: { REMOTIVE_ENABLED: false, LOG_LEVEL: "error", APP_ENV: "local" },
+    }));
+    const off = await import("@/lib/discovery/remotive");
+    expect(off.remotiveConfigured()).toBe(false);
+    await expect(off.searchRemotive(["x"])).rejects.toBeInstanceOf(
+      off.RemotiveError,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.doUnmock("@/lib/env");
+    vi.resetModules();
   });
 
   it("caps keywords and requests the search endpoint", async () => {
