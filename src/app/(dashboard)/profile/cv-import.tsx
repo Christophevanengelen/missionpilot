@@ -14,6 +14,7 @@ import {
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
 import type { CvProfileUnderstanding } from "@/lib/profile/cv-ai";
+import type { AtsFinding } from "@/lib/profile/cv-ats-lint";
 import {
   discoverOpportunitiesAction,
   type DiscoveryResult,
@@ -35,8 +36,14 @@ type Step =
       chosen: Set<string>;
       aiUsed: boolean;
       source: Source;
+      atsFindings: AtsFinding[];
     }
-  | { name: "understood"; profile: CvProfileUnderstanding; chosen: Set<string> }
+  | {
+      name: "understood";
+      profile: CvProfileUnderstanding;
+      chosen: Set<string>;
+      atsFindings: AtsFinding[];
+    }
   | { name: "added"; count: number; discovery: AutoDiscovery }
   | { name: "applied"; count: number; discovery: AutoDiscovery };
 
@@ -55,6 +62,9 @@ export function CvImport() {
   const [pasted, setPasted] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // ATS findings to show alongside an error on the idle form (e.g. a scanned
+  // image PDF that extracts no text — the note is the actionable message).
+  const [idleAtsFindings, setIdleAtsFindings] = useState<AtsFinding[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const linkedinRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
@@ -81,6 +91,7 @@ export function CvImport() {
         name: "understood",
         profile: result.profile,
         chosen: new Set(result.profile.coreSkills),
+        atsFindings: result.atsFindings,
       });
       return true;
     }
@@ -94,12 +105,39 @@ export function CvImport() {
       chosen: new Set(result.skills),
       aiUsed: result.aiUsed,
       source,
+      atsFindings: result.atsFindings,
     });
     return true;
   }
 
+  /** ATS parse-safety note shown on the review screens after a PDF upload
+   *  (empty for pasted text / LinkedIn). Advisory: it's about the FILE. */
+  function atsNote(findings: AtsFinding[]) {
+    if (findings.length === 0) return null;
+    const c = copy.ats;
+    const isError = findings.some((f) => f.severity === "error");
+    return (
+      <div
+        role="note"
+        className={`rounded-lg border px-3 py-2 text-xs ${
+          isError
+            ? "border-destructive/40 bg-destructive/10"
+            : "border-warning/40 bg-warning/10"
+        }`}
+      >
+        <p className="font-medium">{c.title}</p>
+        <ul className="mt-1 list-disc pl-4">
+          {findings.map((f) => (
+            <li key={f.code}>{c.findings[f.code]}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   async function analyze() {
     if (inFlightRef.current) return;
+    setIdleAtsFindings([]);
     const file = fileRef.current?.files?.[0] ?? null;
     if (!file && !pasted.trim()) {
       setError(copy.needInput);
@@ -115,11 +153,18 @@ export function CvImport() {
     inFlightRef.current = true;
     setBusy(true);
     setError(null);
+    setIdleAtsFindings([]);
     try {
       const formData = new FormData();
       if (file) formData.set("file", file);
       if (pasted.trim()) formData.set("text", pasted);
-      routeAnalysis(await analyzeCvAction(formData), "cv");
+      const result = await analyzeCvAction(formData);
+      // On an error/no-skills path the idle form stays visible — surface the
+      // ATS note there (a scanned image PDF's key guidance). `atsFindings` is
+      // present on both branches (required on ok, optional on error).
+      if (!routeAnalysis(result, "cv") && result.atsFindings?.length) {
+        setIdleAtsFindings(result.atsFindings);
+      }
     } catch {
       setError(copy.errors.generic);
     } finally {
@@ -130,6 +175,7 @@ export function CvImport() {
 
   async function analyzeLinkedIn() {
     if (inFlightRef.current) return;
+    setIdleAtsFindings([]);
     const file = linkedinRef.current?.files?.[0] ?? null;
     if (!file) {
       setError(copy.linkedin.needFile);
@@ -349,6 +395,7 @@ export function CvImport() {
             {copy.understood.unsureNote}
           </p>
         ) : null}
+        {atsNote(step.atsFindings)}
 
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground text-xs">
@@ -478,6 +525,7 @@ export function CvImport() {
           {copy.detectedNote}
           {step.aiUsed ? ` ${copy.aiNote}` : ""}
         </p>
+        {atsNote(step.atsFindings)}
         <ul className="flex flex-wrap gap-2">
           {step.skills.map((skill) => {
             const on = step.chosen.has(skill);
@@ -597,6 +645,7 @@ export function CvImport() {
           {error}
         </p>
       ) : null}
+      {atsNote(idleAtsFindings)}
     </div>
   );
 }
