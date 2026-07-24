@@ -94,6 +94,19 @@ export const copy = {
           "Ce fichier dépasse 10 Mo. Exportez une version plus légère ou collez le texte de votre CV.",
         generic: "L'analyse n'a pas abouti. Réessayez.",
       },
+      ats: {
+        title: "Lisibilité par les logiciels de recrutement (ATS)",
+        findings: {
+          no_extractable_text:
+            "Le texte de ce PDF ne s'extrait presque pas — c'est probablement une image scannée, que la plupart des ATS ne peuvent pas lire. Exportez un vrai PDF texte (pas une image).",
+          no_sections:
+            "Aucune section standard détectée (Expérience, Compétences, Formation) : un ATS pourrait ne pas savoir découper votre CV. Ajoutez des intitulés de section clairs.",
+          no_contact:
+            "Aucune adresse e-mail détectée — un ATS pourrait ne pas retrouver vos coordonnées.",
+          too_long:
+            "Ce CV dépasse 3 pages — souvent trop long pour être lu en entier.",
+        } as Record<string, string>,
+      },
     },
     recommendations: {
       title: "Recommandations reçues",
@@ -688,6 +701,19 @@ export const copy = {
         tooLarge:
           "This file exceeds 10 MB. Export a lighter version or paste your CV's text.",
         generic: "The analysis did not go through. Try again.",
+      },
+      ats: {
+        title: "Readability by recruiting software (ATS)",
+        findings: {
+          no_extractable_text:
+            "Almost no text can be extracted from this PDF — it is likely a scanned image, which most ATS cannot read. Export a real text PDF (not an image).",
+          no_sections:
+            "No standard section detected (Experience, Skills, Education): an ATS may not know how to split your CV. Add clear section headings.",
+          no_contact:
+            "No email address detected — an ATS may fail to find your contact details.",
+          too_long:
+            "This CV is over 3 pages — often too long to be read in full.",
+        } as Record<string, string>,
       },
     },
     recommendations: {

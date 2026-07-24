@@ -20,7 +20,8 @@ import {
 } from "./cv-ai";
 import { addCvSkills, applyCvProfile, applyProfileSchema } from "./cv-apply";
 import { detectSkills } from "./cv-extract";
-import { CvPdfError, extractPdfText } from "./cv-pdf";
+import { CvPdfError, extractPdf } from "./cv-pdf";
+import { lintCvForAts, type AtsFinding } from "./cv-ats-lint";
 import { buildCareerProfile } from "./linkedin-export";
 import { extractLinkedInFiles, LinkedInExportError } from "./linkedin-zip";
 
@@ -34,6 +35,9 @@ export type CvAnalysis =
       /** Deep AI understanding (null when AI is off or failed) — drives the
        *  one-screen "voici ce que j'ai compris" flow. */
       profile: CvProfileUnderstanding | null;
+      /** Deterministic ATS parse-safety findings on the uploaded PDF (empty
+       *  for pasted text / LinkedIn imports, which have no file layout). */
+      atsFindings: AtsFinding[];
     }
   | { ok: false; error: "empty" | "pdf" | "linkedin" | "generic" };
 
@@ -50,6 +54,7 @@ export type CvAnalysis =
 async function analyzeText(
   text: string,
   declaredSkills: string[] = [],
+  atsFindings: AtsFinding[] = [],
 ): Promise<CvAnalysis> {
   if (!text.trim()) return { ok: false, error: "empty" };
 
@@ -62,6 +67,7 @@ async function analyzeText(
       skills: aiProfile.coreSkills,
       aiUsed: true,
       profile: aiProfile,
+      atsFindings,
     };
   }
   // Fallback (AI off or failed): deterministic taxonomy + light AI pass +
@@ -80,22 +86,34 @@ async function analyzeText(
     seen.add(key);
     merged.push(skill.trim());
   }
-  return { ok: true, skills: merged, aiUsed: aiSkills !== null, profile: null };
+  return {
+    ok: true,
+    skills: merged,
+    aiUsed: aiSkills !== null,
+    profile: null,
+    atsFindings,
+  };
 }
 
-/** Analyse an uploaded CV (PDF) or pasted CV text. */
+/** Analyse an uploaded CV (PDF) or pasted CV text. A PDF also gets a
+ *  deterministic ATS parse-safety lint (pasted text has no file layout). */
 export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
   try {
     await verifySession();
     const file = formData.get("file");
     const pasted = formData.get("text");
     let text = "";
+    let atsFindings: AtsFinding[] = [];
     if (file instanceof File && file.size > 0) {
-      text = await extractPdfText(new Uint8Array(await file.arrayBuffer()));
+      const extracted = await extractPdf(
+        new Uint8Array(await file.arrayBuffer()),
+      );
+      text = extracted.text;
+      atsFindings = lintCvForAts(extracted);
     } else if (typeof pasted === "string") {
       text = pasted;
     }
-    return await analyzeText(text);
+    return await analyzeText(text, [], atsFindings);
   } catch (error) {
     logger.error("cv analyze failed", {
       reason: error instanceof Error ? error.message : "unknown",

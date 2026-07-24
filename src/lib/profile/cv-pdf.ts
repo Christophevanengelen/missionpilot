@@ -15,8 +15,12 @@ const MAX_TEXT_CHARS = 300_000;
 
 export class CvPdfError extends Error {}
 
-/** Extract the concatenated text of a PDF. Throws `CvPdfError` on bad input. */
-export async function extractPdfText(bytes: Uint8Array): Promise<string> {
+/** Extracted text plus the page count (the latter feeds the ATS linter). */
+export type ExtractedPdf = { text: string; pageCount: number };
+
+/** Extract the text AND page count of a PDF. Throws `CvPdfError` on bad
+ *  input. */
+export async function extractPdf(bytes: Uint8Array): Promise<ExtractedPdf> {
   if (bytes.byteLength === 0) throw new CvPdfError("empty file");
   if (bytes.byteLength > MAX_BYTES) throw new CvPdfError("file too large");
   try {
@@ -25,11 +29,16 @@ export async function extractPdfText(bytes: Uint8Array): Promise<string> {
     // mergePages: true → `text` is a single string.
     const { text } = await extractText(pdf, { mergePages: true });
     // Cap the downstream work; a real CV is far below this.
-    return text.slice(0, MAX_TEXT_CHARS);
+    return { text: text.slice(0, MAX_TEXT_CHARS), pageCount: pdf.numPages };
   } catch (error) {
     if (error instanceof CvPdfError) throw error;
     throw new CvPdfError(
       error instanceof Error ? error.message : "could not read PDF",
     );
   }
+}
+
+/** Extract the concatenated text of a PDF. Throws `CvPdfError` on bad input. */
+export async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  return (await extractPdf(bytes)).text;
 }

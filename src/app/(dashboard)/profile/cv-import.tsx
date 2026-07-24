@@ -14,6 +14,7 @@ import {
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
 import type { CvProfileUnderstanding } from "@/lib/profile/cv-ai";
+import type { AtsFinding } from "@/lib/profile/cv-ats-lint";
 import {
   discoverOpportunitiesAction,
   type DiscoveryResult,
@@ -35,8 +36,14 @@ type Step =
       chosen: Set<string>;
       aiUsed: boolean;
       source: Source;
+      atsFindings: AtsFinding[];
     }
-  | { name: "understood"; profile: CvProfileUnderstanding; chosen: Set<string> }
+  | {
+      name: "understood";
+      profile: CvProfileUnderstanding;
+      chosen: Set<string>;
+      atsFindings: AtsFinding[];
+    }
   | { name: "added"; count: number; discovery: AutoDiscovery }
   | { name: "applied"; count: number; discovery: AutoDiscovery };
 
@@ -81,6 +88,7 @@ export function CvImport() {
         name: "understood",
         profile: result.profile,
         chosen: new Set(result.profile.coreSkills),
+        atsFindings: result.atsFindings,
       });
       return true;
     }
@@ -94,8 +102,34 @@ export function CvImport() {
       chosen: new Set(result.skills),
       aiUsed: result.aiUsed,
       source,
+      atsFindings: result.atsFindings,
     });
     return true;
+  }
+
+  /** ATS parse-safety note shown on the review screens after a PDF upload
+   *  (empty for pasted text / LinkedIn). Advisory: it's about the FILE. */
+  function atsNote(findings: AtsFinding[]) {
+    if (findings.length === 0) return null;
+    const c = copy.ats;
+    const isError = findings.some((f) => f.severity === "error");
+    return (
+      <div
+        role="note"
+        className={`rounded-lg border px-3 py-2 text-xs ${
+          isError
+            ? "border-destructive/40 bg-destructive/10"
+            : "border-warning/40 bg-warning/10"
+        }`}
+      >
+        <p className="font-medium">{c.title}</p>
+        <ul className="mt-1 list-disc pl-4">
+          {findings.map((f) => (
+            <li key={f.code}>{c.findings[f.code]}</li>
+          ))}
+        </ul>
+      </div>
+    );
   }
 
   async function analyze() {
@@ -349,6 +383,7 @@ export function CvImport() {
             {copy.understood.unsureNote}
           </p>
         ) : null}
+        {atsNote(step.atsFindings)}
 
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground text-xs">
@@ -478,6 +513,7 @@ export function CvImport() {
           {copy.detectedNote}
           {step.aiUsed ? ` ${copy.aiNote}` : ""}
         </p>
+        {atsNote(step.atsFindings)}
         <ul className="flex flex-wrap gap-2">
           {step.skills.map((skill) => {
             const on = step.chosen.has(skill);
