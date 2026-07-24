@@ -28,8 +28,11 @@ export const env = createEnv({
     // both, discovery degrades gracefully to an explanatory note.
     ADZUNA_APP_ID: z.string().min(1).optional(),
     ADZUNA_APP_KEY: z.string().min(1).optional(),
-    /** Adzuna country market to search (ISO-ish site code). */
-    ADZUNA_COUNTRY: z.string().length(2).default("fr"),
+    /** Adzuna country market to search (two-letter site code). */
+    ADZUNA_COUNTRY: z
+      .string()
+      .regex(/^[a-z]{2}$/)
+      .default("fr"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {

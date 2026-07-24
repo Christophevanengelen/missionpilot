@@ -32,6 +32,8 @@ const resultSchema = z.object({
   contract_type: z.string().nullish(),
   salary_min: z.number().nullish(),
   salary_max: z.number().nullish(),
+  // Adzuna serializes this inconsistently (number 0/1 or string "0"/"1").
+  salary_is_predicted: z.union([z.string(), z.number()]).nullish(),
 });
 
 const searchResponseSchema = z.object({
@@ -89,16 +91,31 @@ function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
     .filter((s): s is string => s !== null)
     .join("\n")
     .slice(0, 100_000);
-  let min = typeof r.salary_min === "number" ? Math.round(r.salary_min) : null;
-  let max = typeof r.salary_max === "number" ? Math.round(r.salary_max) : null;
+  // A PREDICTED salary is Adzuna's model estimate, not something the ad
+  // states — importing it as stated compensation would fabricate a claim
+  // (honesty rule: null = the source did not say). Whole block dropped.
+  const predicted =
+    r.salary_is_predicted === "1" || r.salary_is_predicted === 1;
+  let min =
+    !predicted && typeof r.salary_min === "number"
+      ? Math.round(r.salary_min)
+      : null;
+  let max =
+    !predicted && typeof r.salary_max === "number"
+      ? Math.round(r.salary_max)
+      : null;
   if (min !== null && max !== null && min > max) [min, max] = [max, min];
   const hasSalary = min !== null || max !== null;
+  const redirect = r.redirect_url?.trim() || null;
   return {
     title,
     organization,
     description,
     locationText,
-    sourceUrl: r.redirect_url?.trim() || null,
+    // Only an http(s) URL is kept as provenance (defense in depth — it is
+    // rendered as plain text, never a live link, but a javascript: value has
+    // no business being stored either).
+    sourceUrl: redirect && /^https?:\/\//i.test(redirect) ? redirect : null,
     engagementType: mapEngagement(r.contract_type),
     compensationMin: min,
     compensationMax: max,
@@ -129,7 +146,9 @@ export async function searchAdzuna(
   const params = new URLSearchParams({
     app_id: env.ADZUNA_APP_ID!,
     app_key: env.ADZUNA_APP_KEY!,
-    what,
+    // OR semantics: an ad matching ANY of the profile keywords qualifies —
+    // AND over role+skills would routinely return zero on a first run.
+    what_or: what,
     results_per_page: String(RESULTS_PER_PAGE),
     "content-type": "application/json",
   });
@@ -159,5 +178,9 @@ export async function searchAdzuna(
     log.warn("adzuna response failed validation", {});
     throw new AdzunaError("adzuna response failed validation");
   }
-  return parsed.data.results.map(toAd).filter((ad) => ad.rawText.trim() !== "");
+  // Cap defensively at the requested page size, whatever the server returns.
+  return parsed.data.results
+    .slice(0, RESULTS_PER_PAGE)
+    .map(toAd)
+    .filter((ad) => ad.rawText.trim() !== "");
 }

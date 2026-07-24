@@ -5,7 +5,10 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/database.types";
-import { NORMALIZED_FIELDS } from "@/domain/opportunity";
+import {
+  NORMALIZED_FIELDS,
+  normalizedOpportunitySchema,
+} from "@/domain/opportunity";
 import { getOwnProfile } from "@/lib/profile/logic";
 import {
   canonicalFingerprint,
@@ -131,7 +134,7 @@ export async function importDiscovered(
   const base = extractFromPastedText(ad.rawText);
   const adHasSalary =
     ad.compensationMin !== null || ad.compensationMax !== null;
-  const normalized: typeof base.normalized = {
+  const merged: typeof base.normalized = {
     ...base.normalized,
     title: ad.title?.slice(0, 500) ?? base.normalized.title,
     organization:
@@ -155,6 +158,10 @@ export async function importDiscovered(
       ? ad.compensationPeriod
       : base.normalized.compensationPeriod,
   };
+  // Local invariant enforcement: the merged shape must satisfy the SAME
+  // contract as extractor output (bounds, comp coherence) — a violation fails
+  // THIS ad here, not deep in the RPC.
+  const normalized = normalizedOpportunitySchema.parse(merged);
   const unknowns = NORMALIZED_FIELDS.filter((f) => {
     const v = normalized[f];
     return v === null || (Array.isArray(v) && v.length === 0);

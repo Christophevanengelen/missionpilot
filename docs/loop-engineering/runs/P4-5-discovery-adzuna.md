@@ -51,14 +51,38 @@
 
 ## Checks (evidence)
 
-| Check       | Result                                                                                                                                   |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| verify      | passed — format:check · lint · typecheck · **174/174 unit** · build                                                                      |
-| unit        | **174** (+5 connector: honest mapping incl. repaired salary swap + EUR/year only with a figure, credential/keyword bounds, typed errors) |
-| integration | **36** (+2: discovered ad → structured fields + provenance + `import` snapshot under RLS; re-discovery dedupes)                          |
-| e2e         | **35/35** — keyless CI shows the honest unconfigured note on the inbox                                                                   |
-| reviews     | (to fill after independent passes)                                                                                                       |
-| CI          | (to fill after push)                                                                                                                     |
+| Check       | Result                                                                                                                                                                                                                                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verify      | passed — format:check · lint · typecheck · **174/174 unit** · build                                                                                                                                                                                                                                             |
+| unit        | **174** (+5 connector: honest mapping incl. repaired salary swap + EUR/year only with a figure, credential/keyword bounds, typed errors)                                                                                                                                                                        |
+| integration | **36** (+2: discovered ad → structured fields + provenance + `import` snapshot under RLS; re-discovery dedupes)                                                                                                                                                                                                 |
+| e2e         | **35/35** — keyless CI shows the honest unconfigured note on the inbox                                                                                                                                                                                                                                          |
+| reviews     | Security **PASS** (credentials provably never logged; ad content through the audited pipeline; keywords injection-safe; RLS-only writes). Implementation **CHANGES_REQUESTED** → **1 MAJOR + minors confirmed and repaired** (below); re-gated green (176 unit). Codex re-review deferred (quota) ≥ 2026-07-29. |
+| CI          | green on the first pushed commit; re-run after the repairs.                                                                                                                                                                                                                                                     |
+
+## Review repairs (before merge)
+
+- **CONFIRMED MAJOR — predicted salaries imported as stated.** Adzuna's
+  "Jobsworth" model ESTIMATES a salary for ads that state none
+  (`salary_is_predicted`), very common on the fr market — and the connector
+  would have persisted those estimates as stated EUR/year compensation, in
+  direct violation of the "null = the source did not say" invariant (the
+  snapshot contains no salary text to substantiate them). **Fixed:** the flag
+  is parsed (string "1" or number 1 — Adzuna serializes both) and the WHOLE
+  compensation block is dropped when predicted. Regression test (both
+  serializations).
+- **Minor — no per-ad error isolation.** One malformed ad voided the whole
+  batch (generic error, no refresh, despite committed imports). Fixed: per-ad
+  try/catch + honest `failed` count surfaced in the result message (FR/EN
+  recomputed from imported/duplicates/failed — failures are no longer
+  miscounted as "already known").
+- **Minor — merged normalized bypassed the schema.** Now
+  `normalizedOpportunitySchema.parse(merged)` fails a bad ad locally instead
+  of deep in the RPC.
+- **Minor — AND keywords risked empty first runs.** Switched to `what_or`
+  (any profile keyword matches).
+- **Hardening:** upstream results capped at the requested page size;
+  non-http(s) `redirect_url` dropped; `ADZUNA_COUNTRY` regex-tightened.
 
 ## Stop
 

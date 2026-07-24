@@ -81,7 +81,57 @@ describe("searchAdzuna", () => {
     expect(minimal.compensationPeriod).toBeNull();
   });
 
-  it("sends credentials only in the request URL (never logged) and bounds keywords", async () => {
+  it("nulls the WHOLE compensation block for predicted (estimated) salaries", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        results: [
+          {
+            title: "Data Engineer",
+            description: "Poste sans salaire affiché.",
+            salary_min: 48000,
+            salary_max: 52000,
+            salary_is_predicted: "1", // Adzuna's model estimate — NOT stated
+          },
+          {
+            title: "Autre poste",
+            description: "Idem, flag numérique.",
+            salary_min: 40000,
+            salary_max: 45000,
+            salary_is_predicted: 1,
+          },
+        ],
+      }),
+    } as Response);
+    const ads = await searchAdzuna(["data"]);
+    for (const ad of ads) {
+      expect(ad.compensationMin).toBeNull();
+      expect(ad.compensationMax).toBeNull();
+      expect(ad.compensationCurrency).toBeNull();
+      expect(ad.compensationPeriod).toBeNull();
+    }
+  });
+
+  it("drops a non-http(s) redirect_url instead of storing it", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        results: [
+          {
+            title: "X",
+            description: "d",
+            redirect_url: "javascript:alert(1)",
+          },
+        ],
+      }),
+    } as Response);
+    const ads = await searchAdzuna(["x"]);
+    expect(ads[0].sourceUrl).toBeNull();
+  });
+
+  it("sends credentials only in the request URL (never logged), uses OR keywords, bounded", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -92,8 +142,8 @@ describe("searchAdzuna", () => {
     const parsed = new URL(String(calledUrl));
     expect(parsed.hostname).toBe("api.adzuna.com");
     expect(parsed.searchParams.get("app_id")).toBe("test-app-id");
-    // Keywords capped at 5.
-    expect(parsed.searchParams.get("what")).toBe("a b c d e");
+    // OR semantics + keywords capped at 5.
+    expect(parsed.searchParams.get("what_or")).toBe("a b c d e");
   });
 
   it("throws a typed error on HTTP failure and on invalid shape", async () => {

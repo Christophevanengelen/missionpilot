@@ -357,10 +357,18 @@ export const copy = {
       discover: {
         button: "Découvrir des offres",
         searching: "Recherche en cours…",
-        result: (found: number, imported: number) =>
-          found === 0
-            ? "Aucune offre trouvée pour votre profil cette fois-ci."
-            : `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${imported} ${imported > 1 ? "nouvelles" : "nouvelle"}, ${found - imported} déjà ${found - imported > 1 ? "connues" : "connue"}.`,
+        result: (imported: number, duplicates: number, failed: number) => {
+          const found = imported + duplicates + failed;
+          if (found === 0)
+            return "Aucune offre trouvée pour votre profil cette fois-ci.";
+          const parts = [
+            `${imported} ${imported > 1 ? "nouvelles" : "nouvelle"}`,
+            `${duplicates} déjà ${duplicates > 1 ? "connues" : "connue"}`,
+          ];
+          if (failed > 0)
+            parts.push(`${failed} en échec (réessayez plus tard)`);
+          return `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${parts.join(", ")}.`;
+        },
         errors: {
           unconfigured:
             "La découverte automatique n'est pas encore activée (clés Adzuna manquantes).",
@@ -811,10 +819,13 @@ export const copy = {
       discover: {
         button: "Discover offers",
         searching: "Searching…",
-        result: (found: number, imported: number) =>
-          found === 0
-            ? "No offer found for your profile this time."
-            : `${found} ${found > 1 ? "offers" : "offer"} found: ${imported} new, ${found - imported} already known.`,
+        result: (imported: number, duplicates: number, failed: number) => {
+          const found = imported + duplicates + failed;
+          if (found === 0) return "No offer found for your profile this time.";
+          const parts = [`${imported} new`, `${duplicates} already known`];
+          if (failed > 0) parts.push(`${failed} failed (try again later)`);
+          return `${found} ${found > 1 ? "offers" : "offer"} found: ${parts.join(", ")}.`;
+        },
         errors: {
           unconfigured:
             "Auto-discovery is not enabled yet (Adzuna keys missing).",

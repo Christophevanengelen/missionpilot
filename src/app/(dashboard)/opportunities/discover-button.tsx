@@ -34,7 +34,10 @@ export function DiscoverButton() {
     error: boolean;
   } {
     if (result.ok) {
-      return { text: copy.result(result.found, result.imported), error: false };
+      return {
+        text: copy.result(result.imported, result.duplicates, result.failed),
+        error: false,
+      };
     }
     return { text: copy.errors[result.error], error: true };
   }

@@ -18,7 +18,14 @@ import { loadLivingProfile } from "@/lib/profile/logic";
 const logger = createLogger({ module: "discovery-actions" });
 
 export type DiscoveryResult =
-  | { ok: true; found: number; imported: number; duplicates: number }
+  | {
+      ok: true;
+      found: number;
+      imported: number;
+      duplicates: number;
+      /** Ads that individually failed to import (logged; the rest landed). */
+      failed: number;
+    }
   | { ok: false; error: "unconfigured" | "no_keywords" | "generic" };
 
 /** Keywords from the confirmed profile: the role title first, then skills. */
@@ -51,10 +58,20 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     const ads = await searchAdzuna(keywords);
     let imported = 0;
     let duplicates = 0;
+    let failed = 0;
     for (const ad of ads) {
-      const result = await opportunity.importDiscovered(client, ad, "Adzuna");
-      if (result.created) imported += 1;
-      else duplicates += 1;
+      // Per-ad isolation: one malformed ad must not void the batch — the
+      // successful imports are committed and reported honestly.
+      try {
+        const result = await opportunity.importDiscovered(client, ad, "Adzuna");
+        if (result.created) imported += 1;
+        else duplicates += 1;
+      } catch (error) {
+        failed += 1;
+        logger.error("discovered ad import failed", {
+          reason: error instanceof Error ? error.message : "unknown",
+        });
+      }
     }
     try {
       revalidatePath("/opportunities");
@@ -65,7 +82,7 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
         reason: error instanceof Error ? error.message : "unknown",
       });
     }
-    return { ok: true, found: ads.length, imported, duplicates };
+    return { ok: true, found: ads.length, imported, duplicates, failed };
   } catch (error) {
     logger.error("discovery failed", {
       reason: error instanceof Error ? error.message : "unknown",
