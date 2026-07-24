@@ -11,6 +11,7 @@ const NAV_ITEMS: Array<{ label: string; href: string | null }> = [
   { label: "Opportunities", href: "/opportunities" },
   { label: "Applications", href: null },
   { label: "Profil & Preuves", href: "/profile" },
+  { label: "Recommandations", href: "/profile/recommendations" },
   { label: "Runs & Quality", href: "/diagnostics" },
   { label: "Settings", href: null },
 ];
