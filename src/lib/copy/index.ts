@@ -433,7 +433,7 @@ export const copy = {
           generic: "La recherche n'a pas abouti. Réessayez.",
         },
         unconfiguredNote:
-          "Découverte automatique : ajoutez des clés API Adzuna (gratuites) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
+          "Découverte automatique : ajoutez des identifiants de source légale (Adzuna et/ou France Travail) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
       },
       insight: {
         button: "Expliquer mes matchs (IA)",
@@ -1007,7 +1007,7 @@ export const copy = {
           generic: "The search did not go through. Try again.",
         },
         unconfiguredNote:
-          "Auto-discovery: add (free) Adzuna API keys in the configuration so MissionPilot can search offers matching your profile.",
+          "Auto-discovery: add legal-source credentials (Adzuna and/or France Travail) in the configuration so MissionPilot can search offers matching your profile.",
       },
       insight: {
         button: "Explain my matches (AI)",

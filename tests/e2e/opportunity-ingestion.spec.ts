@@ -73,9 +73,10 @@ test("import d'une annonce collée : statut, normalisation, source figée, doubl
   // Auto-discovery is keyless in CI: the inbox explains what to activate
   // instead of showing a button that cannot work (honest degradation).
   await expect(
-    page.getByText("Découverte automatique : ajoutez des clés API Adzuna", {
-      exact: false,
-    }),
+    page.getByText(
+      "Découverte automatique : ajoutez des identifiants de source légale",
+      { exact: false },
+    ),
   ).toBeVisible();
 
   // Paste + import → honest "created" status (no auto-navigation).

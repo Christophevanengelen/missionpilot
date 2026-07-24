@@ -25,6 +25,18 @@ export function assertProductionEnvInvariants(): void {
     }
   }
 
+  // France Travail is both-or-neither: one credential without the other leaves
+  // the source silently inert (graceful degradation would hide the typo). Fail
+  // the build loudly on a half-configuration, every environment.
+  if (
+    Boolean(env.FRANCE_TRAVAIL_CLIENT_ID) !==
+    Boolean(env.FRANCE_TRAVAIL_CLIENT_SECRET)
+  ) {
+    throw new Error(
+      "FRANCE_TRAVAIL_CLIENT_ID and FRANCE_TRAVAIL_CLIENT_SECRET must be set together (or both left unset).",
+    );
+  }
+
   if (env.APP_ENV !== "production") {
     return;
   }

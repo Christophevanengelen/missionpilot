@@ -60,28 +60,54 @@ export function buildSearchPlans(
  * deduped across searches by provenance URL (fallback: verbatim text) so an
  * ad matching two target métiers is counted once.
  */
-export async function runSearchPlans<
+/** A legal discovery source (Adzuna, France Travail, …) behind a common
+ *  search interface. `search` throws on failure; the runner isolates it. */
+export type DiscoverySource<
+  Ad extends { sourceUrl: string | null; rawText: string },
+> = {
+  name: string;
+  search: (keywords: string[], mode: SearchPlan["mode"]) => Promise<Ad[]>;
+};
+
+/**
+ * Run the plans against EVERY configured source with per-search isolation:
+ * one (source, plan) search failing must not void the others. Ads are deduped
+ * ACROSS sources and plans by provenance URL (fallback: verbatim text), so the
+ * same offer surfacing from two sources — or two métiers — is counted once,
+ * and each kept ad carries the name of the source it came from (for honest
+ * provenance on import). `failedSearches`/`totalSearches` let the caller tell
+ * a partial failure from a complete run.
+ */
+export async function runMultiSourceDiscovery<
   Ad extends { sourceUrl: string | null; rawText: string },
 >(
   plans: readonly SearchPlan[],
-  search: (keywords: string[], mode: SearchPlan["mode"]) => Promise<Ad[]>,
-  onSearchError: (plan: SearchPlan, error: unknown) => void,
-): Promise<{ ads: Ad[]; failedSearches: number }> {
+  sources: readonly DiscoverySource<Ad>[],
+  onSearchError: (sourceName: string, plan: SearchPlan, error: unknown) => void,
+): Promise<{
+  items: { ad: Ad; sourceName: string }[];
+  failedSearches: number;
+  totalSearches: number;
+}> {
   const seen = new Set<string>();
-  const ads: Ad[] = [];
+  const items: { ad: Ad; sourceName: string }[] = [];
   let failedSearches = 0;
-  for (const plan of plans) {
-    try {
-      for (const ad of await search(plan.keywords, plan.mode)) {
-        const key = ad.sourceUrl ?? ad.rawText;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        ads.push(ad);
+  let totalSearches = 0;
+  for (const source of sources) {
+    for (const plan of plans) {
+      totalSearches += 1;
+      try {
+        for (const ad of await source.search(plan.keywords, plan.mode)) {
+          const key = ad.sourceUrl ?? ad.rawText;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          items.push({ ad, sourceName: source.name });
+        }
+      } catch (error) {
+        failedSearches += 1;
+        onSearchError(source.name, plan, error);
       }
-    } catch (error) {
-      failedSearches += 1;
-      onSearchError(plan, error);
     }
   }
-  return { ads, failedSearches };
+  return { items, failedSearches, totalSearches };
 }
