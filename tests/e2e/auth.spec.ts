@@ -50,9 +50,9 @@ test.describe("authentication boundary", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(
-      page.getByRole("heading", { name: "Dashboard" }),
-    ).toBeVisible();
+    // The dashboard has two faces (hero vs status) depending on profile state;
+    // its title carries a stable id in both, so the assertion is robust.
+    await expect(page.locator("#dashboard-title")).toBeVisible();
     await expect(page.getByTestId("session-email")).toHaveText(DEV_EMAIL);
 
     await page.getByRole("button", { name: "Sign out" }).click();

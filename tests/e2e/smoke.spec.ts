@@ -48,9 +48,8 @@ test.describe("phase 0 smoke journey", () => {
     await page.getByLabel("Password").fill(DEV_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(
-      page.getByRole("heading", { name: "Dashboard" }),
-    ).toBeVisible();
+    // Two-faced dashboard (hero vs status); the title id is stable in both.
+    await expect(page.locator("#dashboard-title")).toBeVisible();
     await expectNoSeriousAxeViolations(page, "dashboard");
 
     // Diagnostics (Runs & Quality).
