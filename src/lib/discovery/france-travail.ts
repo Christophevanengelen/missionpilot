@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/observability/logger";
 import type { DiscoveredAd } from "./adzuna";
+import { toPostedAt } from "./posted-at";
 
 /**
  * France Travail connector — the second legal auto-discovery source (owner
@@ -40,6 +41,7 @@ const resultSchema = z.object({
   salaire: z.object({ libelle: z.string().nullish() }).nullish(),
   romeLibelle: z.string().nullish(),
   origineOffre: z.object({ urlOrigine: z.string().nullish() }).nullish(),
+  dateCreation: z.string().nullish(),
 });
 
 const searchResponseSchema = z.object({
@@ -176,6 +178,7 @@ function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
     compensationMax: null,
     compensationCurrency: null,
     compensationPeriod: null,
+    postedAt: toPostedAt(r.dateCreation),
     rawText,
   };
 }

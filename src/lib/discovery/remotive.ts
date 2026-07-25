@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { createLogger } from "@/lib/observability/logger";
 import type { DiscoveredAd } from "./adzuna";
 import { toPlainText } from "./html-text";
+import { toPostedAt } from "./posted-at";
 
 /**
  * Remotive connector — a legal remote/freelance feed that fills the gap
@@ -35,6 +36,7 @@ const jobSchema = z.object({
   job_type: z.string().nullish(),
   description: z.string().nullish(),
   url: z.string().nullish(),
+  publication_date: z.string().nullish(),
 });
 
 const responseSchema = z.object({ jobs: z.array(jobSchema).default([]) });
@@ -90,6 +92,7 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
     compensationMax: null,
     compensationCurrency: null,
     compensationPeriod: null,
+    postedAt: toPostedAt(j.publication_date),
     rawText,
   };
 }

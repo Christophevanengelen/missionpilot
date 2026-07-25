@@ -31,8 +31,20 @@ export type MarketHit = {
   skills: string[];
   /** First lines of the description, for the result row. */
   excerpt: string | null;
-  /** The platform that served this offer — displayed, and required by several
-   *  sources' attribution terms. */
+  /** ISO-8601 UTC when the source says it was published, else null. The
+   *  freshness signal — the first thing a job seeker reads. */
+  postedAt: string | null;
+  /**
+   * EVERY platform carrying this offer, in the order they were seen.
+   *
+   * A meta-search's worst failure is showing the same job five times. But the
+   * fix is not to hide the duplicates — it is to merge them and say where the
+   * offer appears. Being listed on three platforms is a signal the posting is
+   * live and actively promoted, and it also discharges the attribution duty of
+   * every source involved rather than only the first one seen.
+   */
+  sources: { name: string; url: string | null }[];
+  /** The platform whose record was richest, kept for the primary link. */
   sourceName: string;
   /** The link the user actually goes to. The product's whole promise is that
    *  this points at the original posting. */

@@ -45,6 +45,7 @@ const AD: DiscoveredAd = {
   compensationMax: 65000,
   compensationCurrency: "EUR",
   compensationPeriod: "year",
+  postedAt: null,
   rawText:
     "Senior Data Engineer\nchez Scaleup SA\nLocation: Paris, Île-de-France\n\nPipeline Spark et Airflow pour une scale-up en croissance.",
 };

@@ -44,6 +44,7 @@ const AD: DiscoveredAd = {
   compensationMax: null,
   compensationCurrency: null,
   compensationPeriod: null,
+  postedAt: null,
   rawText: "Data Engineer\nchez Nova SA\n\nSpark, Airflow.",
 };
 

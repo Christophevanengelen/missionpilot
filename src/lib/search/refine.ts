@@ -119,8 +119,66 @@ export function unstatedCount(
   ).length;
 }
 
+/**
+ * How many results each option would leave — including an explicit count for
+ * "the source did not say".
+ *
+ * A benchmark of ten job boards (Google for Jobs, LinkedIn, Indeed, Otta,
+ * Wellfound, Free-Work…) found NONE of them shows facet counts, though it is
+ * standard in e-commerce search. It is the cheapest possible fix here, since
+ * the whole result set is already in memory, and it is what makes a three-state
+ * filter legible: without a count, the user cannot tell what checking a box
+ * will cost them. It also surfaces a truth the category hides — that most
+ * listings say nothing about remote or contract type.
+ *
+ * Counted the standard faceted way: over the hits passing the OTHER criteria,
+ * so a count always predicts what clicking will actually show.
+ */
+export type Facet<T> = { value: T | null; count: number };
+
+function facetsFor<T extends string>(
+  hits: readonly MarketHit[],
+  filters: MarketFilters,
+  field: "engagementType" | "remoteType",
+  values: readonly T[],
+): Facet<T>[] {
+  // Neutralise this dimension so its own selection does not shrink its counts.
+  const others = filterHits(hits, {
+    ...filters,
+    ...(field === "engagementType"
+      ? { engagementTypes: [] }
+      : { remoteTypes: [] }),
+  });
+  const counted = values.map((value) => ({
+    value,
+    count: others.filter((h) => h[field] === value).length,
+  }));
+  return [
+    ...counted,
+    // "Not stated" is a first-class, countable value — never a silent residue.
+    { value: null, count: others.filter((h) => h[field] === null).length },
+  ];
+}
+
+export function engagementFacets(
+  hits: readonly MarketHit[],
+  filters: MarketFilters,
+  values: readonly EngagementType[],
+): Facet<EngagementType>[] {
+  return facetsFor(hits, filters, "engagementType", values);
+}
+
+export function remoteFacets(
+  hits: readonly MarketHit[],
+  filters: MarketFilters,
+  values: readonly RemoteType[],
+): Facet<RemoteType>[] {
+  return facetsFor(hits, filters, "remoteType", values);
+}
+
 export const SORT_KEYS = [
   "relevance",
+  "freshness",
   "compensation",
   "organization",
   "title",
@@ -141,6 +199,10 @@ function sortValue(hit: MarketHit, key: SortKey): number | string | null {
   switch (key) {
     case "relevance":
       return hit.score;
+    case "freshness":
+      // Milliseconds since epoch, so "descending" means newest first — the
+      // direction a job seeker almost always wants.
+      return hit.postedAt === null ? null : Date.parse(hit.postedAt);
     case "compensation":
       // The upper bound is what a reader compares on; fall back to the lower
       // bound so a single-figure offer still sorts.

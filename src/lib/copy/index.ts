@@ -62,6 +62,17 @@ export const copy = {
       refineLabel: "Affiner les résultats",
       engagementLabel: "Type d'engagement",
       remoteLabel: "Télétravail",
+      notStated: "Non précisé",
+      // Relative age, because "il y a 3 jours" is read instantly where an
+      // absolute date forces a mental subtraction.
+      age: (days: number) =>
+        days <= 0
+          ? "publiée aujourd'hui"
+          : days === 1
+            ? "publiée hier"
+            : `publiée il y a ${days} jours`,
+      ageUnknown: "date de publication non communiquée",
+      alsoOn: (names: readonly string[]) => `aussi sur ${names.join(", ")}`,
       countryLabel: "Pays ou région",
       countryPlaceholder: "France, Belgique…",
       includeUnstated: "Garder les offres qui ne précisent pas ces critères",
@@ -853,6 +864,15 @@ export const copy = {
       refineLabel: "Refine results",
       engagementLabel: "Engagement type",
       remoteLabel: "Remote",
+      notStated: "Not stated",
+      age: (days: number) =>
+        days <= 0
+          ? "posted today"
+          : days === 1
+            ? "posted yesterday"
+            : `posted ${days} days ago`,
+      ageUnknown: "publication date not provided",
+      alsoOn: (names: readonly string[]) => `also on ${names.join(", ")}`,
       countryLabel: "Country or region",
       countryPlaceholder: "France, Belgium…",
       includeUnstated: "Keep offers that do not state these criteria",

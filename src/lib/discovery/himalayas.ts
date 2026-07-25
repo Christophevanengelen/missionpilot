@@ -7,6 +7,7 @@ import type { DiscoveredAd } from "./adzuna";
 import { boundedAmount } from "./amount";
 import { createTtlCache } from "./cache";
 import { firstPlainText } from "./html-text";
+import { isExpired, toPostedAt } from "./posted-at";
 
 /**
  * Himalayas connector — a legal remote-work source with a PUBLIC, documented,
@@ -48,8 +49,8 @@ const jobSchema = z.object({
   // `z.number()` rejects Infinity, which `JSON.parse('{"n":1e400}')` produces —
   // and a schema failure voids the WHOLE response, so one absurd figure in one
   // listing would cost us the other nineteen. Drop the figure, keep the batch.
-  minSalary: z.unknown(),
-  maxSalary: z.unknown(),
+  minSalary: z.unknown().optional(),
+  maxSalary: z.unknown().optional(),
   currency: z.string().nullish(),
   salaryPeriod: z.string().nullish(),
   seniority: z.array(z.string()).nullish(),
@@ -57,6 +58,8 @@ const jobSchema = z.object({
   timezoneRestrictions: z.array(z.number()).nullish(),
   applicationLink: z.string().nullish(),
   guid: z.string().nullish(),
+  pubDate: z.unknown().optional(),
+  expiryDate: z.unknown().optional(),
 });
 
 // `jobs` is REQUIRED, deliberately without a default: an error envelope that
@@ -176,6 +179,7 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
       ? (currency as "EUR" | "USD" | "GBP" | "CHF")
       : null,
     compensationPeriod: hasSalary ? period : null,
+    postedAt: toPostedAt(j.pubDate),
     rawText,
   };
 }
@@ -233,6 +237,10 @@ export async function searchHimalayas(
   }
   const ads = parsed.data.jobs
     .slice(0, RESULTS_PER_PAGE)
+    // An offer past its stated expiry has no business in a view of what is
+    // open RIGHT NOW. Himalayas is the only source that states one, so this is
+    // a bonus where available — never an assumption applied elsewhere.
+    .filter((j) => !isExpired(j.expiryDate))
     .map(toAd)
     // ToS: attribution + link-back is REQUIRED, so an ad we cannot link back
     // to is dropped rather than imported without its provenance. Also drops

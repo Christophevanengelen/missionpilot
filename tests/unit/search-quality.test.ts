@@ -1,0 +1,273 @@
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+import { isExpired, toPostedAt } from "@/lib/discovery/posted-at";
+import { mergeDuplicates } from "@/lib/search/dedupe";
+import {
+  NO_FILTERS,
+  engagementFacets,
+  remoteFacets,
+  sortHits,
+} from "@/lib/search/refine";
+import type { MarketHit } from "@/lib/search/types";
+
+const NOW = Date.parse("2026-07-25T12:00:00Z");
+
+function hit(over: Partial<MarketHit> = {}): MarketHit {
+  return {
+    key: Math.random().toString(36),
+    title: "Senior Service Designer",
+    organization: "Nova",
+    locationText: "Paris",
+    engagementType: "freelance",
+    remoteType: "remote_only",
+    compensationMin: null,
+    compensationMax: null,
+    compensationCurrency: null,
+    compensationPeriod: null,
+    skills: [],
+    excerpt: null,
+    postedAt: null,
+    sources: [{ name: "Himalayas", url: "https://himalayas.app/1" }],
+    sourceName: "Himalayas",
+    sourceUrl: "https://himalayas.app/1",
+    gate: "eligible",
+    score: 50,
+    unknowns: [],
+    ...over,
+  };
+}
+
+/**
+ * Freshness is the first thing a job seeker reads, and the three sources state
+ * it three different ways. Guessing a format is how a date lands months off.
+ */
+describe("toPostedAt", () => {
+  it("reads each source's own format", () => {
+    // Himalayas: Unix SECONDS (their real payload shape).
+    expect(toPostedAt(Date.parse("2026-07-24T05:44:29Z") / 1000, NOW)).toBe(
+      "2026-07-24T05:44:29.000Z",
+    );
+    // Jobicy: ISO with an offset.
+    expect(toPostedAt("2026-07-25T11:30:03+00:00", NOW)).toBe(
+      "2026-07-25T11:30:03.000Z",
+    );
+    // Remotive: ISO with NO offset — read as UTC, as documented.
+    expect(toPostedAt("2026-07-24T10:33:35", NOW)).toBe(
+      "2026-07-24T10:33:35.000Z",
+    );
+  });
+
+  it("tells milliseconds from seconds", () => {
+    const seconds = Date.parse("2026-07-24T05:44:29Z") / 1000;
+    expect(toPostedAt(seconds * 1000, NOW)).toBe(toPostedAt(seconds, NOW));
+  });
+
+  it("returns null rather than inventing a date", () => {
+    for (const bad of [
+      null,
+      undefined,
+      "",
+      "  ",
+      "bientôt",
+      {},
+      [],
+      NaN,
+      0,
+      -5,
+    ]) {
+      expect(toPostedAt(bad, NOW)).toBeNull();
+    }
+  });
+
+  it("refuses an implausible date instead of stamping it", () => {
+    // A unit mix-up would land far in the future or far in the past; either
+    // would be displayed as a confident "posted N days ago".
+    expect(toPostedAt("2030-01-01T00:00:00Z", NOW)).toBeNull();
+    expect(toPostedAt("2001-01-01T00:00:00Z", NOW)).toBeNull();
+    // A few hours of clock skew stays acceptable.
+    expect(toPostedAt("2026-07-25T18:00:00Z", NOW)).not.toBeNull();
+  });
+});
+
+describe("isExpired", () => {
+  it("drops a listing past its stated expiry", () => {
+    expect(isExpired("2026-07-24T00:00:00Z", NOW)).toBe(true);
+    expect(isExpired("2026-08-24T00:00:00Z", NOW)).toBe(false);
+  });
+
+  it("treats an absent or unreadable expiry as NOT expired", () => {
+    // We do not know that it ended, so we must not act as if we did.
+    expect(isExpired(null, NOW)).toBe(false);
+    expect(isExpired("n/a", NOW)).toBe(false);
+  });
+});
+
+/**
+ * The signature failure of a meta-search: the same job shown five times
+ * because five boards carry it. URL dedup cannot catch it — each board
+ * publishes its own URL.
+ */
+describe("mergeDuplicates", () => {
+  it("merges the same posting seen on two platforms", () => {
+    const merged = mergeDuplicates([
+      hit({
+        sourceName: "Himalayas",
+        sources: [{ name: "Himalayas", url: "https://himalayas.app/1" }],
+      }),
+      hit({
+        sourceName: "Jobicy",
+        sources: [{ name: "Jobicy", url: "https://jobicy.com/2" }],
+      }),
+    ]);
+    expect(merged).toHaveLength(1);
+    // Both platforms are credited — which is also their contractual due.
+    expect(merged[0].sources.map((s) => s.name)).toEqual([
+      "Himalayas",
+      "Jobicy",
+    ]);
+  });
+
+  it("keeps the record that states the most", () => {
+    const thin = hit({ unknowns: ["a", "b", "c"], locationText: null });
+    const rich = hit({ unknowns: ["a"], locationText: "Paris, France" });
+    expect(mergeDuplicates([thin, rich])[0].locationText).toBe("Paris, France");
+    // …whichever order they arrive in.
+    expect(mergeDuplicates([rich, thin])[0].locationText).toBe("Paris, France");
+  });
+
+  it("keeps the EARLIEST known publication date", () => {
+    const merged = mergeDuplicates([
+      hit({ postedAt: "2026-07-20T00:00:00Z" }),
+      hit({ postedAt: "2026-07-24T00:00:00Z" }),
+    ]);
+    expect(merged[0].postedAt).toBe("2026-07-20T00:00:00Z");
+  });
+
+  it("never treats an unknown date as old", () => {
+    const merged = mergeDuplicates([
+      hit({ postedAt: null }),
+      hit({ postedAt: "2026-07-24T00:00:00Z" }),
+    ]);
+    expect(merged[0].postedAt).toBe("2026-07-24T00:00:00Z");
+  });
+
+  it("does NOT merge when either half of the identity is missing", () => {
+    // Unknown is not a match: two untitled offers are not the same offer.
+    expect(
+      mergeDuplicates([hit({ title: null }), hit({ title: null })]),
+    ).toHaveLength(2);
+    expect(
+      mergeDuplicates([
+        hit({ organization: null }),
+        hit({ organization: null }),
+      ]),
+    ).toHaveLength(2);
+  });
+
+  it("does not merge different roles at the same company", () => {
+    expect(
+      mergeDuplicates([hit(), hit({ title: "Data Engineer" })]),
+    ).toHaveLength(2);
+  });
+
+  it("matches across punctuation, case and accents", () => {
+    expect(
+      mergeDuplicates([
+        hit({ title: "Senior Service Designer", organization: "Nova" }),
+        hit({ title: "senior  service-designer", organization: "NOVA" }),
+      ]),
+    ).toHaveLength(1);
+  });
+
+  it("preserves the incoming order, so relevance ranking survives", () => {
+    const merged = mergeDuplicates([
+      hit({ title: "A", score: 90 }),
+      hit({ title: "B", score: 50 }),
+      hit({ title: "A", score: 90 }),
+    ]);
+    expect(merged.map((h) => h.title)).toEqual(["A", "B"]);
+  });
+});
+
+describe("facets", () => {
+  it("counts every option AND the unstated ones", () => {
+    const hits = [
+      hit({ engagementType: "freelance" }),
+      hit({ engagementType: "freelance" }),
+      hit({ engagementType: "permanent" }),
+      hit({ engagementType: null }),
+    ];
+    const facets = engagementFacets(hits, NO_FILTERS, [
+      "freelance",
+      "permanent",
+    ]);
+    expect(facets).toEqual([
+      { value: "freelance", count: 2 },
+      { value: "permanent", count: 1 },
+      // "Not stated" is a first-class countable value, not a silent residue.
+      { value: null, count: 1 },
+    ]);
+  });
+
+  it("counts over the OTHER filters, so a count predicts what clicking shows", () => {
+    const hits = [
+      hit({ engagementType: "freelance", remoteType: "remote_only" }),
+      hit({ engagementType: "freelance", remoteType: "onsite" }),
+    ];
+    const facets = engagementFacets(
+      hits,
+      { ...NO_FILTERS, remoteTypes: ["remote_only"] },
+      ["freelance"],
+    );
+    expect(facets[0]).toEqual({ value: "freelance", count: 1 });
+  });
+
+  it("does not let a dimension shrink its own counts", () => {
+    // Selecting "remote only" must not make the other remote options read 0 —
+    // the user could never widen back.
+    const hits = [
+      hit({ remoteType: "remote_only" }),
+      hit({ remoteType: "onsite" }),
+    ];
+    const facets = remoteFacets(
+      hits,
+      { ...NO_FILTERS, remoteTypes: ["remote_only"] },
+      ["remote_only", "onsite"],
+    );
+    expect(facets).toEqual([
+      { value: "remote_only", count: 1 },
+      { value: "onsite", count: 1 },
+      { value: null, count: 0 },
+    ]);
+  });
+});
+
+describe("sortHits — freshness", () => {
+  it("puts the newest first when descending", () => {
+    const hits = [
+      hit({ postedAt: "2026-07-20T00:00:00Z" }),
+      hit({ postedAt: "2026-07-24T00:00:00Z" }),
+    ];
+    expect(
+      sortHits(hits, { key: "freshness", direction: "desc" }).map(
+        (h) => h.postedAt,
+      ),
+    ).toEqual(["2026-07-24T00:00:00Z", "2026-07-20T00:00:00Z"]);
+  });
+
+  it("sinks undated offers to the bottom in BOTH directions", () => {
+    // An undated offer is not an old offer — it must never head the list of
+    // "oldest first" either.
+    const hits = [
+      hit({ postedAt: null }),
+      hit({ postedAt: "2026-07-24T00:00:00Z" }),
+    ];
+    for (const direction of ["asc", "desc"] as const) {
+      expect(
+        sortHits(hits, { key: "freshness", direction })[1].postedAt,
+      ).toBeNull();
+    }
+  });
+});

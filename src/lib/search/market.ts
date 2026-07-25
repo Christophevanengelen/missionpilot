@@ -7,6 +7,7 @@ import {
   type SearchPlan,
 } from "@/lib/discovery/plan";
 import { normalizeDiscovered } from "@/lib/opportunity/logic";
+import { mergeDuplicates } from "./dedupe";
 import { evaluateHardConstraints } from "@/lib/matching/hard-constraints";
 import { scoreMatch, type ProfileSignals } from "@/lib/matching/score";
 import type { ProfilePreferences } from "@/domain/profile";
@@ -92,6 +93,8 @@ function toHit(
     compensationPeriod: n.compensationPeriod,
     skills: n.skills,
     excerpt: excerptOf(n.description),
+    postedAt: ad.postedAt,
+    sources: [{ name: sourceName, url: ad.sourceUrl }],
     sourceName,
     sourceUrl: ad.sourceUrl,
     gate: evaluateHardConstraints(preferences, facts).gate,
@@ -116,7 +119,9 @@ export async function searchMarket(
     .map(({ ad, sourceName }) => toHit(ad, sourceName, preferences, signals))
     .filter((hit): hit is MarketHit => hit !== null);
   return {
-    hits,
+    // The runner already deduped by provenance URL; this catches what that
+    // cannot — the SAME posting published by two boards under two URLs.
+    hits: mergeDuplicates(hits),
     failedSources,
     searchedSources: sources.map((s) => s.name),
   };

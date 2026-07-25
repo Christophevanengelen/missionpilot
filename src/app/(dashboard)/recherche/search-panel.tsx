@@ -10,7 +10,9 @@ import {
   DEFAULT_SORT,
   NO_FILTERS,
   SORT_KEYS,
+  engagementFacets,
   filterHits,
+  remoteFacets,
   sortHits,
   unstatedCount,
   type MarketFilters,
@@ -133,30 +135,44 @@ export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
           >
             <ChipGroup
               label={copy.engagementLabel}
-              options={ENGAGEMENTS.map((e) => ({
-                value: e,
-                label: t().opportunities.engagementTypes[e],
-              }))}
+              options={engagementFacets(result.hits, filters, ENGAGEMENTS).map(
+                (f) => ({
+                  value: f.value,
+                  label:
+                    f.value === null
+                      ? copy.notStated
+                      : t().opportunities.engagementTypes[f.value],
+                  count: f.count,
+                }),
+              )}
               selected={filters.engagementTypes}
+              unstatedSelected={filters.includeUnstated}
               onToggle={(v) =>
-                setFilters((f) => ({
-                  ...f,
-                  engagementTypes: toggle(f.engagementTypes, v),
-                }))
+                setFilters((f) =>
+                  v === null
+                    ? { ...f, includeUnstated: !f.includeUnstated }
+                    : { ...f, engagementTypes: toggle(f.engagementTypes, v) },
+                )
               }
             />
             <ChipGroup
               label={copy.remoteLabel}
-              options={REMOTES.map((r) => ({
-                value: r,
-                label: t().opportunities.remoteTypes[r],
+              options={remoteFacets(result.hits, filters, REMOTES).map((f) => ({
+                value: f.value,
+                label:
+                  f.value === null
+                    ? copy.notStated
+                    : t().opportunities.remoteTypes[f.value],
+                count: f.count,
               }))}
               selected={filters.remoteTypes}
+              unstatedSelected={filters.includeUnstated}
               onToggle={(v) =>
-                setFilters((f) => ({
-                  ...f,
-                  remoteTypes: toggle(f.remoteTypes, v),
-                }))
+                setFilters((f) =>
+                  v === null
+                    ? { ...f, includeUnstated: !f.includeUnstated }
+                    : { ...f, remoteTypes: toggle(f.remoteTypes, v) },
+                )
               }
             />
             <div className="flex flex-col gap-1">
@@ -256,22 +272,27 @@ function ChipGroup<T extends string>({
   label,
   options,
   selected,
+  unstatedSelected,
   onToggle,
 }: {
   label: string;
-  options: { value: T; label: string }[];
+  options: { value: T | null; label: string; count: number }[];
   selected: readonly T[];
-  onToggle: (value: T) => void;
+  /** Whether the shared "not stated" setting is on — the null chip reflects
+   *  it, so the same truth is visible wherever the user is looking. */
+  unstatedSelected: boolean;
+  onToggle: (value: T | null) => void;
 }) {
   return (
     <div role="group" aria-label={label} className="flex flex-col gap-1">
       <span className="text-muted-foreground text-xs">{label}</span>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => {
-          const on = selected.includes(o.value);
+          const on =
+            o.value === null ? unstatedSelected : selected.includes(o.value);
           return (
             <button
-              key={o.value}
+              key={o.value ?? "__unstated"}
               type="button"
               aria-pressed={on}
               onClick={() => onToggle(o.value)}
@@ -281,13 +302,20 @@ function ChipGroup<T extends string>({
                   : "border-border rounded-full border px-3 py-1 text-xs"
               }
             >
-              {o.label}
+              {/* The count is what makes a three-state filter legible: the user
+                  sees what checking the box will cost before clicking. */}
+              {o.label} ({o.count})
             </button>
           );
         })}
       </div>
     </div>
   );
+}
+
+/** Whole days since publication, floored — the granularity the copy shows. */
+function ageInDays(postedAt: string): number {
+  return Math.floor((Date.now() - Date.parse(postedAt)) / 86_400_000);
 }
 
 function ResultRow({ hit }: { hit: MarketHit }) {
@@ -313,6 +341,14 @@ function ResultRow({ hit }: { hit: MarketHit }) {
       <p className="text-muted-foreground text-xs">
         {meta.join(" · ") || copy.noMeta}
       </p>
+      {/* Freshness is the first thing a job seeker reads. When the source gave
+          no date we SAY so, rather than passing off the moment we fetched it
+          as the moment it was published — the commonest lie of aggregators. */}
+      <p className="text-muted-foreground text-xs">
+        {hit.postedAt === null
+          ? copy.ageUnknown
+          : copy.age(ageInDays(hit.postedAt))}
+      </p>
       {hit.excerpt ? <p className="text-sm">{hit.excerpt}</p> : null}
       <p className="text-muted-foreground text-xs">
         {opp.fields.sourceName} : {hit.sourceName}
@@ -331,6 +367,11 @@ function ResultRow({ hit }: { hit: MarketHit }) {
             </a>
           </>
         ) : null}
+        {/* Merged duplicates: being carried by several platforms is a signal
+            the posting is live — and every one of them is owed its credit. */}
+        {hit.sources.length > 1
+          ? ` · ${copy.alsoOn(hit.sources.slice(1).map((s) => s.name))}`
+          : ""}
       </p>
       {hit.unknowns.length > 0 ? (
         <p className="text-muted-foreground text-xs">

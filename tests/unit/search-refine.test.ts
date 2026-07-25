@@ -23,6 +23,8 @@ function hit(over: Partial<MarketHit> = {}): MarketHit {
     compensationPeriod: null,
     skills: ["figma"],
     excerpt: "…",
+    postedAt: null,
+    sources: [{ name: "Himalayas", url: "https://himalayas.app/jobs/1" }],
     sourceName: "Himalayas",
     sourceUrl: "https://himalayas.app/jobs/1",
     gate: "eligible",
