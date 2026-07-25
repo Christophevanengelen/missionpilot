@@ -44,15 +44,22 @@ const REMOTES: readonly RemoteType[] = ["remote_only", "hybrid", "onsite"];
 export function SearchPanel({
   defaultQuery,
   defaultCountries,
+  initialResult = null,
 }: {
   defaultQuery: string;
   defaultCountries: string[];
+  /** Results already computed on the server for this visit. The product does
+   *  not ask the user to search: what the market has for them today is on
+   *  screen when they arrive, and the box below only REFINES it. */
+  initialResult?: MarketSearchResult | null;
 }) {
   const copy = t().search;
   const [query, setQuery] = useState(defaultQuery);
   const [countries, setCountries] = useState<string[]>(defaultCountries);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<MarketSearchResult | null>(null);
+  const [result, setResult] = useState<MarketSearchResult | null>(
+    initialResult,
+  );
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<MarketFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<MarketSort>(DEFAULT_SORT);
@@ -114,8 +121,8 @@ export function SearchPanel({
             placeholder={copy.queryPlaceholder}
           />
         </div>
-        <Button type="submit" aria-busy={busy || undefined}>
-          {busy ? copy.searching : copy.submit}
+        <Button type="submit" variant="outline" aria-busy={busy || undefined}>
+          {busy ? copy.searching : copy.refine}
         </Button>
       </form>
       <p className="text-muted-foreground text-xs">{copy.queryHint}</p>

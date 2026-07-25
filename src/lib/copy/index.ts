@@ -58,6 +58,10 @@ export const copy = {
       queryHint:
         "Laissez vide pour chercher sur les métiers déduits de votre CV.",
       submit: "Chercher",
+      refine: "Relancer avec ces critères",
+      autoNote:
+        "Cette liste a été cherchée pour vous à l'ouverture, sur les métiers déduits de votre CV. Ajustez ci-dessous si vous voulez autre chose.",
+      loading: "Nous interrogeons les plateformes…",
       searching: "Recherche en cours…",
       refineLabel: "Affiner les résultats",
       engagementLabel: "Type d'engagement",
@@ -883,6 +887,10 @@ export const copy = {
       queryPlaceholder: "Service Designer",
       queryHint: "Leave empty to search the roles inferred from your CV.",
       submit: "Search",
+      refine: "Search again with these criteria",
+      autoNote:
+        "This list was searched for you on arrival, using the roles inferred from your CV. Adjust below if you want something else.",
+      loading: "Querying the platforms…",
       searching: "Searching…",
       refineLabel: "Refine results",
       engagementLabel: "Engagement type",
