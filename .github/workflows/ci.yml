@@ -27,6 +27,16 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# The Supabase CLI ships analytics that phone home on shutdown. On a runner
+# with no outbound path to their collector it hangs and then exits NON-ZERO —
+# observed failing a run in which all 190 pgTAP tests had already reported
+# "Result: PASS", with the only error being "Timeout while shutting down
+# PostHog". A gate that fails on telemetry teaches the team to ignore red
+# builds, which is far more expensive than the telemetry is worth.
+# DO_NOT_TRACK is the CLI's documented opt-out.
+env:
+  DO_NOT_TRACK: "1"
+
 jobs:
   quality:
     name: Quality gates (no services)
