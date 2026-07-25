@@ -49,6 +49,22 @@ export const copy = {
         missing: "(absent de votre profil)",
       },
     },
+    home: {
+      heroTitle: "Déposez votre CV. On s'occupe du reste.",
+      heroLead:
+        "On lit votre parcours, on comprend où vous en êtes — et à chaque connexion, on vous montre ce que le marché a pour vous maintenant. Y compris le poste d'un cran au-dessus.",
+      heroPromise:
+        "Aucune offre n'est stockée. On ne postule jamais à votre place : vous cliquez, vous partez sur l'annonce d'origine.",
+      resultsTitle: "Ce que le marché a pour vous",
+      resultsLead:
+        "Cherché à l'instant, sur les plateformes que nous couvrons. Chaque résultat mène à l'annonce d'origine.",
+      searching: "Nous interrogeons les plateformes…",
+      nudge: (score: number, ask: string) =>
+        `Profil à ${score} %. En nous donnant ${ask}, on cherche mieux pour vous.`,
+      nudgeLink: "Compléter",
+      unconfigured:
+        "Aucune source n'est encore activée. Il n'y a rien à chercher pour l'instant.",
+    },
     search: {
       title: "Recherche d'opportunités",
       subtitle:
@@ -897,6 +913,21 @@ export const copy = {
         covered: "(covered by your profile)",
         missing: "(missing from your profile)",
       },
+    },
+    home: {
+      heroTitle: "Drop your CV. We take it from there.",
+      heroLead:
+        "We read your track record, we work out where you stand — and on every visit we show you what the market has for you now. Including the role one rung up.",
+      heroPromise:
+        "No offer is stored. We never apply on your behalf: you click, you land on the original posting.",
+      resultsTitle: "What the market has for you",
+      resultsLead:
+        "Searched just now, across the platforms we cover. Every result leads to the original posting.",
+      searching: "Querying the platforms…",
+      nudge: (score: number, ask: string) =>
+        `Profile at ${score}%. Give us ${ask} and we search better for you.`,
+      nudgeLink: "Complete it",
+      unconfigured: "No source is enabled yet. There is nothing to search.",
     },
     search: {
       title: "Opportunity search",

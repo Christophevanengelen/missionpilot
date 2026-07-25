@@ -4,19 +4,21 @@ import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/nav-link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// Primary navigation from docs/UX_SPEC.md. Only routes that exist are links;
-// the rest are announced as "coming soon" so the shell stays honest.
+/**
+ * The product is ONE screen.
+ *
+ * This shell used to carry eight destinations — a dashboard of metrics, an
+ * inbox, a CRM pipeline, diagnostics — which made an opportunity engine read as
+ * an administration console. The owner opened the URL and saw furniture, not a
+ * promise.
+ *
+ * There are two places now: what the market has for you, and who you are. Every
+ * other screen still exists at its route for when it is genuinely needed, but
+ * none of them earns a permanent seat in front of someone who came to find work.
+ */
 const NAV_ITEMS: Array<{ label: string; href: string | null }> = [
-  { label: "Dashboard", href: "/dashboard" },
-  // The search is the product's front door: what is open on the market right
-  // now. The inbox below it is the shortlist the user deliberately keeps.
-  { label: "Recherche", href: "/recherche" },
-  { label: "Opportunities", href: "/opportunities" },
-  { label: "Applications", href: "/applications" },
-  { label: "Profil & Preuves", href: "/profile" },
-  { label: "Recommandations", href: "/profile/recommendations" },
-  { label: "Runs & Quality", href: "/diagnostics" },
-  { label: "Settings", href: null },
+  { label: "Mes opportunités", href: "/dashboard" },
+  { label: "Mon profil", href: "/profile" },
 ];
 
 // The linkable destinations, so each NavLink can defer to a more-specific
