@@ -90,3 +90,30 @@ export function annualEquivalent(hit: {
 export function comparablePay(hit: MarketHit): number | null {
   return annualEquivalent(hit)?.amount ?? null;
 }
+
+/**
+ * The figures a pay line can actually show, or null when there is nothing to
+ * show.
+ *
+ * This exists because the naive version crashed the entire result list in
+ * production. An offer can carry a CURRENCY WITH NO AMOUNT — the extractor
+ * reads "EUR" in prose without a parseable figure — and a non-null assertion
+ * on the amount asserted otherwise. TypeScript cannot catch a `!` that lies,
+ * so the guard lives here, in a pure function with a test, instead of inside a
+ * component where it could only be found by shipping it.
+ */
+export function payParts(hit: {
+  compensationMin: number | null;
+  compensationMax: number | null;
+  compensationCurrency: string | null;
+  compensationPeriod: string | null;
+}): { low: number; high: number | null; currency: string } | null {
+  if (hit.compensationCurrency === null) return null;
+  const low = hit.compensationMin ?? hit.compensationMax;
+  if (low === null) return null;
+  const high =
+    hit.compensationMax !== null && hit.compensationMax !== low
+      ? hit.compensationMax
+      : null;
+  return { low, high, currency: hit.compensationCurrency };
+}
