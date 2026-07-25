@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/observability/logger";
 import type { DiscoveredAd } from "./adzuna";
+import { toPlainText } from "./html-text";
 
 /**
  * Remotive connector — a legal remote/freelance feed that fills the gap
@@ -44,56 +45,6 @@ const log = createLogger({ module: "discovery-remotive" });
 
 export function remotiveConfigured(): boolean {
   return env.REMOTIVE_ENABLED === true;
-}
-
-/**
- * Strip the HTML Remotive ships in `description` down to the text a human
- * would actually READ.
- *
- * Two rules matter, and both protect the honesty invariant rather than just
- * cosmetics:
- * 1. Never-rendered elements (`script`, `style`) are removed WITH their body.
- *    Stripping only their tags would promote code/CSS — and, worse, text the
- *    ad never displayed — into the description; the deterministic extractor
- *    would then read a "TJM 2000 EUR" nobody ever saw and store it as a
- *    stated fact.
- * 2. The generic tag strip must tolerate `>` inside attribute values, so a
- *    quoted attribute cannot swallow the visible text that follows it.
- */
-function toPlainText(html: string): string {
-  return (
-    html
-      // Non-rendered elements first, body included (both terminated and
-      // truncated/unterminated forms).
-      .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, " ")
-      .replace(/<(script|style)\b[^>]*>[\s\S]*$/gi, " ")
-      // Explicitly hidden elements, body included: an ad can smuggle text a
-      // human never sees (a fake "TJM : 2000 EUR") which the extractor would
-      // then read as a stated fact.
-      .replace(
-        /<([a-z]+)\b[^>]*\bstyle\s*=\s*(["'])[^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)[^"']*\2[^>]*>[\s\S]*?<\/\1\s*>/gi,
-        " ",
-      )
-      .replace(
-        /<([a-z]+)\b[^>]*\bhidden(?=[\s>])[^>]*>[\s\S]*?<\/\1\s*>/gi,
-        " ",
-      )
-      .replace(/<br\s*\/?>(?=\s*\S)/gi, "\n")
-      .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
-      // Tag strip that understands quoted attributes (so `alt="a > b"` cannot
-      // eat the following sentence) and drops a trailing unterminated tag.
-      .replace(/<[a-z!/][^>"']*(?:"[^"]*"|'[^']*'[^>"']*)*>/gi, " ")
-      .replace(/<[a-z!/][^>]*$/gi, " ")
-      .replace(/&nbsp;/gi, " ")
-      .replace(/&amp;/gi, "&")
-      .replace(/&lt;/gi, "<")
-      .replace(/&gt;/gi, ">")
-      .replace(/&#39;|&apos;/gi, "'")
-      .replace(/&quot;/gi, '"')
-      .replace(/[ \t]+/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim()
-  );
 }
 
 function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {

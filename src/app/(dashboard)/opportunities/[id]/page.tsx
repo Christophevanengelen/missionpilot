@@ -125,6 +125,11 @@ export default async function OpportunityDetailPage({
     [copy.fields.remoteType, remote],
     [copy.fields.locationText, opportunity.location_text],
     [copy.fields.compensation, comp],
+    // Attribution is a ToS OBLIGATION for several sources (Himalayas, Jobicy,
+    // Adzuna, Remotive all require visible credit next to the link back), not
+    // a nicety — and it is also what lets the owner judge how much to trust a
+    // given listing. It was stored but never shown.
+    [copy.fields.sourceName, opportunity.source_name],
     [copy.fields.sourceUrl, opportunity.source_url],
   ];
   const lists: [string, string[]][] = [
