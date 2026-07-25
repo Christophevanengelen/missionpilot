@@ -24,6 +24,7 @@ import { aiBreakdownConfigured } from "@/lib/matching/ai-breakdown";
 import { aiTailorConfigured } from "@/lib/matching/ai-tailor";
 import { loadDraft } from "@/lib/matching/tailor-logic";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
+import { attributionLink } from "@/lib/discovery/attribution";
 import { aiInterviewConfigured } from "@/lib/matching/ai-interview";
 import { loadBrief } from "@/lib/matching/interview-logic";
 import { loadTracking } from "@/lib/tracking/logic";
@@ -118,14 +119,39 @@ export default async function OpportunityDetailPage({
     : null;
   const comp = formatCompensation(opportunity);
 
-  const singles: [string, string | null][] = [
+  // Attribution vs safety, reconciled in `attributionLink`: a live link ONLY
+  // when the URL belongs to the source that supplied it. A pasted import, or
+  // anything unexpected, keeps the product's long-standing inert-text rule.
+  const attribution = attributionLink(
+    opportunity.source_name,
+    opportunity.source_url,
+  );
+  const sourceLink = attribution ? (
+    <a
+      href={attribution}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline underline-offset-2"
+    >
+      {opportunity.source_url}
+    </a>
+  ) : (
+    opportunity.source_url
+  );
+
+  const singles: [string, React.ReactNode][] = [
     [copy.fields.organization, opportunity.organization],
     [copy.fields.engagementType, engagement],
     [copy.fields.seniority, opportunity.seniority],
     [copy.fields.remoteType, remote],
     [copy.fields.locationText, opportunity.location_text],
     [copy.fields.compensation, comp],
-    [copy.fields.sourceUrl, opportunity.source_url],
+    // Attribution is a ToS OBLIGATION for several sources (Himalayas, Jobicy,
+    // Adzuna, Remotive all require visible credit next to the link back), not
+    // a nicety — and it is also what lets the owner judge how much to trust a
+    // given listing. It was stored but never shown.
+    [copy.fields.sourceName, opportunity.source_name],
+    [copy.fields.sourceUrl, sourceLink],
   ];
   const lists: [string, string[]][] = [
     [copy.fields.requirements, (opportunity.requirements as string[]) ?? []],

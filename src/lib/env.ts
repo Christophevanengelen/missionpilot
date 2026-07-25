@@ -44,6 +44,18 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    // Himalayas and Jobicy — public, documented, key-less APIs. Opt-in for the
+    // same reason as Remotive: both REQUIRE visible attribution with a link
+    // back, so a deployment must accept those terms deliberately rather than
+    // inherit them by merely deploying.
+    HIMALAYAS_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
+    JOBICY_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {

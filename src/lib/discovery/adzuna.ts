@@ -2,7 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 import { env } from "@/lib/env";
+import type { COMP_CURRENCIES, COMP_PERIODS } from "@/domain/opportunity";
 import { createLogger } from "@/lib/observability/logger";
+
+type CompCurrency = (typeof COMP_CURRENCIES)[number];
+type CompPeriod = (typeof COMP_PERIODS)[number];
 
 /**
  * Adzuna connector — the first auto-discovery source (owner decision: legal
@@ -52,13 +56,15 @@ export type DiscoveredAd = {
    *  vocabulary, so a source that distinguishes freelance/part-time is not
    *  flattened into an approximation. */
   engagementType: "freelance" | "part_time" | "interim" | "permanent" | null;
-  /** Salary bounds when Adzuna states them (ANNUAL figures), else null. */
+  /** Salary bounds when the source STATES them, else null. */
   compensationMin: number | null;
   compensationMax: number | null;
-  /** EUR only for the fr market — other markets stay honestly unknown. */
-  compensationCurrency: "EUR" | null;
-  /** Adzuna salaries are annual; set only when a figure exists. */
-  compensationPeriod: "year" | null;
+  /** The domain vocabulary, not Adzuna's: sources state salaries in their own
+   *  currency and cadence, and a figure carried under the wrong unit is worse
+   *  than no figure at all. A source that cannot express its units in this
+   *  vocabulary must drop the whole block rather than approximate it. */
+  compensationCurrency: CompCurrency | null;
+  compensationPeriod: CompPeriod | null;
   /** The verbatim ad text snapshotted as the immutable source. */
   rawText: string;
 };

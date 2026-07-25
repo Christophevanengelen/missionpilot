@@ -3,6 +3,8 @@ import "server-only";
 import type { DiscoveredAd } from "./adzuna";
 import { adzunaConfigured, searchAdzuna } from "./adzuna";
 import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
+import { himalayasConfigured, searchHimalayas } from "./himalayas";
+import { jobicyConfigured, searchJobicy } from "./jobicy";
 import { remotiveConfigured, searchRemotive } from "./remotive";
 import type { DiscoverySource } from "./plan";
 
@@ -22,6 +24,12 @@ export function configuredSources(): DiscoverySource<DiscoveredAd>[] {
   }
   if (remotiveConfigured()) {
     sources.push({ name: "Remotive", search: searchRemotive });
+  }
+  if (himalayasConfigured()) {
+    sources.push({ name: "Himalayas", search: searchHimalayas });
+  }
+  if (jobicyConfigured()) {
+    sources.push({ name: "Jobicy", search: searchJobicy });
   }
   return sources;
 }
