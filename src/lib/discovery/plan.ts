@@ -76,7 +76,9 @@ export type DiscoverySource<
  * same offer surfacing from two sources — or two métiers — is counted once,
  * and each kept ad carries the name of the source it came from (for honest
  * provenance on import). `failedSearches`/`totalSearches` let the caller tell
- * a partial failure from a complete run.
+ * a partial failure from a complete run, and `failedSources` says WHICH source
+ * came up short: with several sources configured, "3 searches failed" leaves
+ * the owner unable to tell a broken credential from a source-side outage.
  */
 export async function runMultiSourceDiscovery<
   Ad extends { sourceUrl: string | null; rawText: string },
@@ -88,9 +90,13 @@ export async function runMultiSourceDiscovery<
   items: { ad: Ad; sourceName: string }[];
   failedSearches: number;
   totalSearches: number;
+  /** Per-source failure counts, in the stable source order, listing ONLY the
+   *  sources that actually failed at least one search. */
+  failedSources: { name: string; failed: number }[];
 }> {
   const seen = new Set<string>();
   const items: { ad: Ad; sourceName: string }[] = [];
+  const failedBySource = new Map<string, number>();
   let failedSearches = 0;
   let totalSearches = 0;
   for (const source of sources) {
@@ -105,9 +111,23 @@ export async function runMultiSourceDiscovery<
         }
       } catch (error) {
         failedSearches += 1;
+        failedBySource.set(
+          source.name,
+          (failedBySource.get(source.name) ?? 0) + 1,
+        );
         onSearchError(source.name, plan, error);
       }
     }
   }
-  return { items, failedSearches, totalSearches };
+  return {
+    items,
+    failedSearches,
+    totalSearches,
+    // Map iteration order is insertion order, which follows the stable source
+    // order of the outer loop.
+    failedSources: [...failedBySource].map(([name, failed]) => ({
+      name,
+      failed,
+    })),
+  };
 }

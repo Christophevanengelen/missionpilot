@@ -338,8 +338,8 @@ export function CvImport() {
             result.duplicates,
             result.failed,
           )}
-          {result.failedSearches > 0
-            ? ` ${discoverCopy.partial(result.failedSearches)}`
+          {result.failedSources.length > 0
+            ? ` ${discoverCopy.partial(result.failedSources)}`
             : ""}
         </p>
       );

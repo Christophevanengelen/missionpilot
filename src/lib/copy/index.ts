@@ -465,11 +465,16 @@ export const copy = {
             parts.push(`${failed} en échec (réessayez plus tard)`);
           return `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${parts.join(", ")}.`;
         },
-        partial: (n: number) =>
-          `(${n} ${n > 1 ? "recherches métier en échec" : "recherche métier en échec"} — résultats possiblement incomplets, réessayez plus tard.)`,
+        partial: (sources: readonly { name: string; failed: number }[]) => {
+          const parts = sources.map(
+            (s) =>
+              `${s.name} : ${s.failed} ${s.failed > 1 ? "recherches en échec" : "recherche en échec"}`,
+          );
+          return `(${parts.join(" ; ")} — résultats possiblement incomplets, réessayez plus tard.)`;
+        },
         errors: {
           unconfigured:
-            "La découverte automatique n'est pas encore activée (clés Adzuna manquantes).",
+            "La découverte automatique n'est pas encore activée (aucune source légale configurée).",
           no_keywords:
             "Confirmez d'abord un rôle ou des compétences dans votre profil (ou importez votre CV) pour guider la recherche.",
           generic: "La recherche n'a pas abouti. Réessayez.",
@@ -1145,11 +1150,16 @@ export const copy = {
           if (failed > 0) parts.push(`${failed} failed (try again later)`);
           return `${found} ${found > 1 ? "offers" : "offer"} found: ${parts.join(", ")}.`;
         },
-        partial: (n: number) =>
-          `(${n} target-job search${n > 1 ? "es" : ""} failed — results may be incomplete, try again later.)`,
+        partial: (sources: readonly { name: string; failed: number }[]) => {
+          const parts = sources.map(
+            (s) =>
+              `${s.name}: ${s.failed} search${s.failed > 1 ? "es" : ""} failed`,
+          );
+          return `(${parts.join("; ")} — results may be incomplete, try again later.)`;
+        },
         errors: {
           unconfigured:
-            "Auto-discovery is not enabled yet (Adzuna keys missing).",
+            "Auto-discovery is not enabled yet (no legal source configured).",
           no_keywords:
             "Confirm a role or skills in your profile first (or import your CV) to guide the search.",
           generic: "The search did not go through. Try again.",

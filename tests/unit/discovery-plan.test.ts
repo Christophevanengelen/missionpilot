@@ -92,6 +92,57 @@ describe("runMultiSourceDiscovery", () => {
     expect(errors).toEqual(["Adzuna"]);
   });
 
+  // The production incident this guards: France Travail's OAuth token request
+  // returned 400 on every métier while Adzuna served results normally. The UI
+  // said "3 searches failed" without naming a source, which is indisting-
+  // uishable from Adzuna rate-limiting — the owner could not tell which
+  // credential to go fix.
+  it("names ONLY the sources that failed, with their own counts", async () => {
+    const { items, failedSearches, failedSources } =
+      await runMultiSourceDiscovery(
+        plans,
+        [
+          src("Adzuna", async () => [ad("https://a/1", "A")]),
+          src("France Travail", async () => {
+            throw new Error("token request failed (400)");
+          }),
+        ],
+        () => {},
+      );
+    expect(items).toHaveLength(1);
+    expect(failedSearches).toBe(2);
+    expect(failedSources).toEqual([{ name: "France Travail", failed: 2 }]);
+  });
+
+  it("reports no failed source when every search succeeds", async () => {
+    const { failedSources } = await runMultiSourceDiscovery(
+      plans,
+      [src("Adzuna", async () => [ad("https://a/1", "A")])],
+      () => {},
+    );
+    expect(failedSources).toEqual([]);
+  });
+
+  it("keeps per-source counts separate when several sources fail", async () => {
+    const { failedSources } = await runMultiSourceDiscovery(
+      plans,
+      [
+        src("Adzuna", async (keywords) => {
+          if (keywords[0] === "Head of Data") throw new Error("429");
+          return [ad("https://a/1", "A")];
+        }),
+        src("France Travail", async () => {
+          throw new Error("400");
+        }),
+      ],
+      () => {},
+    );
+    expect(failedSources).toEqual([
+      { name: "Adzuna", failed: 1 },
+      { name: "France Travail", failed: 2 },
+    ]);
+  });
+
   it("dedups ACROSS sources and plans, keeping the first source's provenance", async () => {
     const { items, failedSearches } = await runMultiSourceDiscovery(
       plans,

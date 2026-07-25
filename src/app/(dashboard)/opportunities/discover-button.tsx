@@ -35,8 +35,8 @@ export function DiscoverButton() {
   } {
     if (result.ok) {
       const partial =
-        result.failedSearches > 0
-          ? ` ${copy.partial(result.failedSearches)}`
+        result.failedSources.length > 0
+          ? ` ${copy.partial(result.failedSources)}`
           : "";
       return {
         text:
