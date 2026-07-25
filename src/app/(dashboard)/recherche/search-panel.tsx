@@ -19,7 +19,7 @@ import {
   type MarketSort,
   type SortKey,
 } from "@/lib/search/refine";
-import { annualEquivalent } from "@/lib/search/compensation";
+import { annualEquivalent, payParts } from "@/lib/search/compensation";
 import type { MarketHit, MarketSearchResult } from "@/lib/search/types";
 import type { EngagementType, RemoteType } from "@/domain/opportunity";
 
@@ -317,15 +317,16 @@ function ChipGroup<T extends string>({
 /** The pay line: what the offer SAID, plus an annual equivalent when we had to
  *  derive one — with the assumption named, never silently applied. */
 function payLine(hit: MarketHit): string | null {
-  if (hit.compensationCurrency === null) return null;
+  const parts = payParts(hit);
+  if (parts === null) return null;
   const copy = t().search;
   const fmt = (n: number) => n.toLocaleString("fr-FR");
   const bounds =
-    hit.compensationMin !== null && hit.compensationMax !== null
-      ? `${fmt(hit.compensationMin)} – ${fmt(hit.compensationMax)}`
-      : fmt((hit.compensationMax ?? hit.compensationMin)!);
+    parts.high === null
+      ? fmt(parts.low)
+      : `${fmt(parts.low)} – ${fmt(parts.high)}`;
   const unit = copy.compPeriods[hit.compensationPeriod ?? ""] ?? "";
-  const stated = `${bounds} ${hit.compensationCurrency}${unit ? ` / ${unit}` : ""}`;
+  const stated = `${bounds} ${parts.currency}${unit ? ` / ${unit}` : ""}`;
   const annual = annualEquivalent(hit);
   // Only a DERIVED figure carries the "≈" and the assumption. An offer that
   // already stated an annual amount is shown in its own words.

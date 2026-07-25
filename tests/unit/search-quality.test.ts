@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { isExpired, toPostedAt } from "@/lib/discovery/posted-at";
-import { annualEquivalent } from "@/lib/search/compensation";
+import { annualEquivalent, payParts } from "@/lib/search/compensation";
 import { mergeDuplicates } from "@/lib/search/dedupe";
 import {
   NO_FILTERS,
@@ -342,5 +342,54 @@ describe("sortHits — compensation across units", () => {
       sortHits([annual, daily], { key: "compensation", direction: "desc" })[0]
         .compensationPeriod,
     ).toBe("day");
+  });
+});
+
+describe("payParts", () => {
+  const p = (
+    min: number | null,
+    max: number | null,
+    currency: string | null = "EUR",
+  ) => ({
+    compensationMin: min,
+    compensationMax: max,
+    compensationCurrency: currency,
+    compensationPeriod: "year",
+  });
+
+  // The production crash: an offer carried a CURRENCY with NO amount — the
+  // extractor reads "EUR" in prose without a parseable figure — and a non-null
+  // assertion on the amount took down the whole result list.
+  it("returns null for a currency with no amount at all", () => {
+    expect(payParts(p(null, null))).toBeNull();
+  });
+
+  it("returns null when there is no currency to show the amount in", () => {
+    expect(payParts(p(90_000, 120_000, null))).toBeNull();
+  });
+
+  it("shows a single figure when only one bound is stated", () => {
+    expect(payParts(p(90_000, null))).toEqual({
+      low: 90_000,
+      high: null,
+      currency: "EUR",
+    });
+    expect(payParts(p(null, 90_000))).toEqual({
+      low: 90_000,
+      high: null,
+      currency: "EUR",
+    });
+  });
+
+  it("does not print a range when both bounds are the same number", () => {
+    expect(payParts(p(90_000, 90_000))?.high).toBeNull();
+  });
+
+  it("shows a real range when the bounds differ", () => {
+    expect(payParts(p(90_000, 120_000))).toEqual({
+      low: 90_000,
+      high: 120_000,
+      currency: "EUR",
+    });
   });
 });
