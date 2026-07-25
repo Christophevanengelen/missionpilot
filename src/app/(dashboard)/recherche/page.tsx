@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { getOwnProfile } from "@/lib/opportunity/logic";
@@ -6,18 +7,24 @@ import { loadPreferences } from "@/lib/profile/logic";
 import { discoveryConfigured } from "@/lib/discovery/sources";
 import { t } from "@/lib/copy";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
-import { SearchPanel } from "./search-panel";
+import { AutoResults } from "./auto-results";
 
 export const metadata: Metadata = { title: "Recherche" };
 
 /**
- * The market search screen — a photograph of what is open RIGHT NOW across the
- * configured platforms, as outbound links to the original postings. Nothing
- * here is stored: the user keeps what they choose to keep.
+ * What the market has for you today — already searched when you arrive.
  *
- * The search box is pre-filled with the first métier the validated CV analysis
- * chose, so arriving with a CV already on file means arriving one click from
- * results.
+ * The product is deliberately NOT a search box. The scope was understood once,
+ * at onboarding, from the CV and the conditions the user accepts; from then on
+ * the engine works unattended, and the only gesture left is clicking through to
+ * an offer on the platform that published it. Asking the user to press
+ * "Search" would put the work back on the person we are meant to be working
+ * for.
+ *
+ * The search runs inside a Suspense boundary so the shell paints immediately
+ * and results land when the sources answer, instead of the page hanging on a
+ * multi-source fan-out. Nothing is stored: the profile is remembered, the
+ * offers are not.
  */
 export default async function SearchPage() {
   await verifySession();
@@ -47,10 +54,15 @@ export default async function SearchPage() {
       </header>
 
       {discoveryConfigured() ? (
-        <SearchPanel
-          defaultQuery={preferences.targetRoleFamilies[0] ?? ""}
-          defaultCountries={defaultCountries}
-        />
+        <Suspense
+          fallback={
+            <p role="status" className="text-muted-foreground text-sm">
+              {copy.loading}
+            </p>
+          }
+        >
+          <AutoResults countries={defaultCountries} />
+        </Suspense>
       ) : (
         <p className="text-muted-foreground text-sm">{copy.unconfigured}</p>
       )}

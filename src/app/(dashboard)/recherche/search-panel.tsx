@@ -21,6 +21,7 @@ import {
   type SortKey,
 } from "@/lib/search/refine";
 import { annualEquivalent, payParts } from "@/lib/search/compensation";
+import { buildStaircase } from "@/lib/search/staircase";
 import type { MarketHit, MarketSearchResult } from "@/lib/search/types";
 import type { EngagementType, RemoteType } from "@/domain/opportunity";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
@@ -44,15 +45,36 @@ const REMOTES: readonly RemoteType[] = ["remote_only", "hybrid", "onsite"];
 export function SearchPanel({
   defaultQuery,
   defaultCountries,
+  initialResult = null,
+  stepUpTitles = [],
+  trajectory = null,
 }: {
   defaultQuery: string;
   defaultCountries: string[];
+  /** Title phrasings that mark an offer as the step up. */
+  stepUpTitles?: string[];
+  /** The career reading behind the staircase, or null when unavailable. */
+  trajectory?: {
+    currentLevel: string;
+    nextLevel: string | null;
+    readiness: "ready" | "close" | "not_yet" | "unknown";
+    evidence: string[];
+    missing: string[];
+    questions: string[];
+    rationale: string;
+  } | null;
+  /** Results already computed on the server for this visit. The product does
+   *  not ask the user to search: what the market has for them today is on
+   *  screen when they arrive, and the box below only REFINES it. */
+  initialResult?: MarketSearchResult | null;
 }) {
   const copy = t().search;
   const [query, setQuery] = useState(defaultQuery);
   const [countries, setCountries] = useState<string[]>(defaultCountries);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<MarketSearchResult | null>(null);
+  const [result, setResult] = useState<MarketSearchResult | null>(
+    initialResult,
+  );
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<MarketFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<MarketSort>(DEFAULT_SORT);
@@ -98,74 +120,10 @@ export function SearchPanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <form
-        className="flex flex-wrap items-end gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void run();
-        }}
-      >
-        <div className="flex min-w-64 flex-1 flex-col gap-1">
-          <Label htmlFor="market-query">{copy.queryLabel}</Label>
-          <Input
-            id="market-query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={copy.queryPlaceholder}
-          />
-        </div>
-        <Button type="submit" aria-busy={busy || undefined}>
-          {busy ? copy.searching : copy.submit}
-        </Button>
-      </form>
-      <p className="text-muted-foreground text-xs">{copy.queryHint}</p>
-
-      {/* Countries drive the QUERY — a country-partitioned source is asked once
-          per country — so they sit with the search box, not with the filters
-          that merely narrow what came back. */}
-      <div
-        role="group"
-        aria-label={copy.countriesLabel}
-        className="flex flex-col gap-1"
-      >
-        <span className="text-muted-foreground text-xs">
-          {copy.countriesLabel}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {SEARCH_COUNTRIES.map((c) => {
-            const on = countries.includes(c.code);
-            const full = !on && countries.length >= MAX_COUNTRIES_PER_SEARCH;
-            return (
-              <button
-                key={c.code}
-                type="button"
-                aria-pressed={on}
-                disabled={full}
-                onClick={() =>
-                  setCountries((prev) =>
-                    prev.includes(c.code)
-                      ? prev.filter((x) => x !== c.code)
-                      : [...prev, c.code],
-                  )
-                }
-                className={
-                  on
-                    ? "border-foreground bg-foreground text-background rounded-full border px-3 py-1 text-xs"
-                    : full
-                      ? "border-border text-muted-foreground rounded-full border px-3 py-1 text-xs opacity-50"
-                      : "border-border rounded-full border px-3 py-1 text-xs"
-                }
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-        <span className="text-muted-foreground text-xs">
-          {copy.countriesHint(MAX_COUNTRIES_PER_SEARCH)}
-        </span>
-      </div>
-
+      {/* RESULTS FIRST. The user connects to see opportunities — every control
+          placed above them is a toll booth on the way to the only thing they
+          came for. Refinement lives below, folded away, for the visit where
+          they actually want it. */}
       {/* Live regions mounted up-front so a screen reader announces the result
           when the text changes, rather than when the node appears. */}
       <p role="status" className="text-sm">
@@ -345,16 +303,115 @@ export function SearchPanel({
             ) : null}
           </section>
 
-          <ul className="flex flex-col gap-3">
-            {shown.map((hit) => (
-              <ResultRow key={hit.key} hit={hit} />
-            ))}
-          </ul>
+          {buildStaircase(shown, stepUpTitles, {
+            stepUp: trajectory?.nextLevel ?? null,
+            level: trajectory?.currentLevel ?? null,
+          }).map((band) => (
+            <section key={band.key} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-sm font-semibold">
+                  {band.key === "step_up"
+                    ? copy.bandStepUp(band.levelLabel)
+                    : copy.bandLevel(band.levelLabel)}
+                </h2>
+                {band.key === "step_up" ? (
+                  <p className="text-muted-foreground text-xs">
+                    {copy.bandStepUpNote}
+                  </p>
+                ) : null}
+              </div>
+              <ul className="flex flex-col gap-3">
+                {band.hits.map((hit) => (
+                  <ResultRow key={hit.key} hit={hit} />
+                ))}
+              </ul>
+            </section>
+          ))}
           {shown.length === 0 ? (
             <p className="text-muted-foreground text-sm">{copy.noneShown}</p>
           ) : null}
         </>
       ) : null}
+
+      <details className="border-border rounded-xl border p-4">
+        <summary className="cursor-pointer text-sm font-medium">
+          {copy.refineSummary}
+        </summary>
+        <div className="flex flex-col gap-4 pt-4">
+          <form
+            className="flex flex-wrap items-end gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void run();
+            }}
+          >
+            <div className="flex min-w-64 flex-1 flex-col gap-1">
+              <Label htmlFor="market-query">{copy.queryLabel}</Label>
+              <Input
+                id="market-query"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={copy.queryPlaceholder}
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              aria-busy={busy || undefined}
+            >
+              {busy ? copy.searching : copy.refine}
+            </Button>
+          </form>
+          <p className="text-muted-foreground text-xs">{copy.queryHint}</p>
+
+          {/* Countries drive the QUERY — a country-partitioned source is asked once
+          per country — so they sit with the search box, not with the filters
+          that merely narrow what came back. */}
+          <div
+            role="group"
+            aria-label={copy.countriesLabel}
+            className="flex flex-col gap-1"
+          >
+            <span className="text-muted-foreground text-xs">
+              {copy.countriesLabel}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {SEARCH_COUNTRIES.map((c) => {
+                const on = countries.includes(c.code);
+                const full =
+                  !on && countries.length >= MAX_COUNTRIES_PER_SEARCH;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    aria-pressed={on}
+                    disabled={full}
+                    onClick={() =>
+                      setCountries((prev) =>
+                        prev.includes(c.code)
+                          ? prev.filter((x) => x !== c.code)
+                          : [...prev, c.code],
+                      )
+                    }
+                    className={
+                      on
+                        ? "border-foreground bg-foreground text-background rounded-full border px-3 py-1 text-xs"
+                        : full
+                          ? "border-border text-muted-foreground rounded-full border px-3 py-1 text-xs opacity-50"
+                          : "border-border rounded-full border px-3 py-1 text-xs"
+                    }
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+            <span className="text-muted-foreground text-xs">
+              {copy.countriesHint(MAX_COUNTRIES_PER_SEARCH)}
+            </span>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
