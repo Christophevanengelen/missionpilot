@@ -2,7 +2,10 @@ import { createClient } from "@/lib/db/server";
 import { getOwnProfile } from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 import { profileSignalsFromClaims } from "@/lib/matching/score";
-import { buildSearchPlans } from "@/lib/discovery/plan";
+import { buildProfileDossier } from "@/lib/matching/insight-logic";
+import { planFromProfile } from "@/lib/search/plan-from-profile";
+import { TRIAGE_BATCH, aiTriageOffers } from "@/lib/search/ai-triage";
+import { applyTriage } from "@/lib/search/apply-triage";
 import { configuredSources } from "@/lib/discovery/sources";
 import { searchMarket } from "@/lib/search/market";
 import { createLogger } from "@/lib/observability/logger";
@@ -29,6 +32,7 @@ const logger = createLogger({ module: "auto-results" });
 export async function AutoResults({ countries }: { countries: string[] }) {
   let initial: MarketSearchResult | null = null;
   let query = "";
+  let plan: Awaited<ReturnType<typeof planFromProfile>> | null = null;
   try {
     const client = await createClient();
     const profile = await getOwnProfile(client);
@@ -36,10 +40,14 @@ export async function AutoResults({ countries }: { countries: string[] }) {
       loadLivingProfile(client, profile.id),
       loadPreferences(client, profile.id),
     ]);
-    const plans = buildSearchPlans(
-      living.claims,
+    // The market's words for this profile — and, when the career analysis says
+    // the step is earned, the words of the level above it too.
+    const profileDossier = buildProfileDossier(living.claims, preferences);
+    plan = await planFromProfile(
+      profileDossier,
       preferences.targetRoleFamilies,
     );
+    const plans = plan.plans;
     query = preferences.targetRoleFamilies[0] ?? "";
     const sources = configuredSources(countries);
     if (plans.length > 0 && sources.length > 0) {
@@ -57,6 +65,17 @@ export async function AutoResults({ countries }: { countries: string[] }) {
         },
       );
     }
+    // Read the offers and drop the noise. Until now the engine compared job
+    // TITLES and nothing else — the demand side of an offer was never
+    // extracted — which is why a "Service Designer" search could return a
+    // florist. Only the top of the ranking is judged: paying to read offers
+    // nobody will scroll to would be spending the owner's credits on nothing.
+    if (initial && initial.hits.length > 0) {
+      const head = initial.hits.slice(0, TRIAGE_BATCH);
+      const tail = initial.hits.slice(TRIAGE_BATCH);
+      const verdicts = await aiTriageOffers(profileDossier, head);
+      initial = { ...initial, hits: [...applyTriage(head, verdicts), ...tail] };
+    }
   } catch (error) {
     // A failed opening search must not blank the page: the panel still renders
     // and the user can search by hand. Degrading beats a wall.
@@ -70,6 +89,20 @@ export async function AutoResults({ countries }: { countries: string[] }) {
       defaultQuery={query}
       defaultCountries={countries}
       initialResult={initial}
+      stepUpTitles={plan?.stepUpTitles ?? []}
+      trajectory={
+        plan?.trajectory
+          ? {
+              currentLevel: plan.trajectory.currentLevel,
+              nextLevel: plan.trajectory.nextLevel,
+              readiness: plan.trajectory.readiness,
+              evidence: plan.trajectory.evidence,
+              missing: plan.trajectory.missing,
+              questions: plan.trajectory.questions,
+              rationale: plan.trajectory.rationale,
+            }
+          : null
+      }
     />
   );
 }

@@ -59,6 +59,25 @@ export const copy = {
         "Laissez vide pour chercher sur les métiers déduits de votre CV.",
       submit: "Chercher",
       refine: "Relancer avec ces critères",
+      refineSummary: "Chercher autre chose",
+      // The staircase. The step up leads, because it is the reason the product
+      // exists: people apply for the job they already had.
+      bandStepUp: (level: string | null) =>
+        level ? `La marche d'après — ${level}` : "La marche d'après",
+      bandStepUpNote:
+        "Ces postes sont un cran au-dessus de votre niveau actuel. Votre parcours montre que vous pouvez les défendre.",
+      bandLevel: (level: string | null) =>
+        level ? `À votre niveau — ${level}` : "À votre niveau",
+      searchedAs: (titles: readonly string[]) =>
+        `Cherché sous : ${titles.join(", ")}`,
+      searchedAsNote:
+        "Les plateformes ne formulent pas les métiers comme votre CV. Voici les intitulés sous lesquels nous avons cherché pour vous.",
+      trajectoryTitle: (current: string, next: string) =>
+        `Vous êtes ${current}. La marche d'après, c'est ${next}.`,
+      trajectoryEvidence: "Ce qui, dans votre parcours, le justifie",
+      trajectoryMissing:
+        "Ce qu'un recruteur cherchera et ne trouvera pas encore",
+      trajectoryQuestions: "Ce qu'il nous manque pour en être sûrs",
       autoNote:
         "Cette liste a été cherchée pour vous à l'ouverture, sur les métiers déduits de votre CV. Ajustez ci-dessous si vous voulez autre chose.",
       loading: "Nous interrogeons les plateformes…",
@@ -888,6 +907,22 @@ export const copy = {
       queryHint: "Leave empty to search the roles inferred from your CV.",
       submit: "Search",
       refine: "Search again with these criteria",
+      refineSummary: "Search for something else",
+      bandStepUp: (level: string | null) =>
+        level ? `The next step — ${level}` : "The next step",
+      bandStepUpNote:
+        "These roles are one rung above your current level. Your track record says you can defend them.",
+      bandLevel: (level: string | null) =>
+        level ? `At your level — ${level}` : "At your level",
+      searchedAs: (titles: readonly string[]) =>
+        `Searched as: ${titles.join(", ")}`,
+      searchedAsNote:
+        "Platforms do not word roles the way your CV does. These are the titles we searched on your behalf.",
+      trajectoryTitle: (current: string, next: string) =>
+        `You are ${current}. The next step is ${next}.`,
+      trajectoryEvidence: "What in your track record earns it",
+      trajectoryMissing: "What a recruiter will look for and not find yet",
+      trajectoryQuestions: "What we still need to be sure",
       autoNote:
         "This list was searched for you on arrival, using the roles inferred from your CV. Adjust below if you want something else.",
       loading: "Querying the platforms…",

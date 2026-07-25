@@ -69,6 +69,15 @@ export function aiVocabularyConfigured(): boolean {
   return env.AI_DEFAULT_PROVIDER === "openai" && Boolean(env.OPENAI_API_KEY);
 }
 
+const STEP_UP_ADDENDUM = [
+  "EXCEPTION À LA RÈGLE DE SÉNIORITÉ : cette fois, vise le niveau indiqué dans",
+  "inputData.niveauVise, un cran AU-DESSUS du dossier. Une analyse de carrière",
+  "a établi que ce palier est déjà mérité.",
+  "Donne les intitulés que les annonces emploient POUR CE NIVEAU-LÀ, toujours",
+  "dans le même métier et le même secteur. Ce n'est pas une reconversion, c'est",
+  "une marche.",
+].join("\n");
+
 const TASK_INSTRUCTION = [
   "Tu reçois le dossier professionnel d'une personne (CV, export LinkedIn).",
   "Ta tâche : lister les INTITULÉS DE POSTE tels que les plateformes d'emploi",
@@ -94,6 +103,15 @@ const TASK_INSTRUCTION = [
  */
 export async function aiMarketVocabulary(
   dossier: string,
+  /**
+   * When set, ask for the titles of THAT level instead of the current one.
+   *
+   * This is what turns a result list into a staircase: the same bridge, aimed
+   * one step higher. It is only ever passed when the career analysis found
+   * evidence the step is earned — never on a hunch, and never on an unanswered
+   * question.
+   */
+  targetLevel?: string,
 ): Promise<MarketVocabulary | null> {
   if (!aiVocabularyConfigured()) return null;
   const trimmed = dossier.trim();
@@ -106,8 +124,16 @@ export async function aiMarketVocabulary(
       promptVersion: VOCABULARY_PROMPT_VERSION,
       // Server-authored instruction on the TRUSTED side; the dossier travels
       // as untrusted data and can never redefine the task.
-      taskInstruction: TASK_INSTRUCTION,
-      input: { dossier: trimmed.slice(0, MAX_DOSSIER_CHARS) },
+      taskInstruction:
+        targetLevel === undefined
+          ? TASK_INSTRUCTION
+          : TASK_INSTRUCTION + "\n\n" + STEP_UP_ADDENDUM,
+      input: {
+        dossier: trimmed.slice(0, MAX_DOSSIER_CHARS),
+        ...(targetLevel === undefined
+          ? {}
+          : { niveauVise: targetLevel.slice(0, 80) }),
+      },
       dataSchema: vocabularySchema,
     });
     if (response.envelope.status === "failed") return null;
