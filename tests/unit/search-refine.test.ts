@@ -29,6 +29,8 @@ function hit(over: Partial<MarketHit> = {}): MarketHit {
     sourceUrl: "https://himalayas.app/jobs/1",
     gate: "eligible",
     score: 50,
+    confidence: "high",
+    titlePhraseMatch: true,
     matchedSkills: [],
     demandedSkillCount: 0,
     unknowns: [],

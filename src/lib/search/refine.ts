@@ -28,6 +28,15 @@ export type MarketFilters = {
    *  Empty = not constrained. */
   countries: readonly string[];
   /**
+   * Drop offers published longer ago than this, in days. `null` = no limit.
+   *
+   * Defaults to a real value rather than "all": a view of what is open RIGHT
+   * NOW has no business leading with a listing from two years ago, and
+   * production showed exactly that — 736-day-old ads at the top. An offer with
+   * NO stated date is never dropped by this: unknown is not old.
+   */
+  maxAgeDays: number | null;
+  /**
    * Keep offers whose value for a CONSTRAINED criterion is unstated.
    * Defaults to true everywhere it is built — see the file header. Turning it
    * off is a deliberate "only offers that say so", never the silent default.
@@ -39,8 +48,37 @@ export const NO_FILTERS: MarketFilters = {
   engagementTypes: [],
   remoteTypes: [],
   countries: [],
+  maxAgeDays: null,
   includeUnstated: true,
 };
+
+/** The age windows offered, plus "no limit". 90 days is the default: it clears
+ *  the obviously dead listings without hiding a market whose median age was
+ *  measured at 26 days. */
+export const AGE_WINDOWS = [7, 30, 90] as const;
+export const DEFAULT_MAX_AGE_DAYS = 90;
+
+export const DEFAULT_FILTERS: MarketFilters = {
+  ...NO_FILTERS,
+  maxAgeDays: DEFAULT_MAX_AGE_DAYS,
+};
+
+const DAY_MS = 86_400_000;
+
+/** Whether an offer is recent enough. An UNDATED offer always passes — we do
+ *  not know that it is old, and guessing would hide live listings from the
+ *  sources that simply never state a date. */
+function passesAge(
+  postedAt: string | null,
+  maxAgeDays: number | null,
+  now: number,
+): boolean {
+  if (maxAgeDays === null) return true;
+  if (postedAt === null) return true;
+  const ms = Date.parse(postedAt);
+  if (!Number.isFinite(ms)) return true;
+  return now - ms <= maxAgeDays * DAY_MS;
+}
 
 /** Case- and accent-insensitive, so "Belgique" matches "belgique" and
  *  "Ile-de-France" matches "Île-de-France". */
@@ -91,9 +129,11 @@ function passesCountry(
 export function filterHits(
   hits: readonly MarketHit[],
   filters: MarketFilters,
+  now: number = Date.now(),
 ): MarketHit[] {
   return hits.filter(
     (h) =>
+      passesAge(h.postedAt, filters.maxAgeDays, now) &&
       passes(
         h.engagementType,
         filters.engagementTypes,
@@ -196,9 +236,18 @@ export const DEFAULT_SORT: MarketSort = {
 
 /** The comparable value for a sort key, or null when the offer does not carry
  *  it. Nulls never win a comparison — see `sortHits`. */
+/** Rank of a confidence level — "none" (nothing was decidable) sinks. */
+const CONFIDENCE_RANK: Record<MarketHit["confidence"], number> = {
+  none: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+};
+
 function sortValue(hit: MarketHit, key: SortKey): number | string | null {
   switch (key) {
     case "relevance":
+      // Handled by `compareRelevance` — see there. Never reached.
       return hit.score;
     case "freshness":
       // Milliseconds since epoch, so "descending" means newest first — the
@@ -227,11 +276,39 @@ function sortValue(hit: MarketHit, key: SortKey): number | string | null {
  * with offers that simply never mentioned one: absence is not a low score.
  * Ties keep the incoming order, so relevance ranking survives underneath.
  */
+/**
+ * Relevance, as three ordered questions rather than one blended number.
+ *
+ * A single weighted metric would have to invent exchange rates between things
+ * that are not comparable ("is a phrase match worth 20 points of score?").
+ * Asking the questions in order keeps every step explainable, which is the
+ * whole point — the user must be able to see WHY an offer leads.
+ *
+ * 1. Does the searched role actually appear in the title? Sources match words,
+ *    so "Service Designer" returns "designers floraux pour le service designer
+ *    floral". Both words are there; the job is not.
+ * 2. How much of this offer could we judge at all? An offer stating nothing
+ *    has its undecidable components dropped from the average, which would
+ *    otherwise let silence outrank a real partial match.
+ * 3. Only then, the score itself.
+ */
+function compareRelevance(a: MarketHit, b: MarketHit): number {
+  if (a.titlePhraseMatch !== b.titlePhraseMatch)
+    return a.titlePhraseMatch ? -1 : 1;
+  const ca = CONFIDENCE_RANK[a.confidence];
+  const cb = CONFIDENCE_RANK[b.confidence];
+  if (ca !== cb) return cb - ca;
+  return (b.score ?? -1) - (a.score ?? -1);
+}
+
 export function sortHits(
   hits: readonly MarketHit[],
   sort: MarketSort,
 ): MarketHit[] {
   const factor = sort.direction === "asc" ? 1 : -1;
+  if (sort.key === "relevance") {
+    return [...hits].sort((a, b) => compareRelevance(a, b) * -factor);
+  }
   return [...hits].sort((a, b) => {
     const va = sortValue(a, sort.key);
     const vb = sortValue(b, sort.key);

@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { t } from "@/lib/copy";
 import { searchMarketAction } from "@/lib/search/actions";
 import {
+  AGE_WINDOWS,
+  DEFAULT_FILTERS,
   DEFAULT_SORT,
-  NO_FILTERS,
   SORT_KEYS,
   engagementFacets,
   filterHits,
@@ -45,7 +46,7 @@ export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<MarketSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<MarketFilters>(NO_FILTERS);
+  const [filters, setFilters] = useState<MarketFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<MarketSort>(DEFAULT_SORT);
   const inFlightRef = useRef(false);
 
@@ -176,6 +177,41 @@ export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
                 )
               }
             />
+            {/* Freshness first: it is the signal a job seeker reads before any
+                other, and the default window is what keeps a two-year-old ad
+                from leading a view of what is open NOW. */}
+            <div
+              role="group"
+              aria-label={copy.ageLabel}
+              className="flex flex-col gap-1"
+            >
+              <span className="text-muted-foreground text-xs">
+                {copy.ageLabel}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {[...AGE_WINDOWS, null].map((days) => {
+                  const on = filters.maxAgeDays === days;
+                  return (
+                    <button
+                      key={days ?? "all"}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() =>
+                        setFilters((f) => ({ ...f, maxAgeDays: days }))
+                      }
+                      className={
+                        on
+                          ? "border-foreground bg-foreground text-background rounded-full border px-3 py-1 text-xs"
+                          : "border-border rounded-full border px-3 py-1 text-xs"
+                      }
+                    >
+                      {days === null ? copy.ageAll : copy.ageWindow(days)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1">
               <Label htmlFor="market-country">{copy.countryLabel}</Label>
               <Input

@@ -6,7 +6,9 @@ import { isExpired, toPostedAt } from "@/lib/discovery/posted-at";
 import { annualEquivalent, payParts } from "@/lib/search/compensation";
 import { mergeDuplicates } from "@/lib/search/dedupe";
 import {
+  DEFAULT_MAX_AGE_DAYS,
   NO_FILTERS,
+  filterHits,
   engagementFacets,
   remoteFacets,
   sortHits,
@@ -35,6 +37,8 @@ function hit(over: Partial<MarketHit> = {}): MarketHit {
     sourceUrl: "https://himalayas.app/1",
     gate: "eligible",
     score: 50,
+    confidence: "high",
+    titlePhraseMatch: true,
     matchedSkills: [],
     demandedSkillCount: 0,
     unknowns: [],
@@ -391,5 +395,97 @@ describe("payParts", () => {
       high: 120_000,
       currency: "EUR",
     });
+  });
+});
+
+/**
+ * The two ranking defects observed in production on the very first real search.
+ */
+describe("compareRelevance", () => {
+  const rank = (hits: MarketHit[]) =>
+    sortHits(hits, { key: "relevance", direction: "desc" });
+
+  it("puts a real title match above scattered words", () => {
+    // Observed: searching "Service Designer" returned "designers floraux pour
+    // le service designer floral" first. Both words are in the title, so the
+    // source was not wrong — the ranking was.
+    const floral = hit({
+      title:
+        "Nos clients ont demandé designers floraux pour le service designer floral",
+      titlePhraseMatch: false,
+      score: 80,
+    });
+    const real = hit({
+      title: "Senior Service Designer",
+      titlePhraseMatch: true,
+      score: 40,
+    });
+    expect(rank([floral, real])[0].title).toBe("Senior Service Designer");
+  });
+
+  it("does not reward an offer for stating nothing", () => {
+    // An undecidable component is dropped from the average, so an offer that
+    // says nothing can post a high score on one lucky component. Between two
+    // offers, the one we know less about does not get to lead.
+    const silent = hit({ confidence: "none", score: 95 });
+    const judged = hit({ confidence: "high", score: 60 });
+    expect(rank([silent, judged])[0].confidence).toBe("high");
+  });
+
+  it("falls back to the score when phrase and confidence tie", () => {
+    const low = hit({ score: 20 });
+    const high = hit({ score: 90 });
+    expect(rank([low, high])[0].score).toBe(90);
+  });
+
+  it("reverses fully when the user asks for ascending", () => {
+    const a = hit({ titlePhraseMatch: true, score: 90 });
+    const b = hit({ titlePhraseMatch: false, score: 10 });
+    expect(
+      sortHits([a, b], { key: "relevance", direction: "asc" })[0]
+        .titlePhraseMatch,
+    ).toBe(false);
+  });
+});
+
+describe("freshness filter", () => {
+  const NOW_MS = Date.parse("2026-07-25T12:00:00Z");
+  const daysAgo = (d: number) =>
+    new Date(NOW_MS - d * 86_400_000).toISOString();
+
+  it("drops a listing older than the window", () => {
+    // Production showed 736-day-old ads leading a view of what is open NOW.
+    const hits = [
+      hit({ postedAt: daysAgo(736) }),
+      hit({ postedAt: daysAgo(3) }),
+    ];
+    const kept = filterHits(
+      hits,
+      { ...NO_FILTERS, maxAgeDays: DEFAULT_MAX_AGE_DAYS },
+      NOW_MS,
+    );
+    expect(kept).toHaveLength(1);
+    expect(kept[0].postedAt).toBe(daysAgo(3));
+  });
+
+  it("NEVER drops an undated offer — unknown is not old", () => {
+    const hits = [hit({ postedAt: null })];
+    expect(
+      filterHits(hits, { ...NO_FILTERS, maxAgeDays: 7 }, NOW_MS),
+    ).toHaveLength(1);
+  });
+
+  it("keeps everything when the user lifts the limit", () => {
+    const hits = [hit({ postedAt: daysAgo(736) })];
+    expect(
+      filterHits(hits, { ...NO_FILTERS, maxAgeDays: null }, NOW_MS),
+    ).toHaveLength(1);
+  });
+
+  it("keeps an offer exactly on the boundary", () => {
+    const hits = [hit({ postedAt: daysAgo(30) })];
+    expect(
+      filterHits(hits, { ...NO_FILTERS, maxAgeDays: 30 }, NOW_MS),
+    ).toHaveLength(1);
   });
 });
