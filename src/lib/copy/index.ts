@@ -63,6 +63,9 @@ export const copy = {
       engagementLabel: "Type d'engagement",
       remoteLabel: "Télétravail",
       notStated: "Non précisé",
+      ageLabel: "Publiées depuis",
+      ageWindow: (days: number) => `${days} jours`,
+      ageAll: "Sans limite",
       // Relative age, because "il y a 3 jours" is read instantly where an
       // absolute date forces a mental subtraction.
       age: (days: number) =>
@@ -881,6 +884,9 @@ export const copy = {
       engagementLabel: "Engagement type",
       remoteLabel: "Remote",
       notStated: "Not stated",
+      ageLabel: "Posted within",
+      ageWindow: (days: number) => `${days} days`,
+      ageAll: "No limit",
       age: (days: number) =>
         days <= 0
           ? "posted today"

@@ -54,6 +54,28 @@ export type MarketHit = {
   /** 0-100 relevance against confirmed skills, or null when undecidable. */
   score: number | null;
   /**
+   * How much of the score was actually decidable — "none" means we could not
+   * judge this offer at all.
+   *
+   * Ranking needs this, not just reporting. An offer that states NOTHING has
+   * its undecidable components excluded from the average, so it can outrank an
+   * offer we partially matched: staying silent gets rewarded. Observed in
+   * production — two-year-old listings with no skills, no contract and no
+   * remote mode sat at the top of the results.
+   */
+  confidence: "none" | "low" | "medium" | "high";
+  /**
+   * Whether the searched role appears in the title AS A PHRASE.
+   *
+   * Sources match words, not meaning: searching "Service Designer" returned
+   * "designers floraux pour le service designer floral" — both words are
+   * present, so it is a legitimate word match and a terrible answer. The
+   * distinction between "the role is in the title" and "the words are
+   * scattered in the title" is deterministic, checkable by reading the title,
+   * and it is what separates a market view from noise.
+   */
+  titlePhraseMatch: boolean;
+  /**
    * The user's OWN confirmed skills found in this offer, by name.
    *
    * A benchmark of ten job boards found the only credible explanation of a

@@ -35,6 +35,30 @@ import type { MarketHit, MarketSearchResult } from "./types";
 
 const EXCERPT_CHARS = 320;
 
+/** Comparison form: accents and punctuation removed, spaces collapsed — so
+ *  "Service-Designer" and "service designer" are the same phrase. */
+function fold(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** True when one of the searched roles appears CONTIGUOUSLY in the title. */
+function matchesPhrase(
+  title: string | null,
+  phrases: readonly string[],
+): boolean {
+  if (title === null) return false;
+  const folded = fold(title);
+  return phrases.some((p) => {
+    const needle = fold(p);
+    return needle !== "" && folded.includes(needle);
+  });
+}
+
 function excerptOf(description: string | null): string | null {
   if (description === null) return null;
   const flat = description.replace(/\s+/g, " ").trim();
@@ -55,6 +79,7 @@ function toHit(
   sourceName: string,
   preferences: ProfilePreferences,
   signals: ProfileSignals,
+  phrases: readonly string[],
 ): MarketHit | null {
   let normalized: ReturnType<typeof normalizeDiscovered>;
   try {
@@ -105,6 +130,8 @@ function toHit(
     sourceUrl: ad.sourceUrl,
     gate: evaluateHardConstraints(preferences, facts).gate,
     score: score.overall,
+    confidence: score.confidence,
+    titlePhraseMatch: matchesPhrase(n.title, phrases),
     matchedSkills,
     demandedSkillCount: n.skills.length,
     unknowns: normalized.unknowns,
@@ -123,8 +150,13 @@ export async function searchMarket(
     sources,
     onSearchError,
   );
+  // The exact phrases the user searched for, to tell "the role is in the
+  // title" from "the words happen to be in the title".
+  const phrases = plans.map((p) => p.keywords.join(" "));
   const hits = items
-    .map(({ ad, sourceName }) => toHit(ad, sourceName, preferences, signals))
+    .map(({ ad, sourceName }) =>
+      toHit(ad, sourceName, preferences, signals, phrases),
+    )
     .filter((hit): hit is MarketHit => hit !== null);
   return {
     // The runner already deduped by provenance URL; this catches what that
