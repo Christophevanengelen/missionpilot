@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { isExpired, toPostedAt } from "@/lib/discovery/posted-at";
+import { annualEquivalent } from "@/lib/search/compensation";
 import { mergeDuplicates } from "@/lib/search/dedupe";
 import {
   NO_FILTERS,
@@ -34,6 +35,8 @@ function hit(over: Partial<MarketHit> = {}): MarketHit {
     sourceUrl: "https://himalayas.app/1",
     gate: "eligible",
     score: 50,
+    matchedSkills: [],
+    demandedSkillCount: 0,
     unknowns: [],
     ...over,
   };
@@ -269,5 +272,75 @@ describe("sortHits — freshness", () => {
         sortHits(hits, { key: "freshness", direction })[1].postedAt,
       ).toBeNull();
     }
+  });
+});
+
+/**
+ * The market hole the benchmark found nobody filling — and it bites hardest on
+ * exactly this audience, where employee boards quote a year and mission boards
+ * quote a day.
+ */
+describe("annualEquivalent", () => {
+  const pay = (
+    amount: number,
+    period: string,
+    currency: string | null = "EUR",
+  ) => ({
+    compensationMin: null,
+    compensationMax: amount,
+    compensationCurrency: currency,
+    compensationPeriod: period,
+  });
+
+  it("annualises each period on the disclosed 218-day assumption", () => {
+    expect(annualEquivalent(pay(90_000, "year"))?.amount).toBe(90_000);
+    expect(annualEquivalent(pay(7_500, "month"))?.amount).toBe(90_000);
+    expect(annualEquivalent(pay(600, "day"))?.amount).toBe(600 * 218);
+    expect(annualEquivalent(pay(80, "hour"))?.amount).toBe(80 * 218 * 7);
+  });
+
+  it("flags a derived figure so the UI can say '≈' instead of quoting it", () => {
+    expect(annualEquivalent(pay(90_000, "year"))?.converted).toBe(false);
+    expect(annualEquivalent(pay(600, "day"))?.converted).toBe(true);
+  });
+
+  it("keeps the offer's own currency and never invents a rate", () => {
+    // Converting USD to EUR would need a live rate we do not have. Inventing
+    // one is exactly what this product refuses, so the currency travels as-is.
+    expect(annualEquivalent(pay(120_000, "year", "USD"))?.currency).toBe("USD");
+    expect(annualEquivalent(pay(120_000, "year", null))).toBeNull();
+  });
+
+  it("refuses an implausible annual equivalent rather than topping the list", () => {
+    // A mis-extracted day rate would otherwise annualise into millions and
+    // win every sort — ranking an offer first on a parsing bug.
+    expect(annualEquivalent(pay(30_960, "day"))).toBeNull();
+    expect(annualEquivalent(pay(0, "day"))).toBeNull();
+  });
+
+  it("returns null for a period it cannot annualise honestly", () => {
+    expect(annualEquivalent(pay(1_000, "week"))).toBeNull();
+  });
+});
+
+describe("sortHits — compensation across units", () => {
+  it("ranks a day rate above an annual salary it actually beats", () => {
+    // THE bug this fixes: raw figures put 90 000/an above 900/jour, though
+    // the day rate is worth ~196 000 over a year. Every competitor gets this
+    // wrong because they compare the printed number.
+    const annual = hit({
+      compensationMax: 90_000,
+      compensationCurrency: "EUR",
+      compensationPeriod: "year",
+    });
+    const daily = hit({
+      compensationMax: 900,
+      compensationCurrency: "EUR",
+      compensationPeriod: "day",
+    });
+    expect(
+      sortHits([annual, daily], { key: "compensation", direction: "desc" })[0]
+        .compensationPeriod,
+    ).toBe("day");
   });
 });

@@ -54,6 +54,18 @@ export type MarketHit = {
   /** 0-100 relevance against confirmed skills, or null when undecidable. */
   score: number | null;
   /**
+   * The user's OWN confirmed skills found in this offer, by name.
+   *
+   * A benchmark of ten job boards found the only credible explanation of a
+   * match is the falsifiable one — LinkedIn's "x of y skills match" — and that
+   * an unexplained "87% compatible" reads as arbitrary and costs trust. These
+   * are the words the user can go and check in the posting itself.
+   */
+  matchedSkills: string[];
+  /** How many skills the offer asks for, so the match reads as a fraction of
+   *  something real rather than a percentage out of nowhere. */
+  demandedSkillCount: number;
+  /**
    * Fields NO source stated. Carried all the way to the UI on purpose: the
    * product says what it does not know rather than presenting a silent blank
    * as a fact, and the filters use this to avoid dropping terse offers.

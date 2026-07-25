@@ -29,6 +29,8 @@ function hit(over: Partial<MarketHit> = {}): MarketHit {
     sourceUrl: "https://himalayas.app/jobs/1",
     gate: "eligible",
     score: 50,
+    matchedSkills: [],
+    demandedSkillCount: 0,
     unknowns: [],
     ...over,
   };
@@ -152,10 +154,16 @@ describe("sortHits", () => {
   it("sinks offers with no value to the BOTTOM in both directions", () => {
     // Sorting by salary ascending must not fill the top of the screen with
     // offers that simply never mentioned one: absence is not a low figure.
+    // Currency and period included: an amount without its units is not
+    // comparable at all, so it sinks like any other unstated value.
+    const eur = {
+      compensationCurrency: "EUR" as const,
+      compensationPeriod: "year" as const,
+    };
     const hits = [
-      hit({ compensationMax: null }),
-      hit({ compensationMax: 90000 }),
-      hit({ compensationMax: 50000 }),
+      hit({ compensationMax: null, ...eur }),
+      hit({ compensationMax: 90000, ...eur }),
+      hit({ compensationMax: 50000, ...eur }),
     ];
     expect(
       sortHits(hits, { key: "compensation", direction: "asc" }).map(
@@ -170,9 +178,13 @@ describe("sortHits", () => {
   });
 
   it("falls back to the lower bound when only it is stated", () => {
+    const eur2 = {
+      compensationCurrency: "EUR" as const,
+      compensationPeriod: "year" as const,
+    };
     const hits = [
-      hit({ compensationMin: 70000, compensationMax: null }),
-      hit({ compensationMin: null, compensationMax: 60000 }),
+      hit({ compensationMin: 70000, compensationMax: null, ...eur2 }),
+      hit({ compensationMin: null, compensationMax: 60000, ...eur2 }),
     ];
     expect(
       sortHits(hits, { key: "compensation", direction: "desc" }).map(

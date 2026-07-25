@@ -99,6 +99,22 @@ export const copy = {
       untitled: "Offre sans intitulé",
       noMeta: "Aucun détail précisé par la source.",
       scoreLabel: (n: number) => `${n} % de correspondance`,
+      // Verifiable beats impressive: a benchmark found an unexplained
+      // "87 % compatible" reads as arbitrary, while "3 of your skills, of the
+      // 8 asked for" can be checked against the posting in ten seconds.
+      skillMatch: (matched: number, demanded: number) =>
+        `${matched} de vos compétences sur les ${demanded} demandées`,
+      skillMatchNone: (demanded: number) =>
+        `Aucune de vos compétences confirmées parmi les ${demanded} demandées`,
+      skillsUnknown: "Cette annonce ne liste pas de compétences.",
+      compPeriods: {
+        year: "an",
+        month: "mois",
+        day: "jour",
+        hour: "heure",
+      } as Record<string, string>,
+      payConverted: (amount: string, annual: string) =>
+        `${amount} · ≈ ${annual}/an (base 218 jours facturables)`,
       openOnSource: "Voir l'annonce d'origine",
       unknownFields: (n: number) =>
         `${n} ${n > 1 ? "champs non précisés" : "champ non précisé"} par la source.`,
@@ -899,6 +915,19 @@ export const copy = {
       untitled: "Untitled offer",
       noMeta: "No detail stated by the source.",
       scoreLabel: (n: number) => `${n}% match`,
+      skillMatch: (matched: number, demanded: number) =>
+        `${matched} of your skills, of the ${demanded} asked for`,
+      skillMatchNone: (demanded: number) =>
+        `None of your confirmed skills among the ${demanded} asked for`,
+      skillsUnknown: "This listing does not list skills.",
+      compPeriods: {
+        year: "yr",
+        month: "mo",
+        day: "day",
+        hour: "hr",
+      } as Record<string, string>,
+      payConverted: (amount: string, annual: string) =>
+        `${amount} · ≈ ${annual}/yr (218 billable days)`,
       openOnSource: "View the original posting",
       unknownFields: (n: number) =>
         `${n} field${n > 1 ? "s" : ""} not stated by the source.`,

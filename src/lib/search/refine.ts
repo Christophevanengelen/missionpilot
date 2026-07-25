@@ -16,6 +16,7 @@
  */
 
 import type { EngagementType, RemoteType } from "@/domain/opportunity";
+import { comparablePay } from "./compensation";
 import type { MarketHit } from "./types";
 
 export type MarketFilters = {
@@ -204,9 +205,10 @@ function sortValue(hit: MarketHit, key: SortKey): number | string | null {
       // direction a job seeker almost always wants.
       return hit.postedAt === null ? null : Date.parse(hit.postedAt);
     case "compensation":
-      // The upper bound is what a reader compares on; fall back to the lower
-      // bound so a single-figure offer still sorts.
-      return hit.compensationMax ?? hit.compensationMin;
+      // Annualised first: comparing a raw 90 000 €/an against a raw 900 €/jour
+      // ranks them backwards, because the day rate is worth nearly twice as
+      // much over a year. See `compensation.ts` for the disclosed assumption.
+      return comparablePay(hit);
     case "organization":
       return hit.organization === null ? null : fold(hit.organization);
     case "title":

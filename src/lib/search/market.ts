@@ -78,6 +78,12 @@ function toHit(
     requirements: n.requirements,
     responsibilities: n.responsibilities,
   };
+  // The skills component carries the MATCHED skill names as evidence — the
+  // falsifiable half of the match, and the only part a user can go and check
+  // against the posting itself.
+  const score = scoreMatch(preferences, signals, facts);
+  const matchedSkills =
+    score.components.find((c) => c.key === "skills")?.evidence ?? [];
   return {
     // The provenance URL is the natural identity; a listing without one still
     // needs a stable key, and its verbatim text is what dedup already uses.
@@ -98,7 +104,9 @@ function toHit(
     sourceName,
     sourceUrl: ad.sourceUrl,
     gate: evaluateHardConstraints(preferences, facts).gate,
-    score: scoreMatch(preferences, signals, facts).overall,
+    score: score.overall,
+    matchedSkills,
+    demandedSkillCount: n.skills.length,
     unknowns: normalized.unknowns,
   };
 }
