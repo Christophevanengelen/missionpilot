@@ -10,6 +10,7 @@ import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
 import { buildSearchPlans, type SearchPlan } from "@/lib/discovery/plan";
+import { MAX_COUNTRIES_PER_SEARCH, isCountryCode } from "@/domain/countries";
 import { configuredSources } from "@/lib/discovery/sources";
 import { getOwnProfile } from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
@@ -22,6 +23,9 @@ const logger = createLogger({ module: "search-actions" });
 const inputSchema = z.object({
   /** Free text. Empty means "use the métiers the validated CV analysis chose". */
   query: z.string().max(200).default(""),
+  /** Country segments to search. Empty falls back to the deployment default,
+   *  which is what a first visit gets before any criterion is chosen. */
+  countries: z.array(z.string()).max(MAX_COUNTRIES_PER_SEARCH).default([]),
 });
 
 export type MarketSearchActionResult =
@@ -48,7 +52,11 @@ export async function searchMarketAction(
     const parsed = inputSchema.parse(input);
     await verifySession();
 
-    const sources = configuredSources();
+    // Unknown codes are DROPPED rather than passed through: a bad segment
+    // makes the source 404, and a whole country silently returning nothing is
+    // worse than not offering it.
+    const countries = parsed.countries.filter(isCountryCode);
+    const sources = configuredSources(countries);
     if (sources.length === 0) return { ok: false, error: "unconfigured" };
 
     const client = await createClient();

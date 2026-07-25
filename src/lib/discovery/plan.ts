@@ -100,6 +100,17 @@ export async function runMultiSourceDiscovery<
   const seen = new Set<string>();
   const items: { ad: Ad; sourceName: string }[] = [];
   const failedBySource = new Map<string, number>();
+  // A source NAME can appear several times — Adzuna partitions its index by
+  // country, so "Adzuna" is one entry per country searched. The denominator
+  // must count those entries, else "3 échecs sur 3" is reported for a source
+  // that actually attempted nine searches.
+  const attemptsByName = new Map<string, number>();
+  for (const source of sources) {
+    attemptsByName.set(
+      source.name,
+      (attemptsByName.get(source.name) ?? 0) + plans.length,
+    );
+  }
   let failedSearches = 0;
   let totalSearches = 0;
   for (const source of sources) {
@@ -132,7 +143,7 @@ export async function runMultiSourceDiscovery<
     failedSources: [...failedBySource].map(([name, failed]) => ({
       name,
       failed,
-      total: plans.length,
+      total: attemptsByName.get(name) ?? plans.length,
     })),
   };
 }

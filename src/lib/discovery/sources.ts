@@ -14,10 +14,22 @@ import type { DiscoverySource } from "./plan";
  * one and dedups across them. The `name` is the honest provenance recorded on
  * each imported opportunity.
  */
-export function configuredSources(): DiscoverySource<DiscoveredAd>[] {
+export function configuredSources(
+  countries: readonly string[] = [],
+): DiscoverySource<DiscoveredAd>[] {
   const sources: DiscoverySource<DiscoveredAd>[] = [];
   if (adzunaConfigured()) {
-    sources.push({ name: "Adzuna", search: searchAdzuna });
+    // Adzuna partitions its index BY COUNTRY, so each country is its own
+    // source entry. They all keep the name "Adzuna": that is the name their
+    // attribution terms require, and it lets the cross-source merge collapse
+    // an offer that a company published in two markets.
+    const targets = countries.length > 0 ? countries : [undefined];
+    for (const country of targets) {
+      sources.push({
+        name: "Adzuna",
+        search: (keywords, mode) => searchAdzuna(keywords, mode, country),
+      });
+    }
   }
   if (franceTravailConfigured()) {
     sources.push({ name: "France Travail", search: searchFranceTravail });

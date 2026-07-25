@@ -5,6 +5,7 @@ import { getOwnProfile } from "@/lib/opportunity/logic";
 import { loadPreferences } from "@/lib/profile/logic";
 import { discoveryConfigured } from "@/lib/discovery/sources";
 import { t } from "@/lib/copy";
+import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 import { SearchPanel } from "./search-panel";
 
 export const metadata: Metadata = { title: "Recherche" };
@@ -24,6 +25,19 @@ export default async function SearchPage() {
   const profile = await getOwnProfile(client);
   const preferences = await loadPreferences(client, profile.id);
   const copy = t().search;
+  // Seed from the saved work regions when they name a country we can query;
+  // otherwise leave it empty and let the deployment default answer, rather
+  // than picking a country on the owner's behalf.
+  const defaultCountries = preferences.allowedWorkRegions
+    .map((r) => r.trim().toLowerCase())
+    .map(
+      (r) =>
+        SEARCH_COUNTRIES.find(
+          (c) => c.code === r || c.label.toLowerCase() === r,
+        )?.code,
+    )
+    .filter((c) => c !== undefined)
+    .slice(0, MAX_COUNTRIES_PER_SEARCH);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -33,7 +47,10 @@ export default async function SearchPage() {
       </header>
 
       {discoveryConfigured() ? (
-        <SearchPanel defaultQuery={preferences.targetRoleFamilies[0] ?? ""} />
+        <SearchPanel
+          defaultQuery={preferences.targetRoleFamilies[0] ?? ""}
+          defaultCountries={defaultCountries}
+        />
       ) : (
         <p className="text-muted-foreground text-sm">{copy.unconfigured}</p>
       )}
