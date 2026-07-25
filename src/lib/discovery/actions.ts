@@ -31,6 +31,11 @@ export type DiscoveryResult =
       /** Métier searches that errored while others succeeded — surfaced so a
        *  possibly-incomplete result is never presented as a complete one. */
       failedSearches: number;
+      /** WHICH sources came up short, with their failure counts AND the
+       *  denominator. Without the name, a partial failure is undiagnosable
+       *  once several sources are configured; without `total`, a source that
+       *  answered nothing reads like one that merely lost a search. */
+      failedSources: { name: string; failed: number; total: number }[];
     }
   | { ok: false; error: "unconfigured" | "no_keywords" | "generic" };
 
@@ -51,7 +56,7 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
     // testable runner; only when EVERY search failed is the whole run an
     // error, and a partial failure count travels to the UI (honesty: never
     // present a possibly-incomplete result as a complete one).
-    const { items, failedSearches, totalSearches } =
+    const { items, failedSearches, totalSearches, failedSources } =
       await runMultiSourceDiscovery<DiscoveredAd>(
         plans,
         sources,
@@ -103,6 +108,7 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
       duplicates,
       failed,
       failedSearches,
+      failedSources,
     };
   } catch (error) {
     logger.error("discovery failed", {

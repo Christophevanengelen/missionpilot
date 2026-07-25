@@ -51,6 +51,32 @@ const tokenSchema = z.object({
   expires_in: z.number().nonnegative().default(1200),
 });
 
+/** OAuth2 error envelope. Only the `error` CODE is read — never
+ *  `error_description`, whose free text is outside our control. */
+const oauthErrorSchema = z.object({ error: z.string().optional() });
+const MAX_OAUTH_ERROR_LEN = 40;
+
+/**
+ * The OAuth error CODE from a failed token response, or null.
+ *
+ * Safe to log, and load-bearing for diagnosis: the REQUEST body carries the
+ * secret and is never logged, but the RESPONSE body does not — and its code is
+ * the only thing separating two failures that both surface as HTTP 400 and
+ * need opposite fixes: `invalid_client` (the credentials are wrong) versus
+ * `invalid_scope` / `access_denied` (the credentials are fine but the France
+ * Travail application is not subscribed to the Offres d'emploi API).
+ */
+async function readOauthErrorCode(response: Response): Promise<string | null> {
+  try {
+    const parsed = oauthErrorSchema.safeParse(await response.json());
+    const code = parsed.success ? parsed.data.error?.trim() : undefined;
+    return code ? code.slice(0, MAX_OAUTH_ERROR_LEN) : null;
+  } catch {
+    // Non-JSON or unreadable body — the status alone still travels.
+    return null;
+  }
+}
+
 export class FranceTravailError extends Error {}
 
 const log = createLogger({ module: "discovery-france-travail" });
@@ -84,8 +110,13 @@ async function getToken(): Promise<string> {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!response.ok) {
-      // Status only — the body carries the secret and is never logged.
-      log.warn("france travail token failed", { httpStatus: response.status });
+      // Status + the OAuth error CODE. The REQUEST body carries the secret and
+      // is never logged; the RESPONSE body does not, and its code is what makes
+      // a 400 actionable (see readOauthErrorCode).
+      log.warn("france travail token failed", {
+        httpStatus: response.status,
+        oauthError: await readOauthErrorCode(response),
+      });
       throw new FranceTravailError(`token request failed (${response.status})`);
     }
     payload = await response.json();

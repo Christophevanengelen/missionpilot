@@ -5,7 +5,8 @@ vi.mock("@/lib/env", () => ({
   env: {
     FRANCE_TRAVAIL_CLIENT_ID: "test-client-id",
     FRANCE_TRAVAIL_CLIENT_SECRET: "test-client-secret",
-    LOG_LEVEL: "error",
+    // "warn" so the token-failure diagnostics below are actually emitted.
+    LOG_LEVEL: "warn",
     APP_ENV: "local",
   },
 }));
@@ -15,14 +16,24 @@ vi.mock("@/lib/env", () => ({
 type Mod = typeof import("@/lib/discovery/france-travail");
 let mod: Mod;
 const fetchMock = vi.fn();
+let warnSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(async () => {
   vi.resetModules();
   mod = await import("@/lib/discovery/france-travail");
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
+  warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  warnSpy.mockRestore();
+});
+
+/** The structured JSON of the most recent warn line. */
+function lastWarnLine(): string {
+  return warnSpy.mock.calls.at(-1)?.[0] as string;
+}
 
 function tokenResponse() {
   return {
@@ -149,6 +160,49 @@ describe("searchFranceTravail", () => {
     await expect(mod.searchFranceTravail(["x"])).rejects.toBeInstanceOf(
       mod.FranceTravailError,
     );
+  });
+
+  // The production incident this guards: every France Travail search failed
+  // with HTTP 400 and the log carried the status ALONE. "400" cannot tell a
+  // wrong credential (invalid_client) from an application that is simply not
+  // subscribed to the Offres d'emploi API (invalid_scope) — two opposite fixes.
+  it("logs the OAuth error CODE on a token failure, never the free-text description", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: "invalid_scope",
+        error_description: "scope non autorise pour cette application",
+      }),
+    } as Response);
+    await expect(mod.searchFranceTravail(["x"])).rejects.toBeInstanceOf(
+      mod.FranceTravailError,
+    );
+    const line = lastWarnLine();
+    const logged = JSON.parse(line);
+    expect(logged.httpStatus).toBe(400);
+    expect(logged.oauthError).toBe("invalid_scope");
+    // Free text is outside our control — it never reaches the log.
+    expect(line).not.toContain("scope non autorise");
+    // And the credentials never do either.
+    expect(line).not.toContain("test-client-secret");
+    expect(line).not.toContain("test-client-id");
+  });
+
+  it("still reports the status when the token error body is not JSON", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new Error("not json");
+      },
+    } as unknown as Response);
+    await expect(mod.searchFranceTravail(["x"])).rejects.toBeInstanceOf(
+      mod.FranceTravailError,
+    );
+    const logged = JSON.parse(lastWarnLine());
+    expect(logged.httpStatus).toBe(502);
+    expect(logged.oauthError).toBeNull();
   });
 
   it("rejects an empty keyword set (before any network call)", async () => {
