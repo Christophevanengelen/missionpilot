@@ -24,6 +24,7 @@ import { aiBreakdownConfigured } from "@/lib/matching/ai-breakdown";
 import { aiTailorConfigured } from "@/lib/matching/ai-tailor";
 import { loadDraft } from "@/lib/matching/tailor-logic";
 import { NORMALIZED_FIELDS } from "@/domain/opportunity";
+import { attributionLink } from "@/lib/discovery/attribution";
 import { aiInterviewConfigured } from "@/lib/matching/ai-interview";
 import { loadBrief } from "@/lib/matching/interview-logic";
 import { loadTracking } from "@/lib/tracking/logic";
@@ -118,23 +119,25 @@ export default async function OpportunityDetailPage({
     : null;
   const comp = formatCompensation(opportunity);
 
-  // A source URL rendered as bare text is not attribution: Himalayas, Jobicy,
-  // Remotive and Adzuna all require a credit WITH A LINK BACK. Re-validated
-  // here as defense in depth — ingestion already rejects non-http(s), and a
-  // stored `javascript:` value must never become an href even so.
-  const sourceLink =
-    opportunity.source_url && /^https?:\/\//i.test(opportunity.source_url) ? (
-      <a
-        href={opportunity.source_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline underline-offset-2"
-      >
-        {opportunity.source_url}
-      </a>
-    ) : (
-      opportunity.source_url
-    );
+  // Attribution vs safety, reconciled in `attributionLink`: a live link ONLY
+  // when the URL belongs to the source that supplied it. A pasted import, or
+  // anything unexpected, keeps the product's long-standing inert-text rule.
+  const attribution = attributionLink(
+    opportunity.source_name,
+    opportunity.source_url,
+  );
+  const sourceLink = attribution ? (
+    <a
+      href={attribution}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline underline-offset-2"
+    >
+      {opportunity.source_url}
+    </a>
+  ) : (
+    opportunity.source_url
+  );
 
   const singles: [string, React.ReactNode][] = [
     [copy.fields.organization, opportunity.organization],

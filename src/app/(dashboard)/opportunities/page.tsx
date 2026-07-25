@@ -14,6 +14,7 @@ import { compareRanked } from "@/lib/matching/rank";
 import { aiInsightConfigured } from "@/lib/matching/ai-insight";
 import { loadInsights, type StoredInsight } from "@/lib/matching/insight-logic";
 import { discoveryConfigured } from "@/lib/discovery/sources";
+import { attributionLink } from "@/lib/discovery/attribution";
 import { t } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { GateBadge } from "@/components/matching/gate-badge";
@@ -273,11 +274,14 @@ export default async function OpportunitiesPage({
                     {o.source_name ? (
                       <p className="text-muted-foreground text-xs">
                         {copy.fields.sourceName} : {o.source_name}
-                        {o.source_url && /^https?:\/\//i.test(o.source_url) ? (
+                        {attributionLink(o.source_name, o.source_url) ? (
                           <>
                             {" · "}
                             <a
-                              href={o.source_url}
+                              href={attributionLink(
+                                o.source_name,
+                                o.source_url,
+                              )!}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="underline underline-offset-2"
