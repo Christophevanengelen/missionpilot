@@ -7,6 +7,7 @@ import type { DiscoveredAd } from "./adzuna";
 import { boundedAmount } from "./amount";
 import { createTtlCache } from "./cache";
 import { firstPlainText } from "./html-text";
+import { toPostedAt } from "./posted-at";
 
 /**
  * Jobicy connector — a legal remote-work source with a PUBLIC, documented,
@@ -52,10 +53,11 @@ const jobSchema = z.object({
   url: z.string().nullish(),
   // Same reasoning as Himalayas: a bad figure must cost us that figure, not
   // the whole response. `toNumber` + `boundedAmount` do the validating.
-  salaryMin: z.unknown(),
-  salaryMax: z.unknown(),
+  salaryMin: z.unknown().optional(),
+  salaryMax: z.unknown().optional(),
   salaryCurrency: z.string().nullish(),
   salaryPeriod: z.string().nullish(),
+  pubDate: z.unknown().optional(),
 });
 
 // `jobs` is REQUIRED, deliberately without a default: Jobicy answers a
@@ -183,6 +185,7 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
       ? (currency as "EUR" | "USD" | "GBP" | "CHF")
       : null,
     compensationPeriod: hasSalary ? period : null,
+    postedAt: toPostedAt(j.pubDate),
     rawText,
   };
 }

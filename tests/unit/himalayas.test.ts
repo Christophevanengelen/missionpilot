@@ -210,6 +210,22 @@ describe("searchHimalayas", () => {
     expect(url.searchParams.get("q")).toBe("a b c d e"); // capped at 5
   });
 
+  it("accepts a listing that omits the optional keys entirely", async () => {
+    // Same trap as Jobicy: bare `z.unknown()` made these keys required, so a
+    // salary-less, date-less listing would have voided the whole response.
+    const bare = {
+      title: "Designer",
+      companyName: "Nova",
+      description: "<p>Texte.</p>",
+      guid: "https://himalayas.app/jobs/1",
+    };
+    fetchMock.mockResolvedValueOnce(ok({ jobs: [bare] }));
+    const ads = await mod.searchHimalayas(["bare"]);
+    expect(ads).toHaveLength(1);
+    expect(ads[0].compensationMin).toBeNull();
+    expect(ads[0].postedAt).toBeNull();
+  });
+
   it("leaves an unknown employment type undetermined rather than guessing", async () => {
     fetchMock.mockResolvedValueOnce(
       ok({ jobs: [{ ...JOB, employmentType: "Volunteer" }] }),

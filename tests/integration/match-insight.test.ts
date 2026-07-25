@@ -47,6 +47,7 @@ const AD: DiscoveredAd = {
   compensationMax: null,
   compensationCurrency: null,
   compensationPeriod: null,
+  postedAt: null,
   rawText: "Head of Data\nchez Nova SA\n\nDirection de la plateforme data.",
 };
 

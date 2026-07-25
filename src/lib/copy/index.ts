@@ -49,6 +49,94 @@ export const copy = {
         missing: "(absent de votre profil)",
       },
     },
+    search: {
+      title: "Recherche d'opportunités",
+      subtitle:
+        "Ce qui est ouvert en ce moment sur les plateformes configurées. Rien n'est stocké : chaque résultat est un lien vers l'annonce d'origine.",
+      queryLabel: "Métier recherché",
+      queryPlaceholder: "Service Designer",
+      queryHint:
+        "Laissez vide pour chercher sur les métiers déduits de votre CV.",
+      submit: "Chercher",
+      searching: "Recherche en cours…",
+      refineLabel: "Affiner les résultats",
+      engagementLabel: "Type d'engagement",
+      remoteLabel: "Télétravail",
+      notStated: "Non précisé",
+      // Relative age, because "il y a 3 jours" is read instantly where an
+      // absolute date forces a mental subtraction.
+      age: (days: number) =>
+        days <= 0
+          ? "publiée aujourd'hui"
+          : days === 1
+            ? "publiée hier"
+            : `publiée il y a ${days} jours`,
+      ageUnknown: "date de publication non communiquée",
+      alsoOn: (names: readonly string[]) => `aussi sur ${names.join(", ")}`,
+      countryLabel: "Pays ou région",
+      countryPlaceholder: "France, Belgique…",
+      includeUnstated: "Garder les offres qui ne précisent pas ces critères",
+      includeUnstatedNote:
+        "La plupart des annonces restent muettes sur le contrat, le télétravail ou le lieu. Les écarter reviendrait à cacher de bonnes offres pour une source avare — on préfère vous dire qu'on ne sait pas.",
+      unstatedNote: (n: number) =>
+        `${n} ${n > 1 ? "offres affichées ne précisent pas" : "offre affichée ne précise pas"} un critère que vous avez filtré.`,
+      sortLabel: "Trier par",
+      sortKeys: {
+        relevance: "Pertinence",
+        compensation: "Rémunération",
+        organization: "Entreprise",
+        title: "Intitulé",
+        source: "Source",
+      } as Record<string, string>,
+      sortDesc: "Décroissant",
+      sortAsc: "Croissant",
+      resultCount: (shown: number, total: number) =>
+        shown === total
+          ? `${total} ${total > 1 ? "offres trouvées" : "offre trouvée"}.`
+          : `${shown} ${shown > 1 ? "offres affichées" : "offre affichée"} sur ${total} trouvées.`,
+      noneShown:
+        "Aucune offre ne passe vos filtres. Élargissez-les, ou gardez les offres non précisées.",
+      untitled: "Offre sans intitulé",
+      noMeta: "Aucun détail précisé par la source.",
+      scoreLabel: (n: number) => `${n} % de correspondance`,
+      // Verifiable beats impressive: a benchmark found an unexplained
+      // "87 % compatible" reads as arbitrary, while "3 of your skills, of the
+      // 8 asked for" can be checked against the posting in ten seconds.
+      skillMatch: (matched: number, demanded: number) =>
+        `${matched} de vos compétences sur les ${demanded} demandées`,
+      skillMatchNone: (demanded: number) =>
+        `Aucune de vos compétences confirmées parmi les ${demanded} demandées`,
+      skillsUnknown: "Cette annonce ne liste pas de compétences.",
+      compPeriods: {
+        year: "an",
+        month: "mois",
+        day: "jour",
+        hour: "heure",
+      } as Record<string, string>,
+      payConverted: (amount: string, annual: string) =>
+        `${amount} · ≈ ${annual}/an (base 218 jours facturables)`,
+      openOnSource: "Voir l'annonce d'origine",
+      unknownFields: (n: number) =>
+        `${n} ${n > 1 ? "champs non précisés" : "champ non précisé"} par la source.`,
+      partial: (
+        sources: readonly { name: string; failed: number; total: number }[],
+      ) => {
+        const parts = sources.map((s) =>
+          s.failed >= s.total
+            ? `${s.name} n'a rien renvoyé`
+            : `${s.name} : ${s.failed} recherche(s) en échec sur ${s.total}`,
+        );
+        return `Résultats incomplets — ${parts.join(" ; ")}.`;
+      },
+      unconfigured:
+        "Aucune source légale n'est configurée. Activez-en une pour lancer une recherche.",
+      errors: {
+        unconfigured: "Aucune source légale n'est configurée.",
+        no_keywords:
+          "Saisissez un métier, ou importez votre CV pour que nous en déduisions un.",
+        generic: "La recherche n'a pas abouti. Réessayez.",
+      } as Record<string, string>,
+    },
     applications: {
       title: "Suivi des candidatures",
       subtitle:
@@ -779,6 +867,87 @@ export const copy = {
         covered: "(covered by your profile)",
         missing: "(missing from your profile)",
       },
+    },
+    search: {
+      title: "Opportunity search",
+      subtitle:
+        "What is open right now across the configured platforms. Nothing is stored: every result links to the original posting.",
+      queryLabel: "Role you are looking for",
+      queryPlaceholder: "Service Designer",
+      queryHint: "Leave empty to search the roles inferred from your CV.",
+      submit: "Search",
+      searching: "Searching…",
+      refineLabel: "Refine results",
+      engagementLabel: "Engagement type",
+      remoteLabel: "Remote",
+      notStated: "Not stated",
+      age: (days: number) =>
+        days <= 0
+          ? "posted today"
+          : days === 1
+            ? "posted yesterday"
+            : `posted ${days} days ago`,
+      ageUnknown: "publication date not provided",
+      alsoOn: (names: readonly string[]) => `also on ${names.join(", ")}`,
+      countryLabel: "Country or region",
+      countryPlaceholder: "France, Belgium…",
+      includeUnstated: "Keep offers that do not state these criteria",
+      includeUnstatedNote:
+        "Most listings say nothing about contract, remote mode or location. Dropping them would hide good offers over a terse source — we would rather tell you we do not know.",
+      unstatedNote: (n: number) =>
+        `${n} shown offer${n > 1 ? "s do" : " does"} not state a criterion you filtered on.`,
+      sortLabel: "Sort by",
+      sortKeys: {
+        relevance: "Relevance",
+        compensation: "Compensation",
+        organization: "Company",
+        title: "Job title",
+        source: "Source",
+      } as Record<string, string>,
+      sortDesc: "Descending",
+      sortAsc: "Ascending",
+      resultCount: (shown: number, total: number) =>
+        shown === total
+          ? `${total} offer${total > 1 ? "s" : ""} found.`
+          : `${shown} of ${total} offers shown.`,
+      noneShown:
+        "No offer passes your filters. Widen them, or keep the unstated ones.",
+      untitled: "Untitled offer",
+      noMeta: "No detail stated by the source.",
+      scoreLabel: (n: number) => `${n}% match`,
+      skillMatch: (matched: number, demanded: number) =>
+        `${matched} of your skills, of the ${demanded} asked for`,
+      skillMatchNone: (demanded: number) =>
+        `None of your confirmed skills among the ${demanded} asked for`,
+      skillsUnknown: "This listing does not list skills.",
+      compPeriods: {
+        year: "yr",
+        month: "mo",
+        day: "day",
+        hour: "hr",
+      } as Record<string, string>,
+      payConverted: (amount: string, annual: string) =>
+        `${amount} · ≈ ${annual}/yr (218 billable days)`,
+      openOnSource: "View the original posting",
+      unknownFields: (n: number) =>
+        `${n} field${n > 1 ? "s" : ""} not stated by the source.`,
+      partial: (
+        sources: readonly { name: string; failed: number; total: number }[],
+      ) => {
+        const parts = sources.map((s) =>
+          s.failed >= s.total
+            ? `${s.name} returned nothing`
+            : `${s.name}: ${s.failed} of ${s.total} searches failed`,
+        );
+        return `Incomplete results — ${parts.join("; ")}.`;
+      },
+      unconfigured:
+        "No legal source is configured. Enable one to run a search.",
+      errors: {
+        unconfigured: "No legal source is configured.",
+        no_keywords: "Type a role, or import your CV so we can infer one.",
+        generic: "The search did not go through. Try again.",
+      } as Record<string, string>,
     },
     applications: {
       title: "Application tracking",

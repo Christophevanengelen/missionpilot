@@ -8,6 +8,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 // the rest are announced as "coming soon" so the shell stays honest.
 const NAV_ITEMS: Array<{ label: string; href: string | null }> = [
   { label: "Dashboard", href: "/dashboard" },
+  // The search is the product's front door: what is open on the market right
+  // now. The inbox below it is the shortlist the user deliberately keeps.
+  { label: "Recherche", href: "/recherche" },
   { label: "Opportunities", href: "/opportunities" },
   { label: "Applications", href: "/applications" },
   { label: "Profil & Preuves", href: "/profile" },

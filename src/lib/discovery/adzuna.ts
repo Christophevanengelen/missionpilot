@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import type { COMP_CURRENCIES, COMP_PERIODS } from "@/domain/opportunity";
 import { createLogger } from "@/lib/observability/logger";
+import { toPostedAt } from "./posted-at";
 
 type CompCurrency = (typeof COMP_CURRENCIES)[number];
 type CompPeriod = (typeof COMP_PERIODS)[number];
@@ -38,6 +39,7 @@ const resultSchema = z.object({
   salary_max: z.number().nullish(),
   // Adzuna serializes this inconsistently (number 0/1 or string "0"/"1").
   salary_is_predicted: z.union([z.string(), z.number()]).nullish(),
+  created: z.string().nullish(),
 });
 
 const searchResponseSchema = z.object({
@@ -65,6 +67,11 @@ export type DiscoveredAd = {
    *  vocabulary must drop the whole block rather than approximate it. */
   compensationCurrency: CompCurrency | null;
   compensationPeriod: CompPeriod | null;
+  /**
+   * When the source says the listing was published, ISO-8601 UTC — else null.
+   * The freshness signal a job seeker reads first; never inferred.
+   */
+  postedAt: string | null;
   /** The verbatim ad text snapshotted as the immutable source. */
   rawText: string;
 };
@@ -131,6 +138,7 @@ function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
     compensationCurrency:
       hasSalary && env.ADZUNA_COUNTRY === "fr" ? "EUR" : null,
     compensationPeriod: hasSalary ? "year" : null,
+    postedAt: toPostedAt(r.created),
     rawText,
   };
 }

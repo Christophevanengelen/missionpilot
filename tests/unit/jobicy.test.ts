@@ -139,6 +139,24 @@ describe("searchJobicy", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  // A real listing with no salary omits the keys ALTOGETHER. Declaring them as
+  // bare `z.unknown()` made them REQUIRED in this Zod version, so such a
+  // listing would have failed validation and taken the whole response with it —
+  // precisely the failure the lenient typing was introduced to prevent.
+  it("accepts a listing that omits the optional keys entirely", async () => {
+    const bare = {
+      jobTitle: "Designer",
+      companyName: "Nova",
+      jobDescription: "<p>Texte.</p>",
+      url: "https://jobicy.com/jobs/1",
+    };
+    fetchMock.mockResolvedValueOnce(ok({ jobs: [bare] }));
+    const ads = await mod.searchJobicy(["x"]);
+    expect(ads).toHaveLength(1);
+    expect(ads[0].compensationMin).toBeNull();
+    expect(ads[0].postedAt).toBeNull();
+  });
+
   it("maps temporary work to interim rather than leaving it unknown", async () => {
     fetchMock.mockResolvedValueOnce(
       ok({ jobs: [{ ...JOB, jobType: ["Temporary"] }] }),
