@@ -92,7 +92,10 @@ function mapEngagement(
   return null; // unknown/unstated — never guessed
 }
 
-function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
+/** Adzuna segments whose salaries are quoted in euros. */
+const EURO_MARKETS = new Set(["fr", "be", "nl", "de", "es", "it", "at"]);
+
+function toAd(r: z.infer<typeof resultSchema>, country: string): DiscoveredAd {
   const title = r.title?.trim() || null;
   const organization = r.company?.display_name?.trim() || null;
   const locationText = r.location?.display_name?.trim() || null;
@@ -135,8 +138,10 @@ function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
     engagementType: mapEngagement(r.contract_type),
     compensationMin: min,
     compensationMax: max,
-    compensationCurrency:
-      hasSalary && env.ADZUNA_COUNTRY === "fr" ? "EUR" : null,
+    // Currency follows the MARKET queried, not a deployment constant. Only the
+    // euro-area segments are asserted; elsewhere the figure keeps its amount
+    // and loses its unit rather than being labelled with the wrong symbol.
+    compensationCurrency: hasSalary && EURO_MARKETS.has(country) ? "EUR" : null,
     compensationPeriod: hasSalary ? "year" : null,
     postedAt: toPostedAt(r.created),
     rawText,
@@ -155,6 +160,7 @@ function toAd(r: z.infer<typeof resultSchema>): DiscoveredAd {
 export async function searchAdzuna(
   keywords: string[],
   mode: "any" | "title" = "any",
+  country: string = env.ADZUNA_COUNTRY,
 ): Promise<DiscoveredAd[]> {
   if (!adzunaConfigured()) {
     throw new AdzunaError("adzuna credentials are not configured");
@@ -173,7 +179,7 @@ export async function searchAdzuna(
     results_per_page: String(RESULTS_PER_PAGE),
     "content-type": "application/json",
   });
-  const url = `${ADZUNA_BASE}/${env.ADZUNA_COUNTRY}/search/1?${params}`;
+  const url = `${ADZUNA_BASE}/${country}/search/1?${params}`;
 
   let body: unknown;
   try {
@@ -202,6 +208,6 @@ export async function searchAdzuna(
   // Cap defensively at the requested page size, whatever the server returns.
   return parsed.data.results
     .slice(0, RESULTS_PER_PAGE)
-    .map(toAd)
+    .map((r) => toAd(r, country))
     .filter((ad) => ad.rawText.trim() !== "");
 }

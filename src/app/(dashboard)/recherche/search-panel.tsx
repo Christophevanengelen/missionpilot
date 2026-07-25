@@ -23,6 +23,7 @@ import {
 import { annualEquivalent, payParts } from "@/lib/search/compensation";
 import type { MarketHit, MarketSearchResult } from "@/lib/search/types";
 import type { EngagementType, RemoteType } from "@/domain/opportunity";
+import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 
 const ENGAGEMENTS: readonly EngagementType[] = [
   "freelance",
@@ -40,9 +41,16 @@ const REMOTES: readonly RemoteType[] = ["remote_only", "hybrid", "onsite"];
  * held in state. That is what makes narrowing a result list feel instant, and
  * it is why `refine.ts` is pure and free of `server-only`.
  */
-export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
+export function SearchPanel({
+  defaultQuery,
+  defaultCountries,
+}: {
+  defaultQuery: string;
+  defaultCountries: string[];
+}) {
   const copy = t().search;
   const [query, setQuery] = useState(defaultQuery);
+  const [countries, setCountries] = useState<string[]>(defaultCountries);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<MarketSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +74,7 @@ export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
     setBusy(true);
     setError(null);
     try {
-      const outcome = await searchMarketAction({ query });
+      const outcome = await searchMarketAction({ query, countries });
       if (outcome.ok) {
         setResult(outcome.result);
       } else {
@@ -111,6 +119,52 @@ export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
         </Button>
       </form>
       <p className="text-muted-foreground text-xs">{copy.queryHint}</p>
+
+      {/* Countries drive the QUERY — a country-partitioned source is asked once
+          per country — so they sit with the search box, not with the filters
+          that merely narrow what came back. */}
+      <div
+        role="group"
+        aria-label={copy.countriesLabel}
+        className="flex flex-col gap-1"
+      >
+        <span className="text-muted-foreground text-xs">
+          {copy.countriesLabel}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {SEARCH_COUNTRIES.map((c) => {
+            const on = countries.includes(c.code);
+            const full = !on && countries.length >= MAX_COUNTRIES_PER_SEARCH;
+            return (
+              <button
+                key={c.code}
+                type="button"
+                aria-pressed={on}
+                disabled={full}
+                onClick={() =>
+                  setCountries((prev) =>
+                    prev.includes(c.code)
+                      ? prev.filter((x) => x !== c.code)
+                      : [...prev, c.code],
+                  )
+                }
+                className={
+                  on
+                    ? "border-foreground bg-foreground text-background rounded-full border px-3 py-1 text-xs"
+                    : full
+                      ? "border-border text-muted-foreground rounded-full border px-3 py-1 text-xs opacity-50"
+                      : "border-border rounded-full border px-3 py-1 text-xs"
+                }
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-muted-foreground text-xs">
+          {copy.countriesHint(MAX_COUNTRIES_PER_SEARCH)}
+        </span>
+      </div>
 
       {/* Live regions mounted up-front so a screen reader announces the result
           when the text changes, rather than when the node appears. */}
@@ -213,7 +267,7 @@ export function SearchPanel({ defaultQuery }: { defaultQuery: string }) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <Label htmlFor="market-country">{copy.countryLabel}</Label>
+              <Label htmlFor="market-country">{copy.placeFilterLabel}</Label>
               <Input
                 id="market-country"
                 placeholder={copy.countryPlaceholder}

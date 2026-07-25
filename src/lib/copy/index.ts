@@ -76,7 +76,11 @@ export const copy = {
             : `publiée il y a ${days} jours`,
       ageUnknown: "date de publication non communiquée",
       alsoOn: (names: readonly string[]) => `aussi sur ${names.join(", ")}`,
+      countriesLabel: "Pays cherchés",
+      countriesHint: (max: number) =>
+        `Jusqu'à ${max} pays par recherche. Chaque pays est une interrogation supplémentaire des sources qui séparent leur index par pays.`,
       countryLabel: "Pays ou région",
+      placeFilterLabel: "Filtrer par lieu",
       countryPlaceholder: "France, Belgique…",
       includeUnstated: "Garder les offres qui ne précisent pas ces critères",
       includeUnstatedNote:
@@ -895,7 +899,11 @@ export const copy = {
             : `posted ${days} days ago`,
       ageUnknown: "publication date not provided",
       alsoOn: (names: readonly string[]) => `also on ${names.join(", ")}`,
+      countriesLabel: "Countries searched",
+      countriesHint: (max: number) =>
+        `Up to ${max} countries per search. Each one is an extra query to the sources that split their index by country.`,
       countryLabel: "Country or region",
+      placeFilterLabel: "Filter by place",
       countryPlaceholder: "France, Belgium…",
       includeUnstated: "Keep offers that do not state these criteria",
       includeUnstatedNote:
