@@ -8,6 +8,7 @@ import type { Database } from "@/lib/db/database.types";
 import {
   NORMALIZED_FIELDS,
   normalizedOpportunitySchema,
+  type OpportunityExtraction,
 } from "@/domain/opportunity";
 import { getOwnProfile } from "@/lib/profile/logic";
 import {
@@ -126,11 +127,18 @@ export async function importFromUrl(
  * import: immutable snapshot, per-owner dedup by canonical fingerprint,
  * gate + score computed on read.
  */
-export async function importDiscovered(
-  client: Client,
+/**
+ * The normalized shape of a discovered ad — PURE, no I/O, nothing persisted.
+ *
+ * Extracted so the read-only market search and the persisting import share
+ * EXACTLY this logic. A search engine must be able to normalize, gate and rank
+ * an offer without writing a row: results are a photograph of the market at
+ * this instant, not inventory. Duplicating the merge rules instead would let
+ * the two paths drift, and the honesty guarantees live in these rules.
+ */
+export function normalizeDiscovered(
   ad: import("@/lib/discovery/adzuna").DiscoveredAd,
-  sourceName: string,
-) {
+): OpportunityExtraction {
   const base = extractFromPastedText(ad.rawText);
   const adHasSalary =
     ad.compensationMin !== null || ad.compensationMax !== null;
@@ -166,6 +174,15 @@ export async function importDiscovered(
     const v = normalized[f];
     return v === null || (Array.isArray(v) && v.length === 0);
   });
+  return { normalized, unknowns };
+}
+
+export async function importDiscovered(
+  client: Client,
+  ad: import("@/lib/discovery/adzuna").DiscoveredAd,
+  sourceName: string,
+) {
+  const { normalized, unknowns } = normalizeDiscovered(ad);
   return runImport(
     client,
     ad.rawText,
