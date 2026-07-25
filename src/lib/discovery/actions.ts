@@ -31,11 +31,11 @@ export type DiscoveryResult =
       /** Métier searches that errored while others succeeded — surfaced so a
        *  possibly-incomplete result is never presented as a complete one. */
       failedSearches: number;
-      /** WHICH sources came up short, with their failure counts. Without the
-       *  name, a partial failure is undiagnosable once several sources are
-       *  configured: a broken credential and a source-side outage read the
-       *  same. */
-      failedSources: { name: string; failed: number }[];
+      /** WHICH sources came up short, with their failure counts AND the
+       *  denominator. Without the name, a partial failure is undiagnosable
+       *  once several sources are configured; without `total`, a source that
+       *  answered nothing reads like one that merely lost a search. */
+      failedSources: { name: string; failed: number; total: number }[];
     }
   | { ok: false; error: "unconfigured" | "no_keywords" | "generic" };
 

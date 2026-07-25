@@ -111,7 +111,11 @@ describe("runMultiSourceDiscovery", () => {
       );
     expect(items).toHaveLength(1);
     expect(failedSearches).toBe(2);
-    expect(failedSources).toEqual([{ name: "France Travail", failed: 2 }]);
+    // failed === total is the signal that this source contributed NOTHING —
+    // without the denominator it reads like a source that merely lost a search.
+    expect(failedSources).toEqual([
+      { name: "France Travail", failed: 2, total: 2 },
+    ]);
   });
 
   it("reports no failed source when every search succeeds", async () => {
@@ -137,9 +141,11 @@ describe("runMultiSourceDiscovery", () => {
       ],
       () => {},
     );
+    // Adzuna lost 1 of 2 and still contributed; France Travail lost 2 of 2 and
+    // contributed nothing. The denominator is what tells those apart.
     expect(failedSources).toEqual([
-      { name: "Adzuna", failed: 1 },
-      { name: "France Travail", failed: 2 },
+      { name: "Adzuna", failed: 1, total: 2 },
+      { name: "France Travail", failed: 2, total: 2 },
     ]);
   });
 

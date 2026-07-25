@@ -331,21 +331,25 @@ export function CvImport() {
     }
     const { result } = discovery;
     if (result.ok) {
+      const incomplete = result.failedSources.length > 0;
       return (
         <p className="text-muted-foreground text-xs">
           {discoverCopy.result(
             result.imported,
             result.duplicates,
             result.failed,
+            incomplete,
           )}
-          {result.failedSources.length > 0
-            ? ` ${discoverCopy.partial(result.failedSources)}`
-            : ""}
+          {incomplete ? ` ${discoverCopy.partial(result.failedSources)}` : ""}
         </p>
       );
     }
+    // A failure must READ like a failure here too. This line sits under a
+    // "profile confirmed" banner inside a role="status" container: rendered
+    // muted like the success case, a discovery that never ran looks like part
+    // of the good news.
     return (
-      <p className="text-muted-foreground text-xs">
+      <p role="alert" className="text-destructive text-xs">
         {discoverCopy.errors[result.error]}
       </p>
     );
@@ -495,11 +499,13 @@ export function CvImport() {
         <p className="text-sm font-medium">{copy.added(step.count)}</p>
         {discoveryLine(step.discovery)}
         <div className="flex flex-wrap gap-2">
-          {step.discovery.phase === "done" && step.discovery.result.ok ? (
-            <Button asChild size="sm">
-              <Link href="/opportunities">{copy.seeOffers}</Link>
-            </Button>
-          ) : null}
+          {/* Unconditional, like the "applied" screen above: this run failing
+              says nothing about the inbox, which may already hold offers from
+              earlier runs. Hiding the way there was a second punishment for a
+              failure the user did not cause. */}
+          <Button asChild size="sm">
+            <Link href="/opportunities">{copy.seeOffers}</Link>
+          </Button>
           <Button
             type="button"
             size="sm"

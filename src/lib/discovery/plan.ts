@@ -91,8 +91,11 @@ export async function runMultiSourceDiscovery<
   failedSearches: number;
   totalSearches: number;
   /** Per-source failure counts, in the stable source order, listing ONLY the
-   *  sources that actually failed at least one search. */
-  failedSources: { name: string; failed: number }[];
+   *  sources that actually failed at least one search. `total` is the
+   *  DENOMINATOR — without it, a source that answered nothing at all reads
+   *  exactly like one that merely lost a search, and the run looks complete
+   *  when a whole source is missing from it. */
+  failedSources: { name: string; failed: number; total: number }[];
 }> {
   const seen = new Set<string>();
   const items: { ad: Ad; sourceName: string }[] = [];
@@ -124,10 +127,12 @@ export async function runMultiSourceDiscovery<
     failedSearches,
     totalSearches,
     // Map iteration order is insertion order, which follows the stable source
-    // order of the outer loop.
+    // order of the outer loop. Every source runs the same plan list, so
+    // `plans.length` is each one's denominator.
     failedSources: [...failedBySource].map(([name, failed]) => ({
       name,
       failed,
+      total: plans.length,
     })),
   };
 }

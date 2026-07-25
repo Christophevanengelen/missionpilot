@@ -34,14 +34,18 @@ export function DiscoverButton() {
     error: boolean;
   } {
     if (result.ok) {
-      const partial =
-        result.failedSources.length > 0
-          ? ` ${copy.partial(result.failedSources)}`
-          : "";
+      const incomplete = result.failedSources.length > 0;
+      const partial = incomplete
+        ? ` ${copy.partial(result.failedSources)}`
+        : "";
       return {
         text:
-          copy.result(result.imported, result.duplicates, result.failed) +
-          partial,
+          copy.result(
+            result.imported,
+            result.duplicates,
+            result.failed,
+            incomplete,
+          ) + partial,
         error: false,
       };
     }
@@ -72,14 +76,17 @@ export function DiscoverButton() {
       <Button type="button" size="sm" onClick={() => void run()} {...busyProps}>
         {busy ? copy.searching : copy.button}
       </Button>
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={isError ? "text-destructive text-sm" : "text-sm"}
-        >
-          {message}
-        </p>
-      ) : null}
+      {/* Both live regions are ALWAYS mounted, empty until there is something
+          to say: a region inserted into the DOM together with its text is
+          announced unreliably by screen readers — the region must pre-exist
+          the change. Two nodes rather than one whose `role` flips, because
+          swapping the role of a live region is just as unreliable. */}
+      <p role="status" className="text-sm">
+        {isError ? "" : message}
+      </p>
+      <p role="alert" className="text-destructive text-sm">
+        {isError ? message : ""}
+      </p>
     </div>
   );
 }

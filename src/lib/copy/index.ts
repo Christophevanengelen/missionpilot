@@ -453,24 +453,45 @@ export const copy = {
       discover: {
         button: "Découvrir des offres",
         searching: "Recherche en cours…",
-        result: (imported: number, duplicates: number, failed: number) => {
+        result: (
+          imported: number,
+          duplicates: number,
+          failed: number,
+          // A source may have answered nothing at all: blaming the PROFILE for
+          // an empty result would then state as fact something we did not
+          // observe.
+          incomplete = false,
+        ) => {
           const found = imported + duplicates + failed;
           if (found === 0)
-            return "Aucune offre trouvée pour votre profil cette fois-ci.";
+            return incomplete
+              ? "Aucune offre récupérée cette fois-ci."
+              : "Aucune offre trouvée pour votre profil cette fois-ci.";
           const parts = [
             `${imported} ${imported > 1 ? "nouvelles" : "nouvelle"}`,
             `${duplicates} déjà ${duplicates > 1 ? "connues" : "connue"}`,
           ];
+          // "annonce non importée" ≠ "recherche en échec" below: one ad we
+          // could not store, versus a search that never ran.
           if (failed > 0)
-            parts.push(`${failed} en échec (réessayez plus tard)`);
+            parts.push(
+              `${failed} ${failed > 1 ? "annonces non importées" : "annonce non importée"}`,
+            );
           return `${found} ${found > 1 ? "offres trouvées" : "offre trouvée"} : ${parts.join(", ")}.`;
         },
-        partial: (sources: readonly { name: string; failed: number }[]) => {
-          const parts = sources.map(
-            (s) =>
-              `${s.name} : ${s.failed} ${s.failed > 1 ? "recherches en échec" : "recherche en échec"}`,
+        partial: (
+          sources: readonly { name: string; failed: number; total: number }[],
+        ) => {
+          const parts = sources.map((s) =>
+            s.failed >= s.total
+              ? `${s.name} n'a rien renvoyé (${s.total} ${s.total > 1 ? "recherches" : "recherche"} en échec)`
+              : `${s.name} : ${s.failed} ${s.failed > 1 ? "recherches" : "recherche"} en échec sur ${s.total}`,
           );
-          return `(${parts.join(" ; ")} — résultats possiblement incomplets, réessayez plus tard.)`;
+          // No "réessayez plus tard": a wrong credential or an API the account
+          // is not subscribed to fails identically FOREVER, and we have just
+          // measured that we cannot tell which. Promising that a retry helps
+          // would assert a transience we did not observe.
+          return `(Résultats incomplets — ${parts.join(" ; ")}. Si cela persiste, vérifiez la configuration de cette source.)`;
         },
         errors: {
           unconfigured:
@@ -480,7 +501,7 @@ export const copy = {
           generic: "La recherche n'a pas abouti. Réessayez.",
         },
         unconfiguredNote:
-          "Découverte automatique : ajoutez des identifiants de source légale (Adzuna et/ou France Travail) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
+          "Découverte automatique : ajoutez des identifiants de source légale (Adzuna, France Travail ou Remotive) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
       },
       insight: {
         button: "Expliquer mes matchs (IA)",
@@ -1143,19 +1164,31 @@ export const copy = {
       discover: {
         button: "Discover offers",
         searching: "Searching…",
-        result: (imported: number, duplicates: number, failed: number) => {
+        result: (
+          imported: number,
+          duplicates: number,
+          failed: number,
+          incomplete = false,
+        ) => {
           const found = imported + duplicates + failed;
-          if (found === 0) return "No offer found for your profile this time.";
+          if (found === 0)
+            return incomplete
+              ? "No offer retrieved this time."
+              : "No offer found for your profile this time.";
           const parts = [`${imported} new`, `${duplicates} already known`];
-          if (failed > 0) parts.push(`${failed} failed (try again later)`);
+          if (failed > 0)
+            parts.push(`${failed} ad${failed > 1 ? "s" : ""} not imported`);
           return `${found} ${found > 1 ? "offers" : "offer"} found: ${parts.join(", ")}.`;
         },
-        partial: (sources: readonly { name: string; failed: number }[]) => {
-          const parts = sources.map(
-            (s) =>
-              `${s.name}: ${s.failed} search${s.failed > 1 ? "es" : ""} failed`,
+        partial: (
+          sources: readonly { name: string; failed: number; total: number }[],
+        ) => {
+          const parts = sources.map((s) =>
+            s.failed >= s.total
+              ? `${s.name} returned nothing (${s.total} search${s.total > 1 ? "es" : ""} failed)`
+              : `${s.name}: ${s.failed} of ${s.total} searches failed`,
           );
-          return `(${parts.join("; ")} — results may be incomplete, try again later.)`;
+          return `(Incomplete results — ${parts.join("; ")}. If this persists, check that source's configuration.)`;
         },
         errors: {
           unconfigured:
@@ -1165,7 +1198,7 @@ export const copy = {
           generic: "The search did not go through. Try again.",
         },
         unconfiguredNote:
-          "Auto-discovery: add legal-source credentials (Adzuna and/or France Travail) in the configuration so MissionPilot can search offers matching your profile.",
+          "Auto-discovery: add legal-source credentials (Adzuna, France Travail or Remotive) in the configuration so MissionPilot can search offers matching your profile.",
       },
       insight: {
         button: "Explain my matches (AI)",
