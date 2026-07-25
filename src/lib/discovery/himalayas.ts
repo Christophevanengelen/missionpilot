@@ -4,7 +4,9 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/observability/logger";
 import type { DiscoveredAd } from "./adzuna";
-import { toPlainText } from "./html-text";
+import { boundedAmount } from "./amount";
+import { createTtlCache } from "./cache";
+import { firstPlainText } from "./html-text";
 
 /**
  * Himalayas connector — a legal remote-work source with a PUBLIC, documented,
@@ -42,8 +44,12 @@ const jobSchema = z.object({
   description: z.string().nullish(),
   excerpt: z.string().nullish(),
   employmentType: z.string().nullish(),
-  minSalary: z.number().nullish(),
-  maxSalary: z.number().nullish(),
+  // Deliberately unvalidated here, and bounded by `boundedAmount` instead.
+  // `z.number()` rejects Infinity, which `JSON.parse('{"n":1e400}')` produces —
+  // and a schema failure voids the WHOLE response, so one absurd figure in one
+  // listing would cost us the other nineteen. Drop the figure, keep the batch.
+  minSalary: z.unknown(),
+  maxSalary: z.unknown(),
   currency: z.string().nullish(),
   salaryPeriod: z.string().nullish(),
   seniority: z.array(z.string()).nullish(),
@@ -53,11 +59,19 @@ const jobSchema = z.object({
   guid: z.string().nullish(),
 });
 
-const responseSchema = z.object({ jobs: z.array(jobSchema).default([]) });
+// `jobs` is REQUIRED, deliberately without a default: an error envelope that
+// carries no `jobs` key must fail loudly rather than be read as "0 result",
+// which would tell the user their profile matched nothing. Same trap Jobicy
+// walks into with its HTTP-200 errors.
+const responseSchema = z.object({ jobs: z.array(jobSchema) });
 
 export class HimalayasError extends Error {}
 
 const log = createLogger({ module: "discovery-himalayas" });
+
+/** Their data refreshes every 24h on their side; six hours keeps repeated runs
+ *  free without ever serving something they would call stale. */
+const resultCache = createTtlCache<DiscoveredAd[]>(6 * 60 * 60 * 1000);
 
 export function himalayasConfigured(): boolean {
   return env.HIMALAYAS_ENABLED === true;
@@ -99,9 +113,10 @@ function mapEngagement(
 function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
   const title = j.title?.trim() || null;
   const organization = j.companyName?.trim() || null;
-  const description = j.description
-    ? toPlainText(j.description)
-    : j.excerpt?.trim() || null;
+  // BOTH candidates go through the cleaner. Cleaning only the first would let
+  // a hostile `excerpt` carry never-displayed text — "TJM : 2000 EUR" — into
+  // the description, where the extractor would read it as a stated fact.
+  const description = firstPlainText(j.description, j.excerpt);
   const seniority = j.seniority?.filter((s) => s.trim() !== "") ?? [];
   const locations =
     j.locationRestrictions?.filter((l) => l.trim() !== "") ?? [];
@@ -117,14 +132,8 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
   // A figure is kept ONLY when its currency AND period are both expressible in
   // our domain: a number without a unit is not a fact, it is a trap.
   const hasUsableUnits = period !== null && SUPPORTED_CURRENCIES.has(currency);
-  let min =
-    hasUsableUnits && typeof j.minSalary === "number"
-      ? Math.round(j.minSalary)
-      : null;
-  let max =
-    hasUsableUnits && typeof j.maxSalary === "number"
-      ? Math.round(j.maxSalary)
-      : null;
+  let min = hasUsableUnits ? boundedAmount(j.minSalary) : null;
+  let max = hasUsableUnits ? boundedAmount(j.maxSalary) : null;
   if (min !== null && max !== null && min > max) [min, max] = [max, min];
   const hasSalary = min !== null || max !== null;
 
@@ -144,7 +153,12 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
     .join("\n")
     .slice(0, 100_000);
 
-  const link = j.applicationLink?.trim() || null;
+  // `guid` is the HIMALAYAS posting URL — the link their attribution terms ask
+  // for. `applicationLink` is the APPLY destination, which is frequently the
+  // employer's own ATS: crediting Himalayas with a link to Greenhouse would
+  // satisfy nobody. They currently coincide on most rows, which is exactly why
+  // this must be explicit rather than left to luck.
+  const link = j.guid?.trim() || j.applicationLink?.trim() || null;
   return {
     title,
     organization,
@@ -184,6 +198,9 @@ export async function searchHimalayas(
     .join(" ");
   if (!query) throw new HimalayasError("no keywords to search");
 
+  const cached = resultCache.get(query);
+  if (cached) return cached;
+
   const params = new URLSearchParams({
     q: query,
     limit: String(RESULTS_PER_PAGE),
@@ -214,14 +231,16 @@ export async function searchHimalayas(
     log.warn("himalayas response failed validation", {});
     throw new HimalayasError("himalayas response failed validation");
   }
-  return (
-    parsed.data.jobs
-      .slice(0, RESULTS_PER_PAGE)
-      .map(toAd)
-      // ToS: attribution + link-back is REQUIRED, so an ad we cannot link back
-      // to is dropped rather than imported without its provenance. Also drops
-      // records with no readable content (nothing to snapshot honestly).
-      .filter((ad) => ad.sourceUrl !== null && ad.title !== null)
-      .filter((ad) => ad.rawText.trim() !== "")
-  );
+  const ads = parsed.data.jobs
+    .slice(0, RESULTS_PER_PAGE)
+    .map(toAd)
+    // ToS: attribution + link-back is REQUIRED, so an ad we cannot link back
+    // to is dropped rather than imported without its provenance. Also drops
+    // records with no readable content (nothing to snapshot honestly).
+    .filter((ad) => ad.sourceUrl !== null && ad.title !== null)
+    .filter((ad) => ad.rawText.trim() !== "");
+  // Only a SUCCESSFUL answer is cached: caching a failure would turn a
+  // transient outage into hours of silent emptiness.
+  resultCache.set(query, ads);
+  return ads;
 }

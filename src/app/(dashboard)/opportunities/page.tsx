@@ -266,6 +266,28 @@ export default async function OpportunitiesPage({
                         .filter(Boolean)
                         .join(" · ") || copy.none}
                     </p>
+                    {/* Attribution on the card, not only on the detail page:
+                        this is the screen the owner actually reads, and
+                        Himalayas, Jobicy, Remotive and Adzuna all require the
+                        credit to come WITH a link back to the posting. */}
+                    {o.source_name ? (
+                      <p className="text-muted-foreground text-xs">
+                        {copy.fields.sourceName} : {o.source_name}
+                        {o.source_url && /^https?:\/\//i.test(o.source_url) ? (
+                          <>
+                            {" · "}
+                            <a
+                              href={o.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2"
+                            >
+                              {copy.fields.viewOnSource}
+                            </a>
+                          </>
+                        ) : null}
+                      </p>
+                    ) : null}
                     <InsightBlock
                       insight={insights.get(o.id)}
                       copy={copy.insight}

@@ -501,7 +501,7 @@ export const copy = {
           generic: "La recherche n'a pas abouti. Réessayez.",
         },
         unconfiguredNote:
-          "Découverte automatique : ajoutez des identifiants de source légale (Adzuna, France Travail ou Remotive) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
+          "Découverte automatique : ajoutez des identifiants de source légale (Adzuna, France Travail, Remotive, Himalayas ou Jobicy) dans la configuration pour que MissionPilot cherche des offres correspondant à votre profil.",
       },
       insight: {
         button: "Expliquer mes matchs (IA)",
@@ -670,6 +670,8 @@ export const copy = {
         sourceName: "Source",
         sourceUrl: "Lien source",
         description: "Description",
+        // Attribution link label on the inbox card.
+        viewOnSource: "Voir l'annonce d'origine",
       },
       remoteTypes: {
         remote_only: "100 % à distance",
@@ -1199,7 +1201,7 @@ export const copy = {
           generic: "The search did not go through. Try again.",
         },
         unconfiguredNote:
-          "Auto-discovery: add legal-source credentials (Adzuna, France Travail or Remotive) in the configuration so MissionPilot can search offers matching your profile.",
+          "Auto-discovery: add legal-source credentials (Adzuna, France Travail, Remotive, Himalayas or Jobicy) in the configuration so MissionPilot can search offers matching your profile.",
       },
       insight: {
         button: "Explain my matches (AI)",
@@ -1365,6 +1367,7 @@ export const copy = {
         skills: "Skills",
         sourceName: "Source",
         sourceUrl: "Source link",
+        viewOnSource: "View the original posting",
         description: "Description",
       },
       remoteTypes: {

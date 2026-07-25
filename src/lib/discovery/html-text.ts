@@ -53,3 +53,28 @@ export function toPlainText(html: string): string {
       .trim()
   );
 }
+
+/**
+ * The first candidate that yields readable text, cleaned — or null.
+ *
+ * Sources ship a long `description` and a short `excerpt`, and a naive
+ * `a ? clean(a) : b` gets BOTH cases wrong:
+ * - it forgets to clean the fallback, so a hostile `excerpt` walks straight
+ *   past the guard above and its never-displayed text becomes a stated fact;
+ * - and an empty-but-present `description` (`"<p></p>"` cleans to `""`) is
+ *   truthy, so it shadows a perfectly good excerpt and then travels on as an
+ *   empty string — which downstream reads as "stated, and blank" rather than
+ *   "the source did not say".
+ *
+ * Every candidate goes through the same cleaner, and an empty result is null.
+ */
+export function firstPlainText(
+  ...candidates: (string | null | undefined)[]
+): string | null {
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+    const cleaned = toPlainText(candidate);
+    if (cleaned !== "") return cleaned;
+  }
+  return null;
+}

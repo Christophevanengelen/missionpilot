@@ -80,13 +80,14 @@ describe("searchJobicy", () => {
     fetchMock.mockResolvedValueOnce(
       ok({ jobs: [{ ...JOB, salaryMin: "90000", salaryMax: "120000" }] }),
     );
-    const [asString] = await mod.searchJobicy(["x"]);
+    // Distinct queries on purpose: identical ones would hit the result cache.
+    const [asString] = await mod.searchJobicy(["chiffre"]);
     expect(asString.compensationMin).toBe(90000);
 
     fetchMock.mockResolvedValueOnce(
       ok({ jobs: [{ ...JOB, salaryMin: "négociable", salaryMax: null }] }),
     );
-    const [prose] = await mod.searchJobicy(["x"]);
+    const [prose] = await mod.searchJobicy(["prose"]);
     expect(prose.compensationMin).toBeNull();
     expect(prose.compensationCurrency).toBeNull();
   });
@@ -136,6 +137,48 @@ describe("searchJobicy", () => {
       off.JobicyError,
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("maps temporary work to interim rather than leaving it unknown", async () => {
+    fetchMock.mockResolvedValueOnce(
+      ok({ jobs: [{ ...JOB, jobType: ["Temporary"] }] }),
+    );
+    const [ad] = await mod.searchJobicy(["x"]);
+    expect(ad.engagementType).toBe("interim");
+  });
+
+  it("drops an implausible salary but keeps the offer", async () => {
+    for (const bad of [-1, 200_000_000]) {
+      fetchMock.mockResolvedValueOnce(
+        ok({ jobs: [{ ...JOB, salaryMin: bad, salaryMax: bad }] }),
+      );
+      const [ad] = await mod.searchJobicy([`borne-${bad}`]);
+      expect(ad.title).toBe("Senior Product Designer");
+      expect(ad.compensationMin).toBeNull();
+      expect(ad.compensationCurrency).toBeNull();
+    }
+  });
+
+  it("reuses a cached answer instead of calling them again", async () => {
+    // Their docs ask for at most one feed check per hour; repeated runs with
+    // the same métiers must not spend that budget again.
+    fetchMock.mockResolvedValueOnce(ok({ jobs: [JOB] }));
+    const first = await mod.searchJobicy(["product designer"]);
+    const second = await mod.searchJobicy(["product designer"]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second).toEqual(first);
+  });
+
+  it("does not cache a failure", async () => {
+    // Caching an outage would turn a blip into an hour of silent emptiness.
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 503 } as Response);
+    await expect(mod.searchJobicy(["reprise"])).rejects.toBeInstanceOf(
+      mod.JobicyError,
+    );
+    fetchMock.mockResolvedValueOnce(ok({ jobs: [JOB] }));
+    const ads = await mod.searchJobicy(["reprise"]);
+    expect(ads).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("queries the European scope with the keyword tag", async () => {

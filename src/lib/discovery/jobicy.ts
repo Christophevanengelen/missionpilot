@@ -4,7 +4,9 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/observability/logger";
 import type { DiscoveredAd } from "./adzuna";
-import { toPlainText } from "./html-text";
+import { boundedAmount } from "./amount";
+import { createTtlCache } from "./cache";
+import { firstPlainText } from "./html-text";
 
 /**
  * Jobicy connector — a legal remote-work source with a PUBLIC, documented,
@@ -48,8 +50,10 @@ const jobSchema = z.object({
   jobGeo: z.string().nullish(),
   jobLevel: z.string().nullish(),
   url: z.string().nullish(),
-  salaryMin: z.union([z.number(), z.string()]).nullish(),
-  salaryMax: z.union([z.number(), z.string()]).nullish(),
+  // Same reasoning as Himalayas: a bad figure must cost us that figure, not
+  // the whole response. `toNumber` + `boundedAmount` do the validating.
+  salaryMin: z.unknown(),
+  salaryMax: z.unknown(),
   salaryCurrency: z.string().nullish(),
   salaryPeriod: z.string().nullish(),
 });
@@ -63,6 +67,10 @@ const responseSchema = z.object({ jobs: z.array(jobSchema) });
 export class JobicyError extends Error {}
 
 const log = createLogger({ module: "discovery-jobicy" });
+
+/** Their docs ask for at most one feed check per hour — so an identical query
+ *  costs them nothing more than that, however often the owner clicks. */
+const resultCache = createTtlCache<DiscoveredAd[]>(60 * 60 * 1000);
 
 export function jobicyConfigured(): boolean {
   return env.JOBICY_ENABLED === true;
@@ -100,14 +108,15 @@ function mapEngagement(
   // Freelance first: an ad tagged both freelance and full-time is a mission
   // for our user, and calling it "permanent" would misfile it.
   if (types.includes("freelance")) return "freelance";
-  if (types.includes("contract")) return "interim";
+  if (types.includes("contract") || types.includes("temporary"))
+    return "interim";
   if (types.includes("part-time")) return "part_time";
   if (types.includes("full-time")) return "permanent";
   return null;
 }
 
 /** Their salary numbers arrive as either a number or a numeric string. */
-function toNumber(value: number | string | null | undefined): number | null {
+function toNumber(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -119,11 +128,10 @@ function toNumber(value: number | string | null | undefined): number | null {
 function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
   const title = j.jobTitle?.trim() || null;
   const organization = j.companyName?.trim() || null;
-  const description = j.jobDescription
-    ? toPlainText(j.jobDescription)
-    : j.jobExcerpt
-      ? toPlainText(j.jobExcerpt)
-      : null;
+  // Both candidates cleaned, and an empty result becomes null rather than an
+  // empty string: `""` would read downstream as "stated, and blank" instead of
+  // "the source did not say", and would shadow a usable excerpt.
+  const description = firstPlainText(j.jobDescription, j.jobExcerpt);
   // `jobGeo` is a comma-separated eligibility list ("France,  Ireland,  UK"),
   // not a workplace address. Collapse its ragged spacing but keep it verbatim
   // otherwise — it is the source's own statement of where one may work from.
@@ -140,10 +148,8 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
   const currency = j.salaryCurrency?.trim().toUpperCase() ?? "";
   // A figure without an expressible unit is not a fact — the whole block goes.
   const hasUsableUnits = period !== null && SUPPORTED_CURRENCIES.has(currency);
-  const rawMin = toNumber(j.salaryMin);
-  const rawMax = toNumber(j.salaryMax);
-  let min = hasUsableUnits && rawMin !== null ? Math.round(rawMin) : null;
-  let max = hasUsableUnits && rawMax !== null ? Math.round(rawMax) : null;
+  let min = hasUsableUnits ? boundedAmount(toNumber(j.salaryMin)) : null;
+  let max = hasUsableUnits ? boundedAmount(toNumber(j.salaryMax)) : null;
   // Jobicy uses 0 as "not stated" rather than "unpaid".
   if (min === 0) min = null;
   if (max === 0) max = null;
@@ -198,6 +204,9 @@ export async function searchJobicy(
     .join(" ");
   if (!tag) throw new JobicyError("no keywords to search");
 
+  const cached = resultCache.get(tag);
+  if (cached) return cached;
+
   const params = new URLSearchParams({
     tag,
     geo: GEO,
@@ -230,13 +239,15 @@ export async function searchJobicy(
     log.warn("jobicy response failed validation", {});
     throw new JobicyError("jobicy response failed validation");
   }
-  return (
-    parsed.data.jobs
-      .slice(0, RESULTS_PER_PAGE)
-      .map(toAd)
-      // ToS: credit with a DIRECT LINK to the source. An ad we cannot link
-      // back to is dropped rather than imported without its provenance.
-      .filter((ad) => ad.sourceUrl !== null && ad.title !== null)
-      .filter((ad) => ad.rawText.trim() !== "")
-  );
+  const ads = parsed.data.jobs
+    .slice(0, RESULTS_PER_PAGE)
+    .map(toAd)
+    // ToS: credit with a DIRECT LINK to the source. An ad we cannot link
+    // back to is dropped rather than imported without its provenance.
+    .filter((ad) => ad.sourceUrl !== null && ad.title !== null)
+    .filter((ad) => ad.rawText.trim() !== "");
+  // Only a SUCCESSFUL answer is cached: caching a failure would turn a
+  // transient outage into an hour of silent emptiness.
+  resultCache.set(tag, ads);
+  return ads;
 }

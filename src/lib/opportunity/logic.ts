@@ -184,7 +184,10 @@ export async function listOpportunities(client: Client, profileId: string) {
   const { data, error } = await client
     .from("opportunities")
     .select(
-      "id, title, organization, engagement_type, seniority, remote_type, location_text, status, last_seen_at, description, skills, requirements, responsibilities, compensation_min, compensation_max, compensation_currency, compensation_period",
+      // source_name/source_url are NOT optional extras: several sources require
+      // visible attribution with a link back, and the inbox is the screen the
+      // owner actually reads. Omitting them here made that impossible.
+      "id, title, organization, engagement_type, seniority, remote_type, location_text, status, last_seen_at, description, skills, requirements, responsibilities, compensation_min, compensation_max, compensation_currency, compensation_period, source_name, source_url",
     )
     .eq("profile_id", profileId)
     .order("last_seen_at", { ascending: false });

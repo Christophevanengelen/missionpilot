@@ -118,7 +118,25 @@ export default async function OpportunityDetailPage({
     : null;
   const comp = formatCompensation(opportunity);
 
-  const singles: [string, string | null][] = [
+  // A source URL rendered as bare text is not attribution: Himalayas, Jobicy,
+  // Remotive and Adzuna all require a credit WITH A LINK BACK. Re-validated
+  // here as defense in depth — ingestion already rejects non-http(s), and a
+  // stored `javascript:` value must never become an href even so.
+  const sourceLink =
+    opportunity.source_url && /^https?:\/\//i.test(opportunity.source_url) ? (
+      <a
+        href={opportunity.source_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline underline-offset-2"
+      >
+        {opportunity.source_url}
+      </a>
+    ) : (
+      opportunity.source_url
+    );
+
+  const singles: [string, React.ReactNode][] = [
     [copy.fields.organization, opportunity.organization],
     [copy.fields.engagementType, engagement],
     [copy.fields.seniority, opportunity.seniority],
@@ -130,7 +148,7 @@ export default async function OpportunityDetailPage({
     // a nicety — and it is also what lets the owner judge how much to trust a
     // given listing. It was stored but never shown.
     [copy.fields.sourceName, opportunity.source_name],
-    [copy.fields.sourceUrl, opportunity.source_url],
+    [copy.fields.sourceUrl, sourceLink],
   ];
   const lists: [string, string[]][] = [
     [copy.fields.requirements, (opportunity.requirements as string[]) ?? []],
