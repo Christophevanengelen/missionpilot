@@ -52,7 +52,14 @@ const GENERIC_ERROR =
  */
 function revalidateProfile(action: string): boolean {
   try {
-    revalidatePath("/profile");
+    // "layout", not the default "page": the profile has NESTED routes
+    // (/profile/recommendations, /profile/history), and `revalidatePath` with
+    // the default scope invalidates the exact path only. A recommendation added
+    // on the nested page therefore left that page's cache intact, and the only
+    // thing refreshing the screen was the client's own `router.refresh()` — a
+    // race it lost on a slow machine, silently. The person filled a form, saw
+    // no error, and saw nothing appear.
+    revalidatePath("/profile", "layout");
     return true;
   } catch (error) {
     logger.error("profile revalidation failed", {

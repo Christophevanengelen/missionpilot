@@ -85,7 +85,9 @@ export async function answerQuestionAction(
         answer: null,
       });
       revalidatePath("/dashboard");
-      revalidatePath("/profile");
+      // "layout" scope: /profile has nested routes, and the default scope
+      // would leave their cache intact (see revalidateProfile in actions.ts).
+      revalidatePath("/profile", "layout");
       return { ok: true };
     }
 
@@ -132,7 +134,7 @@ export async function answerQuestionAction(
     await deepenIfExhausted(client, own.id);
 
     revalidatePath("/dashboard");
-    revalidatePath("/profile");
+    revalidatePath("/profile", "layout");
     return { ok: true };
   } catch (error) {
     logger.error("answer question failed", {
