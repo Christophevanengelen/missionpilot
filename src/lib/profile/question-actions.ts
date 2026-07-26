@@ -28,6 +28,7 @@ import { createClient } from "@/lib/db/server";
 import { createLogger } from "@/lib/observability/logger";
 import * as profile from "./logic";
 import { settleClarification } from "./clarifications";
+import { deepenIfExhausted } from "./deepen";
 import { applyAnswer } from "./answer-apply";
 import type { QuestionTarget } from "./next-question";
 
@@ -47,10 +48,15 @@ const targetSchema = z.union([
       "preferredEngagementTypes",
     ]),
   }),
+  z.object({ kind: z.literal("dossier") }),
 ]);
 
 const answerSchema = z.object({
   questionKey: z.string().trim().min(1).max(200),
+  /** Where the question came from. Hard-coding "gap" here would file a career
+   *  question under the wrong origin, and the deepening pass — which looks for
+   *  PENDING career rows — would keep re-asking it forever. */
+  origin: z.enum(["gap", "career"]).default("gap"),
   question: z.string().trim().min(1).max(300),
   target: targetSchema,
   /** null means "I don't know" — a real, recorded outcome. */
@@ -75,7 +81,7 @@ export async function answerQuestionAction(
       await settleClarification(client, own.id, {
         questionKey: parsed.questionKey,
         question: parsed.question,
-        origin: "gap",
+        origin: parsed.origin,
         answer: null,
       });
       revalidatePath("/dashboard");
@@ -90,7 +96,10 @@ export async function answerQuestionAction(
       return { ok: false, error: applied.reason };
     }
 
-    if (applied.applied.to === "claim") {
+    if (applied.applied.to === "dossier") {
+      // Nothing else to write: the clarification row IS the record, and the
+      // dossier reads it from there on the next search.
+    } else if (applied.applied.to === "claim") {
       const claimId = await profile.submitClaim(
         client,
         own.id,
@@ -113,9 +122,14 @@ export async function answerQuestionAction(
     await settleClarification(client, own.id, {
       questionKey: parsed.questionKey,
       question: parsed.question,
-      origin: "gap",
+      origin: parsed.origin,
       answer: parsed.answer,
     });
+
+    // Once the obvious questions run out, ask the career reading what it still
+    // needs. Deliberately after the answer is stored, and deliberately silent
+    // on failure: deepening is a bonus on top of a product that already works.
+    await deepenIfExhausted(client, own.id);
 
     revalidatePath("/dashboard");
     revalidatePath("/profile");

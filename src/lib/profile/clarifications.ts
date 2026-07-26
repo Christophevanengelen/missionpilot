@@ -67,6 +67,77 @@ export async function loadAnswers(
   }));
 }
 
+/** Comparison form for a question's identity: accent- and punctuation-free.
+ *  Two phrasings of the same thing collapse onto one row, which is what makes
+ *  "never ask the same thing twice" a database guarantee rather than a hope. */
+export function questionKey(
+  origin: "gap" | "career",
+  question: string,
+): string {
+  const folded = question
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .slice(0, 150);
+  return `${origin}:${folded}`;
+}
+
+/** Career questions still owed an answer, oldest first. */
+export async function loadPendingCareer(
+  client: Client,
+  profileId: string,
+): Promise<{ questionKey: string; question: string }[]> {
+  const { data, error } = await client
+    .from("profile_clarifications")
+    .select("question_key, question")
+    .eq("profile_id", profileId)
+    .eq("origin", "career")
+    .is("settled_at", null)
+    .order("asked_at", { ascending: true });
+  if (error) fail("clarifications read", error.message);
+  return (data ?? []).map((row) => ({
+    questionKey: row.question_key as string,
+    question: row.question as string,
+  }));
+}
+
+/**
+ * Record the questions the career reading could not answer from the dossier.
+ *
+ * `ignoreDuplicates` is the load-bearing option: a question already asked —
+ * answered, skipped, or still pending — must keep its existing row. Upserting
+ * would reset a settled question back to pending and re-ask something the
+ * person already dealt with, which is the one behaviour this whole design
+ * refuses.
+ */
+export async function recordCareerQuestions(
+  client: Client,
+  profileId: string,
+  questions: readonly string[],
+): Promise<void> {
+  const rows = questions
+    .map((q) => q.trim())
+    .filter((q) => q !== "")
+    .slice(0, 5)
+    .map((question) => ({
+      profile_id: profileId,
+      question_key: questionKey("career", question),
+      question: question.slice(0, 300),
+      origin: "career" as const,
+      answer: null,
+      skipped: false,
+      settled_at: null,
+    }));
+  if (rows.length === 0) return;
+  const { error } = await client.from("profile_clarifications").upsert(rows, {
+    onConflict: "profile_id,question_key",
+    ignoreDuplicates: true,
+  });
+  if (error) fail("career questions record", error.message);
+}
+
 /**
  * Record a settled question — answered, or skipped.
  *

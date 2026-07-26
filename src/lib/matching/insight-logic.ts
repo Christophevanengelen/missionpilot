@@ -29,6 +29,16 @@ function fail(context: string, message: string): never {
 export function buildProfileDossier(
   claims: { kind: string; state: string; value: unknown }[],
   preferences: { targetRoleFamilies: string[] },
+  /**
+   * Answers the person gave to questions the career reading could not settle
+   * from the CV alone — team sizes, budgets, scope.
+   *
+   * Threading these through is what closes the loop rather than decorating it:
+   * the reading returns `unknown` precisely because a CV lists titles without
+   * scope, so an answer that never reaches the dossier leaves the next reading
+   * exactly as blind as the last one, and the question comes back forever.
+   */
+  clarifications: readonly { question: string; answer: string }[] = [],
 ): string {
   const confirmed = claims.filter((c) => c.state === "confirmed");
   // No confirmed claims ⇒ no dossier AT ALL (target métiers are preferences,
@@ -52,6 +62,10 @@ export function buildProfileDossier(
     .filter((n): n is string => typeof n === "string" && n.trim() !== "");
   const targets = preferences.targetRoleFamilies.filter((t) => t.trim() !== "");
 
+  const answered = clarifications
+    .map((c) => ({ question: c.question.trim(), answer: c.answer.trim() }))
+    .filter((c) => c.question !== "" && c.answer !== "");
+
   const lines = [
     role
       ? `Rôle: ${role}${seniority ? ` (${seniority})` : ""}${years ? ` — ${years} ans d'expérience` : ""}`
@@ -59,6 +73,16 @@ export function buildProfileDossier(
     summary ? `Résumé: ${summary}` : null,
     skills.length > 0 ? `Compétences confirmées: ${skills.join(", ")}` : null,
     targets.length > 0 ? `Métiers cibles: ${targets.join(", ")}` : null,
+    // Labelled as DECLARED, and kept in the person's own words. The model must
+    // be able to tell what was read from a document apart from what someone
+    // told us directly — they carry different weight, and flattening the two
+    // would let a spoken claim be quoted back as if a CV had evidenced it.
+    answered.length > 0
+      ? [
+          "Précisions données par la personne (déclaratif) :",
+          ...answered.map((c) => `- ${c.question} → ${c.answer}`),
+        ].join("\n")
+      : null,
   ].filter((l): l is string => l !== null);
   return lines.join("\n");
 }

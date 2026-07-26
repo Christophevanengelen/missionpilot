@@ -27,7 +27,10 @@ export type AppliedAnswer =
       kind: "role" | "seniority" | "years_experience";
       value: Record<string, string | number>;
     }
-  | { to: "preferences"; patch: Partial<ProfilePreferences> };
+  | { to: "preferences"; patch: Partial<ProfilePreferences> }
+  /** Nothing to write beyond the clarification row itself — the recorded
+   *  answer is the fact, and the dossier reads it from there. */
+  | { to: "dossier" };
 
 export type ApplyResult =
   | { ok: true; applied: AppliedAnswer }
@@ -77,6 +80,14 @@ export function applyAnswer(
 ): ApplyResult {
   const answer = rawAnswer.trim();
   if (answer === "") return { ok: false, reason: "empty" };
+
+  // A sentence about scope has no vocabulary to validate against, so there is
+  // nothing here to refuse but emptiness. Trying to be cleverer — rejecting
+  // answers that "don't look like" a team size — would throw away exactly the
+  // nuance these questions were asked to capture.
+  if (target.kind === "dossier") {
+    return { ok: true, applied: { to: "dossier" } };
+  }
 
   if (target.kind === "claim") {
     switch (target.claim) {
