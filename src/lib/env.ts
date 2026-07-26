@@ -56,6 +56,14 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    // Recruitee — public, key-less, per-tenant careers API. Opt-in like the
+    // others, and for one extra reason: it is the only source where WE choose
+    // which employers are queried, from a list versioned in the repo. That is
+    // a decision a deployment should take on purpose.
+    RECRUITEE_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {
