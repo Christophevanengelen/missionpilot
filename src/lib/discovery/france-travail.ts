@@ -93,9 +93,55 @@ export function franceTravailConfigured(): boolean {
 // discovery run (and subsequent runs until it nears expiry).
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
+/**
+ * Credentials the provider has REJECTED, and until when we stop asking.
+ *
+ * Observed in production: a single page load runs a dozen plan searches, each
+ * asks for a token, and each is refused with `invalid_client` — twelve failed
+ * OAuth round-trips and two dozen error lines for one visit, every visit.
+ *
+ * `invalid_client` is not a transient fault: it means the credentials are wrong
+ * and will stay wrong until a human changes them. Retrying it inside the same
+ * second cannot succeed; it only spends the visitor's latency and buries the
+ * real errors in the log.
+ *
+ * So a REJECTION is cached the way a success is. Transient faults — timeouts,
+ * 5xx — are deliberately NOT cached: those can heal on their own, and refusing
+ * to retry them would turn a blip into an outage.
+ */
+let credentialsRejectedUntil = 0;
+
+/** Long enough to spare a browsing session, short enough that regenerated
+ *  credentials start working without a redeploy. */
+const REJECTION_COOLDOWN_MS = 10 * 60 * 1000;
+
+/** OAuth errors that mean "your credentials are wrong", not "try again". */
+const PERMANENT_OAUTH_ERRORS = new Set([
+  "invalid_client",
+  "unauthorized_client",
+  "invalid_scope",
+]);
+
+export function credentialsRejected(now: number = Date.now()): boolean {
+  return credentialsRejectedUntil > now;
+}
+
+/** Test seam and manual reset — a redeploy already clears the module state. */
+export function resetCredentialRejection(): void {
+  credentialsRejectedUntil = 0;
+}
+
 async function getToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt - TOKEN_SKEW_MS > Date.now()) {
     return cachedToken.value;
+  }
+  if (credentialsRejected()) {
+    // Fail fast, WITHOUT a network call and without a fresh log line: the
+    // rejection was already reported once, and repeating it every few hundred
+    // milliseconds is how a real signal becomes noise.
+    throw new FranceTravailError(
+      "token request skipped (credentials rejected)",
+    );
   }
   const body = new URLSearchParams({
     grant_type: "client_credentials",
@@ -115,9 +161,17 @@ async function getToken(): Promise<string> {
       // Status + the OAuth error CODE. The REQUEST body carries the secret and
       // is never logged; the RESPONSE body does not, and its code is what makes
       // a 400 actionable (see readOauthErrorCode).
+      const oauthError = await readOauthErrorCode(response);
+      const permanent =
+        oauthError !== null && PERMANENT_OAUTH_ERRORS.has(oauthError);
+      if (permanent)
+        credentialsRejectedUntil = Date.now() + REJECTION_COOLDOWN_MS;
       log.warn("france travail token failed", {
         httpStatus: response.status,
-        oauthError: await readOauthErrorCode(response),
+        oauthError,
+        // Says plainly that the next searches will be skipped, so the single
+        // remaining line explains the silence that follows it.
+        credentialsRejected: permanent,
       });
       throw new FranceTravailError(`token request failed (${response.status})`);
     }
@@ -128,6 +182,9 @@ async function getToken(): Promise<string> {
   }
   const parsed = tokenSchema.safeParse(payload);
   if (!parsed.success) throw new FranceTravailError("token response invalid");
+  // A success clears any standing rejection: credentials that were regenerated
+  // must start working again without waiting out the cooldown.
+  credentialsRejectedUntil = 0;
   cachedToken = {
     value: parsed.data.access_token,
     expiresAt: Date.now() + parsed.data.expires_in * 1000,
