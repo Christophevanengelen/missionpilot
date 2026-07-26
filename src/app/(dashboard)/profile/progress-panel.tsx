@@ -48,6 +48,20 @@ export function ProgressPanel({
           />
         </div>
 
+        {/* The history lives here, not inside the folded interview where it
+            became unreachable. Being able to see what this product recorded
+            about you, and when, is not an advanced feature — it is the
+            counterpart of asking someone to hand over their career. */}
+        <p className="text-muted-foreground text-xs">
+          <Link
+            href="/profile/history"
+            className="underline underline-offset-2"
+          >
+            Historique
+          </Link>{" "}
+          — ce que nous avons enregistré, et quand.
+        </p>
+
         <ul className="flex flex-col gap-2">
           {progress.tiers.map((tier) => (
             <li key={tier.key} className="flex items-start gap-2 text-sm">

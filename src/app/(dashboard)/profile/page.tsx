@@ -95,24 +95,46 @@ export default async function ProfilePage() {
         })}
       />
       <CvImport />
-      <ProfileInterview
-        latestVersionNumber={versions[0]?.version_number ?? null}
-        claims={living.claims.map((c) => ({
-          id: c.id,
-          kind: c.kind as ClaimKind,
-          value: c.value as Record<string, unknown>,
-          state: c.state as ClaimState,
-        }))}
-        evidence={living.evidence.map((e) => ({
-          id: e.id,
-          title: e.title,
-          statement: e.statement,
-          role_played: e.role_played,
-          verification_status: e.verification_status,
-          state: e.state as ClaimState,
-        }))}
-        links={living.links}
-      />
+
+      {/* The detailed interview, deliberately folded away.
+       *
+       * It was competing head-on with the one-question flow: both asked about
+       * seniority, on the same screen, in different words. Two assistants
+       * interviewing the same person at once is not twice the attention, it is
+       * a product that does not know what it wants.
+       *
+       * So the quick loop leads, and this stays available for what it alone
+       * does — correcting, rejecting and restoring statements, and attaching
+       * the evidence behind them. Closed by default: nobody has to walk
+       * through it to use the product. */}
+      <details className="border-border rounded-lg border p-5">
+        <summary className="cursor-pointer text-base font-medium">
+          Reprendre l&apos;entretien détaillé
+        </summary>
+        <p className="text-muted-foreground mt-2 mb-4 text-sm text-pretty">
+          Utile pour corriger une affirmation, en écarter une, ou rattacher la
+          preuve qui la soutient. Les questions rapides de l&apos;écran
+          d&apos;accueil suffisent pour être cherché.
+        </p>
+        <ProfileInterview
+          latestVersionNumber={versions[0]?.version_number ?? null}
+          claims={living.claims.map((c) => ({
+            id: c.id,
+            kind: c.kind as ClaimKind,
+            value: c.value as Record<string, unknown>,
+            state: c.state as ClaimState,
+          }))}
+          evidence={living.evidence.map((e) => ({
+            id: e.id,
+            title: e.title,
+            statement: e.statement,
+            role_played: e.role_played,
+            verification_status: e.verification_status,
+            state: e.state as ClaimState,
+          }))}
+          links={living.links}
+        />
+      </details>
     </div>
   );
 }

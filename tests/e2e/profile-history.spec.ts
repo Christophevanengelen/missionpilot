@@ -157,6 +157,8 @@ test("historique : liste → version → comparaison → restauration → persis
 
   // 1. Profil → Historique via the panel link.
   await page.goto("/profile");
+  // The history link lives on the progress panel now, not buried inside the
+  // folded interview where it had become unreachable.
   await page.getByRole("link", { name: "Historique" }).click();
   await expect(page).toHaveURL(/\/profile\/history$/);
   await expect(
@@ -225,9 +227,12 @@ test("historique : liste → version → comparaison → restauration → persis
   //    state, and it survives a reload (server is the source of truth).
   await page.getByRole("button", { name: "Revenir au profil actuel" }).click();
   await expect(page).toHaveURL(/\/profile$/);
+  // The detailed interview — and its context panel — is folded by default.
+  await page.getByText("Reprendre l'entretien détaillé").click();
   const panel = page.getByLabel("Panneau de contexte");
   await expect(panel.getByText(ROLE_V1)).toBeVisible();
   await page.reload();
+  await page.getByText("Reprendre l'entretien détaillé").click();
   await expect(panel.getByText(ROLE_V1)).toBeVisible();
 
   // 7. History intact: versions 1 and 2 unchanged, version 3 traced.
@@ -269,6 +274,7 @@ test("figer une version depuis le profil : création honnête puis no-op honnêt
 }) => {
   await signIn(page);
   await page.goto("/profile");
+  await page.getByText("Reprendre l'entretien détaillé").click();
 
   // The interview resumes at the first missing foundation element
   // (seniority): answer and confirm it so the confirmed state genuinely
