@@ -19,7 +19,7 @@ import {
   type EngagementType,
   type RemoteType,
 } from "@/domain/opportunity";
-import type { BaseCurrency, ProfilePreferences } from "@/domain/profile";
+import type { ProfilePreferences } from "@/domain/profile";
 
 export type ConstraintVerdict =
   "pass" | "violated" | "unknown" | "not_constrained";
@@ -53,7 +53,13 @@ export type OpportunityFacts = {
   remoteType: RemoteType | null;
   compensationMin: number | null;
   compensationMax: number | null;
-  compensationCurrency: BaseCurrency | null;
+  /**
+   * The OFFER's currency, which is not the same vocabulary as the user's base
+   * currency. Typing it as `BaseCurrency` conflated the two, and that is
+   * precisely how a Canadian salary disappeared: an offer may legitimately be
+   * denominated in a currency the person does not use as their own reference.
+   */
+  compensationCurrency: (typeof COMP_CURRENCIES)[number] | null;
   compensationPeriod: (typeof COMP_PERIODS)[number] | null;
   locationText: string | null;
   title: string | null;
