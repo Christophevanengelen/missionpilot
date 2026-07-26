@@ -88,11 +88,14 @@ export type LinkedInFiles = {
   positions?: string;
   skills?: string;
   education?: string;
+  recommendationsReceived?: string;
+  jobSeekerPreferences?: string;
 };
 
 const MAX_POSITIONS = 30;
 const MAX_EDUCATION = 15;
 const MAX_SKILLS = 100;
+const MAX_RECOMMENDATIONS = 10;
 const MAX_TEXT_CHARS = 300_000;
 
 /**
@@ -160,6 +163,62 @@ export function buildCareerProfile(files: LinkedInFiles): {
         .filter(Boolean)
         .join(" ");
       if (head) lines.push(`- ${head}${span}`);
+    }
+  }
+
+  // Recommendations received — kept ATTRIBUTED, never merged into the
+  // narrative. They are the only text on a profile written by someone else,
+  // which makes them the richest source of scope ("a piloté une équipe de
+  // 12") and also the one thing the career reading must not quote as if the
+  // person's own record had evidenced it. The label carries that distinction
+  // into the dossier.
+  const recommendations = parseCsvRecords(files.recommendationsReceived ?? "")
+    .filter((r) => {
+      // Pending or withdrawn recommendations are not visible on the profile
+      // and may never have been accepted. Only what is actually published
+      // counts as proof.
+      const status = field(r, "Status").toUpperCase();
+      return status === "" || status === "VISIBLE";
+    })
+    .slice(0, MAX_RECOMMENDATIONS);
+  if (recommendations.length > 0) {
+    lines.push("", "Recommandations reçues (écrites par des tiers) :");
+    for (const r of recommendations) {
+      const text = field(r, "Text", "Recommendation");
+      if (!text) continue;
+      const author = [field(r, "First Name"), field(r, "Last Name")]
+        .filter(Boolean)
+        .join(" ");
+      const role = field(r, "Job Title", "Title");
+      const company = field(r, "Company");
+      const who = [
+        author || null,
+        role || null,
+        company ? `chez ${company}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      lines.push(`- ${who ? `${who} : ` : ""}« ${text} »`);
+    }
+  }
+
+  // Where the person projects themselves — the only signal in the whole export
+  // that is about the NEXT rung rather than the last one.
+  const preferences = parseCsvRecords(files.jobSeekerPreferences ?? "")[0];
+  if (preferences) {
+    const wanted = [
+      [
+        "Postes visés",
+        field(preferences, "Job Titles", "Preferred Job Titles"),
+      ],
+      ["Lieux visés", field(preferences, "Locations", "Preferred Locations")],
+      ["Secteurs visés", field(preferences, "Industries")],
+      ["Types de poste", field(preferences, "Job Types", "Employment Types")],
+      ["Taille d'entreprise", field(preferences, "Company Sizes")],
+    ].filter(([, value]) => value !== "");
+    if (wanted.length > 0) {
+      lines.push("", "Ce que la personne vise (déclaré sur LinkedIn) :");
+      for (const [label, value] of wanted) lines.push(`- ${label} : ${value}`);
     }
   }
 
