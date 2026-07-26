@@ -39,7 +39,20 @@ export function configuredSources(
     sources.push({ name: "Remotive", search: searchRemotive });
   }
   if (himalayasConfigured()) {
-    sources.push({ name: "Himalayas", search: searchHimalayas });
+    // Himalayas is the only audited source that states pay in structured
+    // fields, so it is the one worth pointing at specific countries. One entry
+    // per country, like Adzuna — its API accepts exactly one `country` per
+    // request, and repeating the parameter returns data for neither.
+    //
+    // With no country chosen it searches worldwide, which is the honest
+    // default: a remote role is not disqualified by where its employer sits.
+    const targets = countries.length > 0 ? countries : [undefined];
+    for (const country of targets) {
+      sources.push({
+        name: "Himalayas",
+        search: (keywords) => searchHimalayas(keywords, country),
+      });
+    }
   }
   if (jobicyConfigured()) {
     sources.push({ name: "Jobicy", search: searchJobicy });

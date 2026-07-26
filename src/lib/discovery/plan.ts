@@ -111,28 +111,69 @@ export async function runMultiSourceDiscovery<
       (attemptsByName.get(source.name) ?? 0) + plans.length,
     );
   }
+  // Every (source, plan) pair, enumerated up front in the stable order the
+  // results must keep.
+  const searches = sources.flatMap((source) =>
+    plans.map((plan) => ({ source, plan })),
+  );
+  const outcomes: ({ ads: Ad[]; sourceName: string } | null)[] = searches.map(
+    () => null,
+  );
   let failedSearches = 0;
-  let totalSearches = 0;
-  for (const source of sources) {
-    for (const plan of plans) {
-      totalSearches += 1;
-      try {
-        for (const ad of await source.search(plan.keywords, plan.mode)) {
-          const key = ad.sourceUrl ?? ad.rawText;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          items.push({ ad, sourceName: source.name });
+
+  /**
+   * CONCURRENT, where this used to be strictly sequential — and the sequence
+   * was the reason everything else was unaffordable.
+   *
+   * One source answers in about twenty seconds. Multiplied by a dozen search
+   * plans, waiting for each before starting the next put the first visit
+   * beyond anyone's patience, and it quietly capped what the product could
+   * ever do: a second source, or a second country, meant adding minutes.
+   * These are independent HTTP calls to different hosts; making them queue
+   * bought nothing.
+   *
+   * The bound is on OUR fan-out, not on any single host — a batch of six is
+   * six different endpoints served one request each. What it really protects
+   * is the visitor, by making the SLOWEST search the cost of a page instead of
+   * the sum of them all.
+   */
+  const MAX_CONCURRENT_SEARCHES = 6;
+  for (let i = 0; i < searches.length; i += MAX_CONCURRENT_SEARCHES) {
+    const batch = searches.slice(i, i + MAX_CONCURRENT_SEARCHES);
+    await Promise.all(
+      batch.map(async ({ source, plan }, offset) => {
+        try {
+          const ads = await source.search(plan.keywords, plan.mode);
+          outcomes[i + offset] = { ads, sourceName: source.name };
+        } catch (error) {
+          // Recorded, never rethrown: a failing search costs its own results,
+          // never the whole run.
+          failedSearches += 1;
+          failedBySource.set(
+            source.name,
+            (failedBySource.get(source.name) ?? 0) + 1,
+          );
+          onSearchError(source.name, plan, error);
         }
-      } catch (error) {
-        failedSearches += 1;
-        failedBySource.set(
-          source.name,
-          (failedBySource.get(source.name) ?? 0) + 1,
-        );
-        onSearchError(source.name, plan, error);
-      }
+      }),
+    );
+  }
+
+  // Deduplication happens HERE, walking the outcomes in their original order,
+  // and deliberately NOT inside the concurrent work. Which of two identical
+  // ads survives then depends on the source order the caller chose, not on
+  // which HTTP response happened to arrive first — a result list that
+  // reshuffles between two identical searches is one nobody can trust.
+  for (const outcome of outcomes) {
+    if (outcome === null) continue;
+    for (const ad of outcome.ads) {
+      const key = ad.sourceUrl ?? ad.rawText;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push({ ad, sourceName: outcome.sourceName });
     }
   }
+  const totalSearches = searches.length;
   return {
     items,
     failedSearches,

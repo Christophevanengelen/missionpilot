@@ -35,7 +35,13 @@ import { isExpired, toPostedAt } from "./posted-at";
  */
 
 const SEARCH_URL = "https://himalayas.app/jobs/api/search";
-const TIMEOUT_MS = 15_000;
+/**
+ * Measured, not guessed: their search endpoint answers in roughly twenty
+ * seconds. The previous 15 s ceiling meant this source was aborting on its own
+ * before it ever replied — the richest salary data in the whole registry,
+ * timing out silently on a first visit.
+ */
+const TIMEOUT_MS = 35_000;
 /** Their documented maximum page size; asking for more is silently capped. */
 const RESULTS_PER_PAGE = 20;
 
@@ -200,6 +206,7 @@ function toAd(j: z.infer<typeof jobSchema>): DiscoveredAd {
  */
 export async function searchHimalayas(
   keywords: string[],
+  country?: string,
 ): Promise<DiscoveredAd[]> {
   if (!himalayasConfigured()) {
     throw new HimalayasError("himalayas source is not enabled");
@@ -211,13 +218,32 @@ export async function searchHimalayas(
     .join(" ");
   if (!query) throw new HimalayasError("no keywords to search");
 
-  const cached = resultCache.get(query);
+  // The country is PART of the key. Keyed on the query alone, a search for the
+  // United States would have been served the worldwide result cached moments
+  // earlier — the same words, a different question, and nothing on screen to
+  // say so.
+  const cacheKey = country === undefined ? query : `${country}|${query}`;
+  const cached = resultCache.get(cacheKey);
   if (cached) return cached;
 
-  const params = new URLSearchParams({
-    q: query,
-    limit: String(RESULTS_PER_PAGE),
-  });
+  const params = new URLSearchParams({ q: query });
+  // `sort=salaryDesc` is a TRUE sort, verified: totalCount is identical with
+  // and without it (566 → 566, 755 → 755) and offers with no stated salary
+  // still appear — they are simply ranked last. A "sort" that quietly dropped
+  // them would be a filter in disguise, and hiding an offer from someone
+  // looking for work is the worst thing this engine could do.
+  params.set("sort", "salaryDesc");
+  if (country !== undefined) {
+    // ONE country per request, never repeated. Verified: `country=US&country=CA`
+    // returns HTTP 200 with a plausible count and DATA FOR NEITHER — jobs from
+    // Antigua, Argentina, Aruba. A wrong answer that looks right is worse than
+    // an error, so the shape that produces it is simply never sent.
+    // (`country=US,CA` is at least honest about it: HTTP 400.)
+    params.set("country", country.toUpperCase());
+  }
+  // `limit` is NOT sent: the endpoint ignores it and always returns 20 — asking
+  // for 5 comes back with 20 and `"limit":20` in the envelope. A parameter the
+  // server discards is a promise the code cannot keep.
 
   let body: unknown;
   try {
@@ -258,6 +284,6 @@ export async function searchHimalayas(
     .filter((ad) => ad.rawText.trim() !== "");
   // Only a SUCCESSFUL answer is cached: caching a failure would turn a
   // transient outage into hours of silent emptiness.
-  resultCache.set(query, ads);
+  resultCache.set(cacheKey, ads);
   return ads;
 }

@@ -13,6 +13,13 @@
  */
 
 export const SEARCH_COUNTRIES = [
+  // The United States and Canada lead because that is what the owner asked
+  // for, and because their absence was not a neutral default: this list held
+  // eight European countries and nothing else, so "remote work in the US"
+  // could not even be EXPRESSED, let alone searched. A vocabulary that cannot
+  // name a place quietly decides you will not go there.
+  { code: "us", label: "États-Unis" },
+  { code: "ca", label: "Canada" },
   { code: "be", label: "Belgique" },
   { code: "fr", label: "France" },
   { code: "nl", label: "Pays-Bas" },
