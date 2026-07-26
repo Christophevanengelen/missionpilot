@@ -65,6 +65,11 @@ export const copy = {
       mirrorAsk: (ask: string) =>
         `Donnez-moi ${ask}, et je lance la recherche à chaque connexion.`,
       mirrorAskLink: "Compléter mon profil",
+      answerSubmit: "Valider",
+      answerDontKnow: "Je ne sais pas",
+      answerUnreadable:
+        "Je n'ai pas su lire cette réponse. Reformulez-la, ou choisissez une des options.",
+      answerFailed: "Je n'ai pas pu enregistrer. Réessayez.",
       resultsTitle: "Ce que le marché a pour vous",
       resultsLead:
         "Cherché à l'instant, sur les plateformes que nous couvrons. Chaque résultat mène à l'annonce d'origine.",
@@ -940,6 +945,11 @@ export const copy = {
       mirrorAsk: (ask: string) =>
         `Give me ${ask}, and I will run the search on every visit.`,
       mirrorAskLink: "Complete my profile",
+      answerSubmit: "Confirm",
+      answerDontKnow: "I don't know",
+      answerUnreadable:
+        "I could not read that answer. Rephrase it, or pick one of the options.",
+      answerFailed: "I could not save that. Try again.",
       resultsTitle: "What the market has for you",
       resultsLead:
         "Searched just now, across the platforms we cover. Every result leads to the original posting.",

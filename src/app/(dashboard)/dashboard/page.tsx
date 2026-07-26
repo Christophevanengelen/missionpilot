@@ -14,8 +14,11 @@ import { discoveryConfigured } from "@/lib/discovery/sources";
 import { t } from "@/lib/copy";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 import { summariseUnderstanding } from "@/lib/profile/understood";
+import { nextQuestion } from "@/lib/profile/next-question";
+import { loadSettledKeys } from "@/lib/profile/clarifications";
 import { CvImport } from "../profile/cv-import";
 import { Mirror } from "./mirror";
+import { NextQuestion } from "./next-question";
 import { AutoResults } from "./auto-results";
 
 export const metadata: Metadata = { title: "Mes opportunités" };
@@ -47,9 +50,10 @@ export default async function HomePage() {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const [living, preferences] = await Promise.all([
+  const [living, preferences, settledKeys] = await Promise.all([
     loadLivingProfile(client, profile.id),
     loadPreferences(client, profile.id),
+    loadSettledKeys(client, profile.id),
   ]);
   const copy = t().home;
 
@@ -86,6 +90,12 @@ export default async function HomePage() {
     .slice(0, MAX_COUNTRIES_PER_SEARCH);
 
   const understood = summariseUnderstanding(confirmed);
+  const question = nextQuestion({
+    readiness,
+    understood,
+    preferences: readinessInput.preferences,
+    settledKeys,
+  });
 
   // ── Nothing at all: one invitation, nothing else ────────────────────────
   if (understood.empty) {
@@ -132,7 +142,10 @@ export default async function HomePage() {
 
         <Mirror understood={understood} />
 
-        {step ? (
+        {/* The mirror proved we listened; NOW one question is fair to ask. */}
+        {question ? (
+          <NextQuestion question={question} />
+        ) : step ? (
           <div className="border-border flex flex-col gap-3 rounded-lg border p-4">
             <p className="text-sm">{copy.mirrorAsk(step.ask)}</p>
             <Link
@@ -173,6 +186,12 @@ export default async function HomePage() {
           </Link>
         </p>
       ) : null}
+
+      {/* The conversation does not stop once the search opens — that is the
+          point. Each answer re-filters the list SHOWN BELOW IT, which is the
+          only reason a question is worth someone's time. Asking everything up
+          front and searching afterwards is the form we refused to build. */}
+      {question ? <NextQuestion question={question} /> : null}
 
       {discoveryConfigured() ? (
         <Suspense
