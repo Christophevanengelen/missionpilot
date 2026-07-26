@@ -24,6 +24,13 @@ const WANTED: { key: keyof LinkedInFiles; base: string }[] = [
   { key: "positions", base: "positions.csv" },
   { key: "skills", base: "skills.csv" },
   { key: "education", base: "education.csv" },
+  // Already in the archive the person hands over, and previously ignored.
+  // Recommendations are the only text on a profile written by SOMEONE ELSE,
+  // and they routinely state the scope a CV omits ("pilotait une équipe de
+  // 12"). Job-seeker preferences say where the person PROJECTS themselves —
+  // the one signal that is about the next rung rather than the last one.
+  { key: "recommendationsReceived", base: "recommendations_received.csv" },
+  { key: "jobSeekerPreferences", base: "job seeker preferences.csv" },
 ];
 
 function basename(path: string): string {
