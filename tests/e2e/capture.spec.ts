@@ -11,7 +11,9 @@ import { randomUUID } from "node:crypto";
  *
  *   pnpm exec playwright test tests/e2e/capture.spec.ts
  *
- * It is excluded from the CI e2e run by its `@capture` tag.
+ * It is opt-in: without CAPTURE=1 every test here skips, so the CI e2e run
+ * never executes it. (An earlier version of this comment claimed a tag-based
+ * exclusion that did not exist — and the suite duly ran, and failed, in CI.)
  */
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -23,6 +25,7 @@ const password = `synthetic-${randomUUID()}`;
 let userId: string;
 
 test.beforeAll(async () => {
+  test.skip(process.env.CAPTURE !== "1", "capture run is opt-in (CAPTURE=1)");
   test.skip(!secretKey, "SUPABASE_SECRET_KEY not configured");
   const admin = createClient(url, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -51,6 +54,7 @@ async function shot(page: Page, name: string) {
 }
 
 test("@capture le parcours complet, en images", async ({ page }) => {
+  test.skip(process.env.CAPTURE !== "1", "capture run is opt-in (CAPTURE=1)");
   await page.setViewportSize({ width: 1100, height: 900 });
 
   await page.goto("/login");

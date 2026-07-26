@@ -73,6 +73,16 @@ test("premier login : dépôt du CV → l'écran RESTITUE ce qu'il a compris, il
     page.getByText("Compétences détectées dans votre CV"),
   ).toBeVisible();
   await page.getByRole("button", { name: "Ajouter à mon profil" }).click();
+  // The import either stays on its own confirmation or chains straight to the
+  // next screen, depending on whether a discovery source is enabled — so wait
+  // for EITHER outcome before navigating. Waiting for only one makes the test
+  // pass or fail on an environment flag rather than on the product.
+  await expect(
+    page.getByText(
+      /compétences? confirmées? dans votre profil|Voilà ce que j'ai compris/,
+    ),
+  ).toBeVisible();
+  await page.goto("/dashboard");
 
   // THE REGRESSION THIS TEST EXISTS FOR: the profile is still too thin to
   // search on (no role, no seniority), and the old screen answered that by
