@@ -26,6 +26,15 @@ export type AdviceItem = {
   grounds: string;
   /** Text they can copy as-is, when there is one. */
   draft: string | null;
+  /**
+   * Where the advice leads, when the product can carry it further.
+   *
+   * Advice that ends at "now go do it elsewhere" wastes the moment someone is
+   * actually willing to act. Telling somebody to ask for a recommendation and
+   * giving them no way to record the one that comes back is a hole we dug
+   * ourselves.
+   */
+  follow: { href: string; label: string } | null;
 };
 
 export type AdviceInput = {
@@ -54,6 +63,7 @@ export function linkedinAdvice(input: AdviceInput): AdviceItem[] {
       action: "Mettez votre métier dans votre titre, pas votre employeur",
       grounds: `Le marché nomme ses offres « ${role} ». Un recruteur qui cherche ce mot ne vous trouve pas si votre titre dit « chez Acme ».`,
       draft: headline,
+      follow: null,
     });
   }
 
@@ -65,6 +75,7 @@ export function linkedinAdvice(input: AdviceInput): AdviceItem[] {
       action: "Déclarez ces compétences sur votre profil",
       grounds: `Nous en avons lu ${understood.skills.length} dans votre CV. Les recherches de recruteurs filtrent sur cette liste, et ce qui n'y figure pas n'existe pas pour elles.`,
       draft: understood.skills.slice(0, 10).join(" · "),
+      follow: null,
     });
   }
 
@@ -90,6 +101,13 @@ export function linkedinAdvice(input: AdviceInput): AdviceItem[] {
         "",
         "Merci beaucoup,",
       ].join("\n"),
+      // The other half of the advice: once it arrives, there is somewhere to
+      // put it, and it becomes proof on the profile rather than a screenshot
+      // in someone's downloads folder.
+      follow: {
+        href: "/profile/recommendations",
+        label: "Enregistrer une recommandation reçue",
+      },
     });
   }
 
@@ -105,6 +123,7 @@ export function linkedinAdvice(input: AdviceInput): AdviceItem[] {
           ? "Votre parcours ne porte encore aucun résultat concret. C'est ce qui distingue un intitulé d'une preuve."
           : "Vous n'en avez qu'un. Un par poste change la lecture d'un profil.",
       draft: null,
+      follow: null,
     });
   }
 
