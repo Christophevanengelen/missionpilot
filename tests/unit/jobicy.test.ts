@@ -199,11 +199,16 @@ describe("searchJobicy", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("queries the European scope with the keyword tag", async () => {
+  it("pins NO geography at the source, and caps the keyword tag", async () => {
+    // It used to send `geo=europe`, which discarded every American and
+    // Canadian remote role BEFORE the engine saw one — a restriction applied
+    // where nobody could see it or undo it. For remote work the employer's
+    // country is a fact about the offer, and facts belong in the filters the
+    // person can actually operate.
     fetchMock.mockResolvedValueOnce(ok({ jobs: [] }));
     await mod.searchJobicy(["a", "b", "c", "d", "e", "f"]);
     const url = new URL(String(fetchMock.mock.calls[0][0]));
-    expect(url.searchParams.get("geo")).toBe("europe");
+    expect(url.searchParams.get("geo")).toBeNull();
     expect(url.searchParams.get("tag")).toBe("a b c d e"); // capped at 5
   });
 });

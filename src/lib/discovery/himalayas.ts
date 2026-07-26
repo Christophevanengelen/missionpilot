@@ -82,15 +82,24 @@ export function himalayasConfigured(): boolean {
 
 /** Currencies our domain can store; anything else stays honestly unknown
  *  rather than being coerced into the wrong symbol. */
-const SUPPORTED_CURRENCIES = new Set(["EUR", "USD", "GBP", "CHF"]);
+const SUPPORTED_CURRENCIES = new Set(["EUR", "USD", "GBP", "CHF", "CAD"]);
 
 /** Their `salaryPeriod` vocabulary mapped onto ours. "fortnightly" and
  *  "weekly" have no equivalent in our domain, so a figure carrying them is
  *  dropped entirely instead of being silently relabelled. */
-function mapPeriod(period: string | null | undefined): "year" | "month" | null {
+/**
+ * Their period vocabulary. `hourly` is mapped now, and it was the expensive
+ * omission: a US contract at 140 USD/hour is exactly the kind of well-paid
+ * remote role this product is for, and it was arriving with its salary
+ * silently discarded because the unit was not in this list.
+ */
+function mapPeriod(
+  period: string | null | undefined,
+): "year" | "month" | "hour" | null {
   const p = period?.trim().toLowerCase();
   if (p === "annual") return "year";
   if (p === "monthly") return "month";
+  if (p === "hourly") return "hour";
   return null;
 }
 

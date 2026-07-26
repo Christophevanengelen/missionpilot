@@ -44,7 +44,7 @@ export const offerSchema = z.object({
   published_at: z.string().nullish(),
 });
 
-const SUPPORTED_CURRENCIES = new Set(["EUR", "USD", "GBP", "CHF"]);
+const SUPPORTED_CURRENCIES = new Set(["EUR", "USD", "GBP", "CHF", "CAD"]);
 
 /**
  * Their employment vocabulary, mapped ONLY where the meaning is certain.

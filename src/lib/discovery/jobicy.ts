@@ -13,9 +13,10 @@ import { toPostedAt } from "./posted-at";
  * Jobicy connector — a legal remote-work source with a PUBLIC, documented,
  * unauthenticated API (jobicy.com/jobs-rss-feed). No scraping.
  *
- * Why it earns its place: it is the only audited source with NATIVE European
- * geography filters (`geo=france|belgium|europe`) and a `jobType` vocabulary
- * that actually distinguishes freelance and contract work from salaried posts.
+ * Why it earns its place: a `jobType` vocabulary that actually distinguishes
+ * freelance and contract work from salaried posts, and structured salary
+ * bounds — which is what makes "well paid" something the engine can rank on
+ * rather than guess at.
  *
  * ToS-DRIVEN CONSTRAINTS — Jobicy states them INSIDE the payload itself
  * (`friendlyNotice`), which is as explicit as it gets:
@@ -38,9 +39,19 @@ const SEARCH_URL = "https://jobicy.com/api/v2/remote-jobs";
 const TIMEOUT_MS = 15_000;
 /** Their documented maximum page size. */
 const RESULTS_PER_PAGE = 20;
-/** The widest European scope they expose; narrower values (france, belgium)
- *  would drop pan-European remote roles the owner is eligible for. */
-const GEO = "europe";
+/**
+ * NO geographic filter, deliberately.
+ *
+ * This used to be pinned to `geo=europe`, which silently discarded every
+ * American and Canadian remote role BEFORE the engine ever saw one — a
+ * restriction applied at the source, where nobody could see it or undo it.
+ *
+ * For remote work the country of the employer is not a constraint on the
+ * candidate; it is a fact about the offer, and facts belong in the filters the
+ * person can actually operate. So the query asks for everything and the
+ * engine's own gate decides — which is also the only arrangement where
+ * changing your mind costs a click instead of a deployment.
+ */
 
 const jobSchema = z.object({
   jobTitle: z.string().nullish(),
@@ -78,7 +89,7 @@ export function jobicyConfigured(): boolean {
   return env.JOBICY_ENABLED === true;
 }
 
-const SUPPORTED_CURRENCIES = new Set(["EUR", "USD", "GBP", "CHF"]);
+const SUPPORTED_CURRENCIES = new Set(["EUR", "USD", "GBP", "CHF", "CAD"]);
 
 /**
  * Jobicy's period vocabulary is NOT Himalayas' ("yearly" here, "annual"
@@ -212,7 +223,6 @@ export async function searchJobicy(
 
   const params = new URLSearchParams({
     tag,
-    geo: GEO,
     count: String(RESULTS_PER_PAGE),
   });
 

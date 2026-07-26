@@ -26,7 +26,11 @@ export const REMOTE_TYPES = [
 ] as const;
 export type RemoteType = (typeof REMOTE_TYPES)[number];
 
-export const COMP_CURRENCIES = ["EUR", "USD", "GBP", "CHF"] as const;
+// CAD is here because Canadian remote roles were being shown WITHOUT their
+// salary: the source published 120 000–150 000 CAD and the currency filter
+// dropped the whole block. A currency we refuse to name does not protect
+// anyone — it hides money that was stated plainly.
+export const COMP_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "CAD"] as const;
 export const COMP_PERIODS = ["day", "hour", "month", "year"] as const;
 
 export const RETRIEVAL_METHODS = ["paste", "url", "import"] as const;
