@@ -41,6 +41,9 @@ export function NextQuestion({ question }: { question: ProfileQuestion }) {
       const result = await answerQuestionAction({
         questionKey: question.key,
         question: question.prompt,
+        // The key carries its own origin ("gap:role", "career:…"), so the two
+        // never get filed under the wrong one.
+        origin: question.key.startsWith("career:") ? "career" : "gap",
         target: question.target,
         answer,
       });

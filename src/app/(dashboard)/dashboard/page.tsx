@@ -15,7 +15,10 @@ import { t } from "@/lib/copy";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 import { summariseUnderstanding } from "@/lib/profile/understood";
 import { nextQuestion } from "@/lib/profile/next-question";
-import { loadSettledKeys } from "@/lib/profile/clarifications";
+import {
+  loadPendingCareer,
+  loadSettledKeys,
+} from "@/lib/profile/clarifications";
 import { CvImport } from "../profile/cv-import";
 import { Mirror } from "./mirror";
 import { NextQuestion } from "./next-question";
@@ -50,11 +53,14 @@ export default async function HomePage() {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const [living, preferences, settledKeys] = await Promise.all([
-    loadLivingProfile(client, profile.id),
-    loadPreferences(client, profile.id),
-    loadSettledKeys(client, profile.id),
-  ]);
+  const [living, preferences, settledKeys, careerQuestions] = await Promise.all(
+    [
+      loadLivingProfile(client, profile.id),
+      loadPreferences(client, profile.id),
+      loadSettledKeys(client, profile.id),
+      loadPendingCareer(client, profile.id),
+    ],
+  );
   const copy = t().home;
 
   const confirmed = living.claims
@@ -95,6 +101,7 @@ export default async function HomePage() {
     understood,
     preferences: readinessInput.preferences,
     settledKeys,
+    careerQuestions,
   });
 
   // ── Nothing at all: one invitation, nothing else ────────────────────────

@@ -11,7 +11,10 @@ import { assessReadiness } from "@/lib/profile/readiness";
 import { progression } from "@/lib/profile/progression";
 import { summariseUnderstanding } from "@/lib/profile/understood";
 import { pendingQuestions } from "@/lib/profile/next-question";
-import { loadSettledKeys } from "@/lib/profile/clarifications";
+import {
+  loadPendingCareer,
+  loadSettledKeys,
+} from "@/lib/profile/clarifications";
 import { linkedinAdvice } from "@/lib/profile/linkedin-advice";
 import type { ClaimKind, ClaimState } from "@/domain/profile";
 import { CvImport } from "./cv-import";
@@ -32,12 +35,14 @@ export default async function ProfilePage() {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const [living, versions, preferences, settledKeys] = await Promise.all([
-    loadLivingProfile(client, profile.id),
-    listVersions(client, profile.id),
-    loadPreferences(client, profile.id),
-    loadSettledKeys(client, profile.id),
-  ]);
+  const [living, versions, preferences, settledKeys, careerQuestions] =
+    await Promise.all([
+      loadLivingProfile(client, profile.id),
+      listVersions(client, profile.id),
+      loadPreferences(client, profile.id),
+      loadSettledKeys(client, profile.id),
+      loadPendingCareer(client, profile.id),
+    ]);
 
   const confirmed = living.claims
     .filter((c) => c.state === "confirmed")
@@ -80,6 +85,7 @@ export default async function ProfilePage() {
           understood,
           preferences: prefs,
           settledKeys,
+          careerQuestions,
         })}
         advice={linkedinAdvice({
           understood,

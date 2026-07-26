@@ -34,7 +34,13 @@ export type QuestionTarget =
         | "allowedWorkRegions"
         | "remotePolicy"
         | "preferredEngagementTypes";
-    };
+    }
+  /**
+   * The answer IS the record: a sentence about scope that goes into the
+   * dossier verbatim, marked as declared. No claim, no preference — these
+   * questions exist precisely because the fact has no column to live in.
+   */
+  | { kind: "dossier" };
 
 export type QuestionOption = {
   /** What is stored. */
@@ -100,6 +106,16 @@ export type QuestionContext = {
   };
   /** Question keys already answered or skipped — never asked again. */
   settledKeys: readonly string[];
+  /**
+   * Questions the career reading could not settle from the CV, already
+   * recorded and still owed an answer.
+   *
+   * They come LAST, always. They are the most valuable — scope is what opens
+   * the staircase — and also the most demanding to answer, so they are asked
+   * of someone who has already seen results, never of someone still staring at
+   * an empty screen.
+   */
+  careerQuestions?: readonly { questionKey: string; question: string }[];
 };
 
 /**
@@ -199,6 +215,20 @@ function catalogue(ctx: QuestionContext): ProfileQuestion[] {
       target: { kind: "preference", field: "targetRoleFamilies" },
       options: [],
       placeholder: "Head of Design, Lead Data…",
+    });
+  }
+
+  // The career reading's own questions close the list. They are what opens the
+  // staircase, and they are the only ones a form could never have guessed.
+  for (const asked of ctx.careerQuestions ?? []) {
+    questions.push({
+      key: asked.questionKey,
+      prompt: asked.question,
+      because:
+        "Votre CV ne le dit pas, et c'est précisément ce qui me manque pour juger si la marche d'après est déjà à votre portée.",
+      target: { kind: "dossier" },
+      options: [],
+      placeholder: "Répondez en une phrase…",
     });
   }
 

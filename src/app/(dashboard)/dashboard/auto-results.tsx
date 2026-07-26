@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/db/server";
 import { getOwnProfile } from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
+import { loadAnswers } from "@/lib/profile/clarifications";
 import { profileSignalsFromClaims } from "@/lib/matching/score";
 import { buildProfileDossier } from "@/lib/matching/insight-logic";
 import { planFromProfile } from "@/lib/search/plan-from-profile";
@@ -36,13 +37,23 @@ export async function AutoResults({ countries }: { countries: string[] }) {
   try {
     const client = await createClient();
     const profile = await getOwnProfile(client);
-    const [living, preferences] = await Promise.all([
+    const [living, preferences, clarifications] = await Promise.all([
       loadLivingProfile(client, profile.id),
       loadPreferences(client, profile.id),
+      loadAnswers(client, profile.id),
     ]);
     // The market's words for this profile — and, when the career analysis says
     // the step is earned, the words of the level above it too.
-    const profileDossier = buildProfileDossier(living.claims, preferences);
+    //
+    // The clarifications belong here, not merely in the profile screen: the
+    // career reading returns `unknown` because a CV lists titles without
+    // scope, so an answer that never reaches THIS dossier leaves the next
+    // reading as blind as the last, and the staircase never opens.
+    const profileDossier = buildProfileDossier(
+      living.claims,
+      preferences,
+      clarifications,
+    );
     plan = await planFromProfile(
       profileDossier,
       preferences.targetRoleFamilies,
