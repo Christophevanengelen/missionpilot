@@ -52,7 +52,7 @@ export async function setTrackingAction(
       followUpOn: parsed.followUpOn,
     });
     revalidatePath(`/opportunities/${parsed.opportunityId}`);
-    revalidatePath("/applications");
+    revalidatePath("/dashboard");
     return { ok: true };
   } catch (error) {
     logger.error("set tracking failed", {
@@ -70,7 +70,7 @@ export async function untrackAction(input: unknown): Promise<TrackingResult> {
     const profile = await getOwnProfile(client);
     await deleteTracking(client, profile.id, opportunityId);
     revalidatePath(`/opportunities/${opportunityId}`);
-    revalidatePath("/applications");
+    revalidatePath("/dashboard");
     return { ok: true };
   } catch (error) {
     logger.error("untrack failed", {

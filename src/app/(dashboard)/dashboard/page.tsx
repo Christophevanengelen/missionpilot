@@ -13,19 +13,25 @@ import {
 import { discoveryConfigured } from "@/lib/discovery/sources";
 import { t } from "@/lib/copy";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
+import { summariseUnderstanding } from "@/lib/profile/understood";
 import { CvImport } from "../profile/cv-import";
-import { AutoResults } from "../recherche/auto-results";
+import { Mirror } from "./mirror";
+import { AutoResults } from "./auto-results";
 
 export const metadata: Metadata = { title: "Mes opportunités" };
 
 /**
  * The product, in one screen.
  *
- * Two states and nothing between them:
+ * Three states, and the order between them is the whole design:
  *
- * - **Nothing to work with yet** — one sentence, one drop zone, and no other
- *   affordance on the page. Anything else here is a form standing between
- *   someone and the reason they came.
+ * - **Nothing at all** — one sentence, one drop zone, and no other affordance
+ *   on the page. Anything else here is a form standing between someone and the
+ *   reason they came.
+ * - **We read something, not yet enough** — the mirror: what we understood,
+ *   said back, gaps included, THEN one question. Never the drop zone again;
+ *   handing back an empty box to someone who just filled one is how a product
+ *   teaches that effort disappears into it.
  * - **Enough to work with** — what the market has for them RIGHT NOW, searched
  *   before they asked, laid out as a staircase with the step up first.
  *
@@ -79,12 +85,17 @@ export default async function HomePage() {
     .filter((c) => c !== undefined)
     .slice(0, MAX_COUNTRIES_PER_SEARCH);
 
-  // ── Nothing to work with yet: one invitation, nothing else ──────────────
-  if (!readiness.canSearch) {
+  const understood = summariseUnderstanding(confirmed);
+
+  // ── Nothing at all: one invitation, nothing else ────────────────────────
+  if (understood.empty) {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 py-8">
         <header className="flex flex-col gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight text-balance">
+          <h1
+            id="dashboard-title"
+            className="text-3xl font-semibold tracking-tight text-balance"
+          >
             {copy.heroTitle}
           </h1>
           <p className="text-muted-foreground text-base text-pretty">
@@ -97,11 +108,55 @@ export default async function HomePage() {
     );
   }
 
+  // ── We read something, but not enough to search honestly ────────────────
+  //
+  // The state this exists to kill: someone uploads a CV, we extract their
+  // skills, and the next screen hands them the same empty drop zone. Their
+  // effort vanished. So the screen says what it now knows, then asks for ONE
+  // more thing — and the mirror comes first, because a question from someone
+  // who just proved they were listening is a different question entirely.
+  if (!readiness.canSearch) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 py-8">
+        <header className="flex flex-col gap-3">
+          <h1
+            id="dashboard-title"
+            className="text-3xl font-semibold tracking-tight text-balance"
+          >
+            {copy.mirrorTitle}
+          </h1>
+          <p className="text-muted-foreground text-base text-pretty">
+            {copy.mirrorLead}
+          </p>
+        </header>
+
+        <Mirror understood={understood} />
+
+        {step ? (
+          <div className="border-border flex flex-col gap-3 rounded-lg border p-4">
+            <p className="text-sm">{copy.mirrorAsk(step.ask)}</p>
+            <Link
+              href="/profile"
+              className="text-sm underline underline-offset-2"
+            >
+              {copy.mirrorAskLink}
+            </Link>
+          </div>
+        ) : null}
+
+        <p className="text-muted-foreground text-xs">{copy.heroPromise}</p>
+      </div>
+    );
+  }
+
   // ── Enough to work with: the market, now ────────────────────────────────
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-4">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1
+          id="dashboard-title"
+          className="text-2xl font-semibold tracking-tight"
+        >
           {copy.resultsTitle}
         </h1>
         <p className="text-muted-foreground text-sm">{copy.resultsLead}</p>

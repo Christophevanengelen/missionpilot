@@ -46,7 +46,7 @@ export async function importPastedTextAction(
     const client = await createClient();
     const result = await opportunity.importPastedText(client, parsed.rawText);
     try {
-      revalidatePath("/opportunities");
+      revalidatePath("/dashboard");
     } catch (error) {
       logger.error("opportunity revalidation failed", {
         step: "revalidatePath",
@@ -91,7 +91,7 @@ export async function importFromUrlAction(
       parsed.rawText,
     );
     try {
-      revalidatePath("/opportunities");
+      revalidatePath("/dashboard");
     } catch (error) {
       logger.error("opportunity revalidation failed", {
         step: "revalidatePath",

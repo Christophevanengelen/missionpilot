@@ -152,7 +152,7 @@ export async function explainMatchesAction(): Promise<InsightRunResult> {
       }
     }
     try {
-      revalidatePath("/opportunities");
+      revalidatePath("/dashboard");
     } catch (error) {
       logger.error("insight revalidation failed", {
         step: "revalidatePath",

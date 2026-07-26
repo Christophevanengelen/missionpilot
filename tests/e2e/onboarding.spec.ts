@@ -3,9 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 
-// e2e: first-login fluid onboarding. A brand-new user lands on the dashboard
-// HERO (upload your CV), the chip flow confirms skills, and the dashboard
-// then flips to its STATUS view — the "upload → results" loop, end to end.
+// e2e: first login. A brand-new user lands on the drop zone, pastes a CV, and
+// the next screen REFLECTS what was read instead of asking for a CV again.
 // Dedicated synthetic user per run (clean empty state).
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -47,14 +46,14 @@ async function signIn(page: Page) {
   await page.waitForURL(/\/dashboard/);
 }
 
-test("premier login : hero « upload CV » → ajout → écran de succès, puis vue statut au retour", async ({
+test("premier login : dépôt du CV → l'écran RESTITUE ce qu'il a compris, il ne redemande pas un CV", async ({
   page,
 }) => {
   await signIn(page);
 
-  // A fresh profile lands on the CV hero, not a bare shell.
+  // A fresh profile lands on the drop zone, and on nothing else.
   await expect(
-    page.getByRole("heading", { name: "Bienvenue sur MissionPilot" }),
+    page.getByRole("heading", { name: "Déposez votre CV" }),
   ).toBeVisible();
   await expect(page.getByText("Importer mon CV")).toBeVisible();
 
@@ -88,8 +87,23 @@ test("premier login : hero « upload CV » → ajout → écran de succès, puis
   // The status view is the destination on the NEXT visit, once the profile
   // genuinely exists.
   await page.goto("/dashboard");
+
+  // THE REGRESSION THIS TEST EXISTS FOR: the profile is still too thin to
+  // search on (no role, no seniority), and the old screen answered that by
+  // showing the drop zone again — the same empty box the user had just filled.
+  // It must now reflect what it read and ask for exactly one more thing.
   await expect(
-    page.getByRole("heading", { name: "Votre tableau de bord" }),
+    page.getByRole("heading", { name: "Voilà ce que j'ai compris." }),
   ).toBeVisible();
-  await expect(page.getByText(/compétences? confirmées?/)).toBeVisible();
+  await expect(
+    page.getByText("Votre parcours, tel que je l'ai lu"),
+  ).toBeVisible();
+  await expect(page.getByText("TypeScript", { exact: true })).toBeVisible();
+
+  // The gaps stay visible rather than being quietly dropped.
+  await expect(page.getByText("votre CV ne le dit pas").first()).toBeVisible();
+
+  // And the drop zone is gone: asking again for what was already given is the
+  // failure mode, not a fallback.
+  await expect(page.getByText("Importer mon CV")).toHaveCount(0);
 });

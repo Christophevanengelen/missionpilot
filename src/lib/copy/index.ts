@@ -55,6 +55,16 @@ export const copy = {
         "On lit votre parcours, on comprend où vous en êtes — et à chaque connexion, on vous montre ce que le marché a pour vous maintenant. Y compris le poste d'un cran au-dessus.",
       heroPromise:
         "Aucune offre n'est stockée. On ne postule jamais à votre place : vous cliquez, vous partez sur l'annonce d'origine.",
+      mirrorTitle: "Voilà ce que j'ai compris.",
+      mirrorLead:
+        "Corrigez-moi si je me trompe. Il me manque encore une chose avant de pouvoir chercher sérieusement pour vous.",
+      mirrorHeading: "Votre parcours, tel que je l'ai lu",
+      mirrorUnknown: "votre CV ne le dit pas",
+      mirrorSkills: (n: number) =>
+        n === 1 ? "1 compétence retenue" : `${n} compétences retenues`,
+      mirrorAsk: (ask: string) =>
+        `Donnez-moi ${ask}, et je lance la recherche à chaque connexion.`,
+      mirrorAskLink: "Compléter mon profil",
       resultsTitle: "Ce que le marché a pour vous",
       resultsLead:
         "Cherché à l'instant, sur les plateformes que nous couvrons. Chaque résultat mène à l'annonce d'origine.",
@@ -920,6 +930,16 @@ export const copy = {
         "We read your track record, we work out where you stand — and on every visit we show you what the market has for you now. Including the role one rung up.",
       heroPromise:
         "No offer is stored. We never apply on your behalf: you click, you land on the original posting.",
+      mirrorTitle: "Here is what I understood.",
+      mirrorLead:
+        "Correct me if I have it wrong. There is one more thing I need before I can search properly for you.",
+      mirrorHeading: "Your track record, as I read it",
+      mirrorUnknown: "your CV does not say",
+      mirrorSkills: (n: number) =>
+        n === 1 ? "1 skill kept" : `${n} skills kept`,
+      mirrorAsk: (ask: string) =>
+        `Give me ${ask}, and I will run the search on every visit.`,
+      mirrorAskLink: "Complete my profile",
       resultsTitle: "What the market has for you",
       resultsLead:
         "Searched just now, across the platforms we cover. Every result leads to the original posting.",
