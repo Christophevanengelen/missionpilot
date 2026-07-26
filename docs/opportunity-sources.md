@@ -149,18 +149,18 @@ définitive**, y compris sous pression.
 Un registre qui ne liste que ses réussites ment par omission. Ce que le moteur
 **ne** couvre **pas**, mesuré à la passe du 2026-07-26 :
 
-| Zone                                            | État                                                                                                                                                 |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zone                                                     | État                                                                                                                                                        |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Europe de l'Ouest et du Sud** (DE, ES, IT, NL, AT, PT) | ⚠️ **Absence de recherche, pas absence de sources.** Aucune passe de veille n'a reçu ce périmètre. C'est la plus grosse lacune et la plus facile à combler. |
-| **Moyen-Orient / Golfe**                        | Zéro. Bayt, GulfTalent, Naukrigulf : aucune API de lecture. Adzuna ne couvre aucun pays du Golfe.                                                     |
-| **Asie du Sud-Est + Hong Kong**                 | Zéro. Verrouillage par le duopole SEEK / JobStreet-JobsDB.                                                                                            |
-| **Inde**                                        | Zéro. Naukri exclue, NCS en 403. Deuxième bassin de talents mondial, non couvert.                                                                     |
-| **Amérique latine hispanophone**                | Zéro. Computrabajo, le portail dominant, est fermé.                                                                                                  |
-| **Afrique**                                     | Quasi zéro. Seule ouverture `za` chez Adzuna, plombée par sa clause d'agrégation. ReliefWeb est la seule piste réaliste.                              |
-| **Australie / Nouvelle-Zélande**                | Aucune source sans clé. Adzuna, licence à négocier, est la seule voie.                                                                                |
-| **Japon**                                       | Une seule piste (API e-Gov Hello Work), en 403.                                                                                                      |
-| **Danemark, Baltes, Roumanie, Islande**         | Aucune source identifiée. Pour le Danemark la recherche a été menée sans résultat ; pour les autres elle n'a pas été menée.                           |
-| **Vietnam, Taïwan, Corée du Sud**               | Non explorés. Angle mort assumé.                                                                                                                     |
+| **Moyen-Orient / Golfe**                                 | Zéro. Bayt, GulfTalent, Naukrigulf : aucune API de lecture. Adzuna ne couvre aucun pays du Golfe.                                                           |
+| **Asie du Sud-Est + Hong Kong**                          | Zéro. Verrouillage par le duopole SEEK / JobStreet-JobsDB.                                                                                                  |
+| **Inde**                                                 | Zéro. Naukri exclue, NCS en 403. Deuxième bassin de talents mondial, non couvert.                                                                           |
+| **Amérique latine hispanophone**                         | Zéro. Computrabajo, le portail dominant, est fermé.                                                                                                         |
+| **Afrique**                                              | Quasi zéro. Seule ouverture `za` chez Adzuna, plombée par sa clause d'agrégation. ReliefWeb est la seule piste réaliste.                                    |
+| **Australie / Nouvelle-Zélande**                         | Aucune source sans clé. Adzuna, licence à négocier, est la seule voie.                                                                                      |
+| **Japon**                                                | Une seule piste (API e-Gov Hello Work), en 403.                                                                                                             |
+| **Danemark, Baltes, Roumanie, Islande**                  | Aucune source identifiée. Pour le Danemark la recherche a été menée sans résultat ; pour les autres elle n'a pas été menée.                                 |
+| **Vietnam, Taïwan, Corée du Sud**                        | Non explorés. Angle mort assumé.                                                                                                                            |
 
 **Trous par segment, indépendants de la géographie :**
 
