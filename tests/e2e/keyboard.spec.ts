@@ -47,7 +47,7 @@ test.describe("keyboard-only interaction", () => {
     await page.goto("/login");
     await page.keyboard.press("Tab");
     const first = await activeElementInfo(page);
-    expect(first?.text).toBe("Skip to main content");
+    expect(first?.text).toBe("Aller au contenu principal");
     expect(first?.focusVisible).toBe(true);
     expect(first?.hasVisibleFocusStyle).toBe(true);
 
