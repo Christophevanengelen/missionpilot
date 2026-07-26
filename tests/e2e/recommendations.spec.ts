@@ -72,6 +72,16 @@ test("ajouter une recommandation reçue → preuve avec lien de vérification cl
     );
   await page.getByRole("button", { name: "Ajouter la recommandation" }).click();
 
+  // If the action refused, say SO — a bare "0 articles found" sent a previous
+  // investigation chasing a rendering problem when the cause was server-side.
+  // A test that cannot explain its own failure costs more than it protects.
+  //
+  // Scoped to the FORM's own alert: a bare [role="alert"] also matches Next's
+  // always-present, always-empty route announcer, which made the first version
+  // of this guard fail on every run for the wrong reason.
+  const refus = await page.locator('form [role="alert"]').allTextContents();
+  expect(refus, `l'ajout a été refusé : ${refus.join(" | ")}`).toEqual([]);
+
   // The recommendation is listed, with a clickable verification link.
   const item = page.getByRole("article").filter({ hasText: "Jane Doe" });
   await expect(item).toHaveCount(1);
