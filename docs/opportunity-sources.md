@@ -66,6 +66,24 @@ entier » par la porte d'entrée.
 | **Greenhouse** | `boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true` | Complet, mais salaire = 1 appel par offre                                                 | 2026-07-25 |
 | **Workable**   | `www.workable.com/api/accounts/{sous-domaine}`                 | Le plus pauvre, documentation partielle                                                   | 2026-07-25 |
 
+**Volumes de locataires mesurés** (passe du 2026-07-26, énumération par l'index
+Common Crawl et une liste communautaire sous licence MIT — jamais par scraping) :
+
+| Éditeur        | Slugs connus | Taux de réponse mesuré | Note                                                                              |
+| -------------- | ------------ | ---------------------- | --------------------------------------------------------------------------------- |
+| **Workday**    | 12 884       | non mesuré             | Le plus gros parc, schéma non audité                                              |
+| **BambooHR**   | 11 316       | non mesuré             | —                                                                                 |
+| **iCIMS**      | 10 108       | non mesuré             | —                                                                                 |
+| **Greenhouse** | 8 333        | **~65 %**              | Un seul locataire testé rendait 536 offres                                        |
+| **Lever**      | 4 368        | **~68 %**              | **Absent de Common Crawl** (`CCBot` bloqué) → amorçage par la liste communautaire |
+| **Ashby**      | 3 161        | **~95 %**              | Le meilleur taux de survie du registre                                            |
+
+⚠️ **Piège vérifié :** chez Ashby, n'utiliser **que** `posting-api`.
+`jobs.ashbyhq.com/api/non-user-graphql` est **interdit par leur `robots.txt`**.
+Chez Lever, `api.lever.co/robots.txt` vaut `Allow: /` et `jobs.lever.co` publie
+`Content-Signal: search=yes` — une autorisation d'indexation lisible par machine,
+assortie d'un `ai-train=no` que nous respectons (nous n'entraînons rien).
+
 **Le verrou, et il n'est pas juridique :** aucun éditeur ne publie l'annuaire de
 ses entreprises clientes. Sans les jetons, le gisement est inatteignable. Trois
 voies compatibles avec notre règle (aucune n'est du scraping) :
@@ -123,6 +141,44 @@ définitive**, y compris sous pression.
 | **Coworkees**                                                           | Redirige vers Freelance.com — voir « À demander »                                                  | 2026-07-25 |
 | **Malt**                                                                | Aucune API publique ; intégrations SI d'entreprise uniquement                                      | 2026-07-25 |
 | **Portage salarial** (ITG, AD'Missions, OpenWork, Régie Portage)        | Ces sociétés n'ont pas de bourse aux missions — ce sont des gestionnaires de paie                  | 2026-07-25 |
+
+---
+
+## Les trous de couverture — sans complaisance
+
+Un registre qui ne liste que ses réussites ment par omission. Ce que le moteur
+**ne** couvre **pas**, mesuré à la passe du 2026-07-26 :
+
+| Zone                                                     | État                                                                                                                                                        |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Europe de l'Ouest et du Sud** (DE, ES, IT, NL, AT, PT) | ⚠️ **Absence de recherche, pas absence de sources.** Aucune passe de veille n'a reçu ce périmètre. C'est la plus grosse lacune et la plus facile à combler. |
+| **Moyen-Orient / Golfe**                                 | Zéro. Bayt, GulfTalent, Naukrigulf : aucune API de lecture. Adzuna ne couvre aucun pays du Golfe.                                                           |
+| **Asie du Sud-Est + Hong Kong**                          | Zéro. Verrouillage par le duopole SEEK / JobStreet-JobsDB.                                                                                                  |
+| **Inde**                                                 | Zéro. Naukri exclue, NCS en 403. Deuxième bassin de talents mondial, non couvert.                                                                           |
+| **Amérique latine hispanophone**                         | Zéro. Computrabajo, le portail dominant, est fermé.                                                                                                         |
+| **Afrique**                                              | Quasi zéro. Seule ouverture `za` chez Adzuna, plombée par sa clause d'agrégation. ReliefWeb est la seule piste réaliste.                                    |
+| **Australie / Nouvelle-Zélande**                         | Aucune source sans clé. Adzuna, licence à négocier, est la seule voie.                                                                                      |
+| **Japon**                                                | Une seule piste (API e-Gov Hello Work), en 403.                                                                                                             |
+| **Danemark, Baltes, Roumanie, Islande**                  | Aucune source identifiée. Pour le Danemark la recherche a été menée sans résultat ; pour les autres elle n'a pas été menée.                                 |
+| **Vietnam, Taïwan, Corée du Sud**                        | Non explorés. Angle mort assumé.                                                                                                                            |
+
+**Trous par segment, indépendants de la géographie :**
+
+- **Freelance / mission senior — le trou le plus grave du produit.** Aucune place
+  de marché de missions pour profils expérimentés n'a d'API ouverte confirmée, sur
+  aucune zone. Le signal « contrat » exploitable ne vient donc pas d'une place de
+  marché : il vient de `employmentType` chez Ashby et Himalayas, et de `jobType`
+  chez Jobicy. Partout ailleurs, il faudra une classification côté moteur.
+- **Salaire structuré : minoritaire.** Absent chez Greenhouse, Lever, Working
+  Nomads, WWR — c'est-à-dire précisément les sources de plus gros volume.
+- **Télétravail structuré : rarissime.** Seul Ashby le type réellement
+  (`isRemote` + `workplaceType`).
+
+⚠️ **Le piège à ne pas se tendre à soi-même :** Jobicy, Himalayas, Working Nomads
+et Remote OK sont des sources « travailler **à distance depuis** une région », pas
+« emplois **dans** cette région ». Elles ne comptent jamais comme couverture de
+l'Afrique, du MENA ou de l'Amérique latine — le biais US mesuré chez Himalayas le
+confirme.
 
 ---
 

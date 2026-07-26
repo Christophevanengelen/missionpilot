@@ -85,3 +85,12 @@ create policy "clarifications owner delete" on public.profile_clarifications
 
 grant select, insert, update, delete on public.profile_clarifications
   to authenticated;
+
+-- Stamping note (2026-07-26): this migration was first committed as
+-- 20260726010000, a timestamp taken from LOCAL time (CEST) and therefore two
+-- hours ahead of UTC — twelve minutes in the future at the moment the deploy
+-- job ran. `supabase db push` reported "Remote database is up to date" and
+-- applied nothing, silently, while the application had already shipped code
+-- that reads this table. Re-stamped in the past so the push is unambiguous.
+-- Migration filenames are UTC. A future-dated one is not a harmless quirk: it
+-- is a migration that never runs and a deploy that reports success.
