@@ -43,12 +43,12 @@ export default async function DashboardLayout({
             className="text-muted-foreground hidden text-sm sm:inline"
             data-testid="session-email"
           >
-            {session.email ?? "Signed in"}
+            {session.email ?? "Connecté"}
           </span>
           <ThemeToggle />
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">
-              Sign out
+              Se déconnecter
             </Button>
           </form>
         </div>

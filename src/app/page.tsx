@@ -1,27 +1,19 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
+import { getSessionClaims } from "@/lib/auth/dal";
 
-export default function LandingPage() {
-  return (
-    <main
-      id="main"
-      tabIndex={-1}
-      className="flex flex-1 items-center justify-center p-6"
-    >
-      <section className="flex max-w-xl flex-col items-start gap-4">
-        <h1 className="text-3xl font-semibold">MissionPilot</h1>
-        <p className="text-muted-foreground">
-          AI-assisted opportunity intelligence for senior freelancers: discover,
-          evaluate and prepare high-value remote work — with every decision
-          under human supervision.
-        </p>
-        <p className="text-muted-foreground text-sm">
-          Private beta. Accounts are provisioned by the administrator.
-        </p>
-        <Button asChild>
-          <Link href="/login">Sign in</Link>
-        </Button>
-      </section>
-    </main>
-  );
+/**
+ * The root has no page of its own.
+ *
+ * It used to hold a SECOND public landing page, in English, describing a
+ * product that no longer exists — "opportunity intelligence for senior
+ * freelancers: discover, evaluate and prepare". Two public faces saying
+ * different things is worse than one saying nothing: whichever a visitor lands
+ * on, the other one is lying about the same product.
+ *
+ * The promise now lives on the sign-in screen, which is where anyone without
+ * an account ends up anyway.
+ */
+export default async function RootPage() {
+  const session = await getSessionClaims();
+  redirect(session ? "/dashboard" : "/login");
 }

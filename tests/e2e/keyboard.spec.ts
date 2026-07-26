@@ -75,7 +75,7 @@ test.describe("keyboard-only interaction", () => {
 
     const submit = await tabUntil(
       page,
-      (i) => i.tag === "button" && i.text === "Sign in",
+      (i) => i.tag === "button" && i.text === "Entrer",
     );
     expect(submit.hasVisibleFocusStyle).toBe(true);
     await page.keyboard.press("Enter");
@@ -89,13 +89,13 @@ test.describe("keyboard-only interaction", () => {
 
     await page.goto("/login");
     await page.getByLabel("Email").fill(DEV_EMAIL);
-    await page.getByLabel("Password").fill(DEV_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
+    await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
 
     const signOut = await tabUntil(
       page,
-      (i) => i.tag === "button" && i.text === "Sign out",
+      (i) => i.tag === "button" && i.text === "Se déconnecter",
     );
     expect(signOut.hasVisibleFocusStyle).toBe(true);
 
@@ -115,8 +115,8 @@ test.describe("keyboard-only interaction", () => {
 
     await page.goto("/login");
     await page.getByLabel("Email").fill(DEV_EMAIL);
-    await page.getByLabel("Password").fill(DEV_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
+    await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/diagnostics");
     // Wait past the Suspense loading state before traversing the tab order.

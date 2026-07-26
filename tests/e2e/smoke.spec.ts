@@ -45,8 +45,8 @@ test.describe("phase 0 smoke journey", () => {
 
     // Sign in.
     await page.getByLabel("Email").fill(DEV_EMAIL);
-    await page.getByLabel("Password").fill(DEV_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
+    await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     // Two-faced dashboard (hero vs status); the title id is stable in both.
     await expect(page.locator("#dashboard-title")).toBeVisible();
@@ -66,7 +66,7 @@ test.describe("phase 0 smoke journey", () => {
     await expectNoSeriousAxeViolations(page, "diagnostics");
 
     // Sign out invalidates protected access.
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Se déconnecter" }).click();
     await expect(page).toHaveURL(/\/login$/);
     await page.goto("/diagnostics");
     await expect(page).toHaveURL(/\/login$/);

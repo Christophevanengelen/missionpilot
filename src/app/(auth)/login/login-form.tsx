@@ -34,7 +34,7 @@ export function LoginForm() {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Mot de passe</Label>
         <Input
           id="password"
           name="password"
@@ -54,7 +54,7 @@ export function LoginForm() {
         </p>
       ) : null}
       <Button ref={buttonRef} type="submit" disabled={isPending}>
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? "Connexion…" : "Entrer"}
       </Button>
     </form>
   );

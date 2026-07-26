@@ -42,8 +42,8 @@ test.afterAll(async () => {
 async function signInAndOpen(page: Page) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByLabel("Mot de passe").fill(password);
+  await page.getByRole("button", { name: "Entrer" }).click();
   await page.waitForURL(/\/dashboard/);
   await page.goto("/profile");
   await expect(page).toHaveURL(/\/profile$/);
@@ -346,8 +346,8 @@ test.describe.serial("Entretien de profil guidé", () => {
     try {
       await page.goto("/login");
       await page.getByLabel("Email").fill(email2);
-      await page.getByLabel("Password").fill(password2);
-      await page.getByRole("button", { name: "Sign in" }).click();
+      await page.getByLabel("Mot de passe").fill(password2);
+      await page.getByRole("button", { name: "Entrer" }).click();
       await page.waitForURL(/\/dashboard/);
       await page.goto("/profile");
 

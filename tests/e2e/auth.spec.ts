@@ -13,7 +13,7 @@ test.describe("authentication boundary", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login$/);
     await expect(
-      page.getByRole("heading", { name: "Sign in to MissionPilot" }),
+      page.getByRole("heading", { name: "On vous fait monter d'une marche" }),
     ).toBeVisible();
   });
 
@@ -29,8 +29,8 @@ test.describe("authentication boundary", () => {
   }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(DEV_EMAIL);
-    await page.getByLabel("Password").fill("definitely-wrong-password");
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Mot de passe").fill("definitely-wrong-password");
+    await page.getByRole("button", { name: "Entrer" }).click();
     // #login-error, not getByRole("alert"): Next's route announcer is also
     // role=alert and trips Playwright's strict mode.
     await expect(page.locator("#login-error")).toHaveText(
@@ -46,8 +46,8 @@ test.describe("authentication boundary", () => {
 
     await page.goto("/login");
     await page.getByLabel("Email").fill(DEV_EMAIL);
-    await page.getByLabel("Password").fill(DEV_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
+    await page.getByRole("button", { name: "Entrer" }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
     // The dashboard has two faces (hero vs status) depending on profile state;
@@ -55,7 +55,7 @@ test.describe("authentication boundary", () => {
     await expect(page.locator("#dashboard-title")).toBeVisible();
     await expect(page.getByTestId("session-email")).toHaveText(DEV_EMAIL);
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Se déconnecter" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
     // Signed-out session must no longer reach protected content.
@@ -70,8 +70,8 @@ test.describe("authentication boundary", () => {
 
     await page.goto("/login");
     await page.getByLabel("Email").fill(DEV_EMAIL);
-    await page.getByLabel("Password").fill(DEV_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
+    await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.goto("/login");
