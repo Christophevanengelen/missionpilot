@@ -5,28 +5,89 @@ import {
   getOwnProfile,
   listVersions,
   loadLivingProfile,
+  loadPreferences,
 } from "@/lib/profile/logic";
+import { assessReadiness } from "@/lib/profile/readiness";
+import { progression } from "@/lib/profile/progression";
+import { summariseUnderstanding } from "@/lib/profile/understood";
+import { pendingQuestions } from "@/lib/profile/next-question";
+import { loadSettledKeys } from "@/lib/profile/clarifications";
+import { linkedinAdvice } from "@/lib/profile/linkedin-advice";
 import type { ClaimKind, ClaimState } from "@/domain/profile";
 import { CvImport } from "./cv-import";
+import { ProgressPanel } from "./progress-panel";
 import { ProfileInterview } from "./profile-interview";
 
-export const metadata: Metadata = { title: "Profil & Preuves" };
+export const metadata: Metadata = { title: "Mon profil" };
 
 /**
- * The guided professional interview — the first real business vertical.
- * Server side: DAL boundary + living-state read; every projection and
- * decision recomputes from this state (the thread is a projection, never a
- * persisted chat log).
+ * The profile, as a place someone gets STRONGER — not a settings screen.
+ *
+ * The order is the argument: what you have already unlocked, what I still do
+ * not know, and how to be a better candidate. The guided interview stays
+ * underneath for anyone who wants to go deeper, but nobody has to pass through
+ * a form to learn where they stand.
  */
 export default async function ProfilePage() {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const living = await loadLivingProfile(client, profile.id);
-  const versions = await listVersions(client, profile.id);
+  const [living, versions, preferences, settledKeys] = await Promise.all([
+    loadLivingProfile(client, profile.id),
+    listVersions(client, profile.id),
+    loadPreferences(client, profile.id),
+    loadSettledKeys(client, profile.id),
+  ]);
+
+  const confirmed = living.claims
+    .filter((c) => c.state === "confirmed")
+    .map((c) => ({ kind: c.kind, value: c.value }));
+  const testimonialCount = living.evidence.filter(
+    (e) => e.type === "testimonial",
+  ).length;
+  const prefs = {
+    targetRoleFamilies: preferences.targetRoleFamilies,
+    allowedWorkRegions: preferences.allowedWorkRegions,
+    preferredEngagementTypes: preferences.preferredEngagementTypes,
+    remotePolicy: preferences.remotePolicy ?? null,
+  };
+  const readiness = assessReadiness({
+    confirmedClaims: confirmed,
+    preferences: prefs,
+    testimonialCount,
+    openTrajectoryQuestions: confirmed.length === 0 ? 3 : 0,
+  });
+  const understood = summariseUnderstanding(confirmed);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <ProgressPanel
+        progress={progression(readiness, {
+          hasRole: understood.lines.some(
+            (l) => l.kind === "role" && l.value !== null,
+          ),
+          hasSeniority: understood.lines.some(
+            (l) => l.kind === "seniority" && l.value !== null,
+          ),
+          hasYears: understood.lines.some(
+            (l) => l.kind === "years_experience" && l.value !== null,
+          ),
+          achievementCount: confirmed.filter((c) => c.kind === "achievement")
+            .length,
+        })}
+        questions={pendingQuestions({
+          readiness,
+          understood,
+          preferences: prefs,
+          settledKeys,
+        })}
+        advice={linkedinAdvice({
+          understood,
+          testimonialCount,
+          achievementCount: confirmed.filter((c) => c.kind === "achievement")
+            .length,
+        })}
+      />
       <CvImport />
       <ProfileInterview
         latestVersionNumber={versions[0]?.version_number ?? null}
