@@ -11,14 +11,39 @@ ce projet ne renvoie pas un champ de plus, et coûte une corvée récurrente.
 
 ## Ce qui a été vérifié
 
-| Voie                                        | Accès réel                                                                            | Ce qu'elle donne                                                                         |
-| ------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **Member Data Portability API (Member)**    | **Self-service**, sans revue humaine. Réservée aux membres localisés **EEE / Suisse** | Exactement la matière du `.zip` : l'export CSV resérialisé en JSON. **Aucun champ neuf** |
-| **Member Data Portability API (3rd Party)** | **Fermée** — exige une page entreprise vérifiée, raison sociale, adresse enregistrée  | La même chose, mais pour d'autres membres, avec un vrai OAuth                            |
-| **Sign In with LinkedIn (OpenID Connect)**  | Ouverte                                                                               | Une identité : nom, photo, e-mail. **Ni postes, ni compétences, ni recommandations**     |
-| **Member Changelog API**                    | via (Member)                                                                          | Flux d'activité sur **28 jours glissants**, messages privés inclus                       |
-| **`r_fullprofile`, `r_liteprofile`, v1**    | **Fermées / dépréciées** (v1 le 2019-05-01, `r_liteprofile` le 2023-08-01)            | —                                                                                        |
-| **Talent Solutions, Marketing Platform**    | **Partenaires approuvés** uniquement                                                  | —                                                                                        |
+| Voie                                                           | Accès réel                                                                                                  | Ce qu'elle donne                                                                         |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Member Data Portability API (Member)**                       | **Self-service**, sans revue humaine. Réservée aux membres localisés **EEE / Suisse**                       | Exactement la matière du `.zip` : l'export CSV resérialisé en JSON. **Aucun champ neuf** |
+| **Member Data Portability API (3rd Party)**                    | **Fermée** — exige une page entreprise vérifiée, raison sociale, adresse enregistrée                        | La même chose, mais pour d'autres membres, avec un vrai OAuth                            |
+| **Sign In with LinkedIn (OpenID Connect)**                     | Ouverte                                                                                                     | Une identité : nom, photo, e-mail. **Ni postes, ni compétences, ni recommandations**     |
+| **Member Changelog API**                                       | via (Member)                                                                                                | Flux d'activité sur **28 jours glissants**, messages privés inclus                       |
+| **`r_fullprofile`** — postes, compétences, formations, projets | **Fermé.** Verbatim : « Access to `r_fullprofile` is now closed. » **Aucune procédure de demande n'existe** | Exactement la matière recherchée — et inatteignable                                      |
+| **`r_liteprofile`, API v1**                                    | Dépréciées (v1 le 2019-05-01, `r_liteprofile` le 2023-08-01)                                                | —                                                                                        |
+| **`w_member_social`**                                          | Ouverte, self-service                                                                                       | **Aucune donnée en lecture** : c'est une permission d'ÉCRITURE (publier, commenter)      |
+| **Talent Solutions, Marketing Platform**                       | **Partenaires approuvés** uniquement                                                                        | —                                                                                        |
+
+## Le plafond est documenté, il n'y a rien à chercher de plus
+
+Le _discovery document_ OIDC borne officiellement le programme :
+`scopes_supported = ["openid", "profile", "email"]`. Il n'existe pas de scope
+caché qu'on aurait manqué — le plafond est atteint dès le premier appel.
+
+Et `r_fullprofile`, le seul scope qui exposerait vraiment un parcours, n'est pas
+« difficile à obtenir » : il est **fermé**, sans procédure de demande. Ce n'est
+pas une négociation à tenter, c'est une porte murée.
+
+## Deux pièges à connaître avant d'écrire une ligne de code
+
+**Ne jamais demander `w_member_social`.** Ce scope ne lit rien : il autorise à
+publier et commenter _au nom_ du membre. L'afficher sur l'écran de consentement,
+dans un produit qui promet de ne jamais agir à la place de quelqu'un, coûte de la
+confiance pour zéro donnée.
+
+**`headline` : deux pages primaires de LinkedIn se contredisent.** La page
+« Getting Access » annonce que le scope `profile` renvoie « name, headline, and
+photo », mais `headline` n'apparaît ni dans le schéma de réponse de
+`/v2/userinfo`, ni dans les `claims_supported` du discovery document. À traiter
+comme **indisponible** tant qu'un appel réel ne l'a pas prouvé.
 
 ## Pourquoi c'est non, en trois points
 
@@ -58,6 +83,37 @@ lisait pas. Il prenait quatre fichiers sur les dizaines exportées.
 
 Les consignes d'export affichées à l'utilisateur ont été corrigées en
 conséquence : sans elles, ces fichiers ne seraient jamais dans l'archive.
+
+## Le test qui tranche, en une heure
+
+Si tu veux clore la question par la preuve plutôt que par la lecture — et c'est
+légitime :
+
+1. **Vérifie d'abord ta localisation LinkedIn.** L'accès (Member) est déterminé
+   par le lieu déclaré sur ton profil. Hors EEE/Suisse, la piste est close
+   immédiatement et le test est inutile.
+2. Crée l'app **sur la page société imposée par LinkedIn** (« Member Data
+   Portability (Member) Default Company ») — surtout n'en crée pas une nouvelle.
+3. Accepte les CGU, génère un jeton via l'OAuth Token Generator du portail, et
+   appelle une fois la Snapshot API sur le domaine `POSITIONS`.
+
+Ce que ce test établit et qu'aucune lecture ne peut établir : le **contrat de
+champs réel**. La documentation ne type `snapshotData` que comme « JSON Key
+Value », sans aucune référence de champs par domaine. On ne peut donc pas
+concevoir un modèle contre ce schéma avant d'avoir appelé une fois.
+
+## Si tu veux quand même un bouton « Se connecter avec LinkedIn »
+
+C'est faisable et sans revue humaine, mais que pour le **confort de connexion** —
+aucune donnée de parcours. Ce qui dépend de toi : créer une Page LinkedIn
+« MissionPilot » et en être super admin (une app doit être rattachée à une Page),
+puis publier des CGU et une politique de confidentialité accessibles — les API
+Terms l'exigent explicitement, même avec un seul utilisateur.
+
+Côté implémentation : stocker `sub`, **jamais l'e-mail** (documenté comme
+optionnel, et `subject_types_supported = pairwise` signifie que le `sub` est
+propre à chaque application). Ne jamais présenter `email_verified` comme une
+identité vérifiée : LinkedIn l'interdit explicitement pour ce produit.
 
 ## À rouvrir si
 
