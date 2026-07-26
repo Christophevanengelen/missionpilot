@@ -64,6 +64,13 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    // Remote OK — public, key-less feed. Opt-in like the others, and here for
+    // one specific obligation: their terms make a FOLLOWED link back and a
+    // named mention a condition of continued access.
+    REMOTEOK_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {

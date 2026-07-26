@@ -40,6 +40,7 @@ const SOURCE_DOMAINS: Record<string, readonly string[]> = {
   Remotive: ["remotive.com"],
   Himalayas: ["himalayas.app"],
   Jobicy: ["jobicy.com"],
+  "Remote OK": ["remoteok.com"],
 };
 
 function hostMatches(host: string, domain: string): boolean {
