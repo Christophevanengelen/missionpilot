@@ -6,6 +6,7 @@ import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
 import { himalayasConfigured, searchHimalayas } from "./himalayas";
 import { jobicyConfigured, searchJobicy } from "./jobicy";
 import { recruiteeConfigured, searchRecruitee } from "./recruitee";
+import { remoteOkConfigured, searchRemoteOk } from "./remoteok";
 import { remotiveConfigured, searchRemotive } from "./remotive";
 import type { DiscoverySource } from "./plan";
 
@@ -44,9 +45,17 @@ export function configuredSources(
     // per country, like Adzuna — its API accepts exactly one `country` per
     // request, and repeating the parameter returns data for neither.
     //
-    // With no country chosen it searches worldwide, which is the honest
-    // default: a remote role is not disqualified by where its employer sits.
-    const targets = countries.length > 0 ? countries : [undefined];
+    // The worldwide search ALWAYS runs, and the chosen countries are added to
+    // it — never substituted for it.
+    //
+    // Correcting a drift of mine: pointing the source at a country narrows it,
+    // and narrowing is not what this product is for. The goal is the largest
+    // possible set of real opportunities, and then the best match inside it —
+    // an offer withheld can never be concluded, whereas an offer shown and
+    // ignored costs three seconds. Targeting a country ADDS the roles that
+    // only the country query surfaces (755 against 566 on one measured
+    // request); it must not remove the rest.
+    const targets: (string | undefined)[] = [undefined, ...countries];
     for (const country of targets) {
       sources.push({
         name: "Himalayas",
@@ -56,6 +65,11 @@ export function configuredSources(
   }
   if (jobicyConfigured()) {
     sources.push({ name: "Jobicy", search: searchJobicy });
+  }
+  if (remoteOkConfigured()) {
+    // No keyword parameter exists: the feed is the whole current board, and
+    // the engine filters it where the person can see and undo the filtering.
+    sources.push({ name: "Remote OK", search: () => searchRemoteOk() });
   }
   if (recruiteeConfigured()) {
     // Recruitee exposes no keyword filter, so the search callback ignores the
