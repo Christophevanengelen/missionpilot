@@ -5,6 +5,7 @@ import { adzunaConfigured, searchAdzuna } from "./adzuna";
 import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
 import { himalayasConfigured, searchHimalayas } from "./himalayas";
 import { jobicyConfigured, searchJobicy } from "./jobicy";
+import { recruiteeConfigured, searchRecruitee } from "./recruitee";
 import { remotiveConfigured, searchRemotive } from "./remotive";
 import type { DiscoverySource } from "./plan";
 
@@ -42,6 +43,12 @@ export function configuredSources(
   }
   if (jobicyConfigured()) {
     sources.push({ name: "Jobicy", search: searchJobicy });
+  }
+  if (recruiteeConfigured()) {
+    // Recruitee exposes no keyword filter, so the search callback ignores the
+    // plan and returns the tenants' current openings; the engine's own gate
+    // does the filtering, where it can be explained to the user.
+    sources.push({ name: "Recruitee", search: () => searchRecruitee() });
   }
   return sources;
 }

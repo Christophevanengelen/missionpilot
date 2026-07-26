@@ -95,6 +95,13 @@ test("@capture le parcours complet, en images", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Ce que le marché a pour vous" }),
   ).toBeVisible();
+  // Wait for the Suspense boundary to actually resolve: screenshotting while
+  // "Nous interrogeons les plateformes…" is still on screen documents the
+  // spinner, not the product.
+  await expect(page.getByText("Nous interrogeons les plateformes")).toHaveCount(
+    0,
+    { timeout: 30_000 },
+  );
   await page.waitForLoadState("networkidle");
   await shot(page, "3-le-marche-et-la-question-suivante");
 

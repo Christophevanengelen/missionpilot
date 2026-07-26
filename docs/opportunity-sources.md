@@ -31,13 +31,14 @@ y reste parce qu'on la revérifie.
 
 ## Intégrées aujourd'hui
 
-| Source             | Accès                                      | Clé ?   | Vérifié    | Contrainte                                                                                                                                      |
-| ------------------ | ------------------------------------------ | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Adzuna**         | API officielle, index partitionné par pays | oui     | 2026-07-25 | Palier gratuit **non commercial** ; badge « Jobs by Adzuna » 116×23 px obligatoire ; champ `salary_is_predicted` à rejeter (estimation machine) |
-| **France Travail** | OAuth2 « Offres d'emploi v2 »              | oui     | 2026-07-25 | **En panne** : `invalid_client`. Identifiants à régénérer côté propriétaire                                                                     |
-| **Himalayas**      | `himalayas.app/jobs/api/search`            | **non** | 2026-07-25 | Lien retour visible obligatoire ; pas de resoumission vers des job boards tiers ; données rafraîchies 24 h                                      |
-| **Jobicy**         | `jobicy.com/api/v2/remote-jobs`            | **non** | 2026-07-25 | Crédit avec lien DIRECT ; boutons de candidature vers l'URL d'origine ; ≤ 1 requête/heure                                                       |
-| **Remotive**       | `remotive.com/api/remote-jobs`             | **non** | 2026-07-25 | Attribution + lien retour ; pas de republication vers des tiers                                                                                 |
+| Source             | Accès                                      | Clé ?   | Vérifié    | Contrainte                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------ | ------------------------------------------ | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Adzuna**         | API officielle, index partitionné par pays | oui     | 2026-07-25 | Palier gratuit **non commercial** ; badge « Jobs by Adzuna » 116×23 px obligatoire ; champ `salary_is_predicted` à rejeter (estimation machine)                                                                                                                                                                                                                                                                      |
+| **France Travail** | OAuth2 « Offres d'emploi v2 »              | oui     | 2026-07-25 | **En panne** : `invalid_client`. Identifiants à régénérer côté propriétaire                                                                                                                                                                                                                                                                                                                                          |
+| **Himalayas**      | `himalayas.app/jobs/api/search`            | **non** | 2026-07-25 | Lien retour visible obligatoire ; pas de resoumission vers des job boards tiers ; données rafraîchies 24 h                                                                                                                                                                                                                                                                                                           |
+| **Jobicy**         | `jobicy.com/api/v2/remote-jobs`            | **non** | 2026-07-25 | Crédit avec lien DIRECT ; boutons de candidature vers l'URL d'origine ; ≤ 1 requête/heure                                                                                                                                                                                                                                                                                                                            |
+| **Recruitee**      | `{locataire}.recruitee.com/api/offers/`    | **non** | 2026-07-26 | **La première source du marché LOCAL européen**, et non du remote mondial. Aucune clause d'attribution — ce qui n'autorise pas à effacer l'employeur : `company_name` et le lien sortant sont toujours rendus. Un seul chemin appelé, jamais `/v/` (le seul interdit par leur robots.txt), jamais l'URL de candidature. `mailbox_email` jeté à l'ingestion. Locataires curés hors ligne, `robots.txt` lu en premier. |
+| **Remotive**       | `remotive.com/api/remote-jobs`             | **non** | 2026-07-25 | Attribution + lien retour ; pas de republication vers des tiers                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Vérifiées, pas encore branchées
 
@@ -143,6 +144,39 @@ définitive**, y compris sous pression.
 | **Portage salarial** (ITG, AD'Missions, OpenWork, Régie Portage)        | Ces sociétés n'ont pas de bourse aux missions — ce sont des gestionnaires de paie                  | 2026-07-25 |
 
 ---
+
+## Recruitee — la liste de locataires, et pourquoi elle est versionnée
+
+Recruitee ne publie **aucun annuaire de ses clients** : le sous-domaine doit être
+connu à l'avance, et c'est la vraie contrainte d'intégration, pas la pagination.
+Environ 2 500 slugs sont atteignables hors ligne en unissant l'index d'URL de
+Common Crawl et une liste communautaire sous licence MIT — mais personne ne peut
+attendre 2 500 appels HTTP au chargement d'une page.
+
+La liste est donc **curée, bornée et versionnée avec le code**
+(`src/lib/discovery/recruitee-tenants.ts`), produite par
+`scripts/curate-recruitee-tenants.ts`, qui vérifie dans cet ordre :
+
+1. **`robots.txt` d'abord.** Il est généré par locataire : c'est le seul canal
+   lisible par machine dont dispose un employeur pour dire non. `Disallow: /`
+   vaut opt-out, et le contrôle passe **avant** l'appel aux offres — un refus se
+   respecte, il ne se constate pas après coup.
+2. **Vivacité.** Un sous-domaine mort coûte un timeout à chaque visiteur.
+3. **Localisation réelle des offres.** Un locataire n'est gardé que s'il publie
+   aujourd'hui en Europe : c'est toute la raison d'être de cette source.
+
+**Passe du 2026-07-26 : 39 retenus sur 160 candidats, et 3 refus explicites**
+(`1x`, `aaff`, `bakkergoedhartbroodspecialiteiten`), consignés dans
+`EXCLUDED_TENANTS` plutôt que simplement omis — un slug qui disparaît en silence
+est un slug que la prochaine passe réintroduit.
+
+⚠️ **Deux conséquences assumées.** Cette liste devient le **second actif conservé**
+du produit, après le profil. C'est une liste d'**entreprises**, pas d'offres :
+aucune annonce n'est stockée, l'interrogation reste en direct, les liens restent
+sortants — l'invariant tient, mais l'exception est réelle et se dit. Et la liste
+communautaire s'appelle « ats-scrapers » : réutiliser son CSV sous MIT n'est pas
+du scraping de notre part, mais la provenance n'est pas propre, et cela vaut
+mieux écrit que tu.
 
 ## Crédits de source — ce qui est fait, ce qui ne l'est pas
 
