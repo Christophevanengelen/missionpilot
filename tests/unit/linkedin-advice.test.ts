@@ -65,6 +65,20 @@ describe("linkedinAdvice", () => {
   });
 });
 
+const NO_ALTITUDE = {
+  hasRole: false,
+  hasSeniority: false,
+  hasYears: false,
+  achievementCount: 0,
+};
+
+const FULL_ALTITUDE = {
+  hasRole: true,
+  hasSeniority: true,
+  hasYears: true,
+  achievementCount: 2,
+};
+
 describe("progression", () => {
   const emptyReadiness = assessReadiness({
     confirmedClaims: [],
@@ -81,18 +95,18 @@ describe("progression", () => {
   it("never starts the bar at zero", () => {
     // An effort shown as untouched is abandoned far more often than one
     // already visibly begun — and reading a CV genuinely is progress.
-    expect(progression(emptyReadiness).fill).toBeGreaterThan(0);
+    expect(progression(emptyReadiness, NO_ALTITUDE).fill).toBeGreaterThan(0);
   });
 
   it("describes each tier as a capability, never as a percentage", () => {
-    for (const tier of progression(emptyReadiness).tiers) {
+    for (const tier of progression(emptyReadiness, NO_ALTITUDE).tiers) {
       expect(tier.unlocks).not.toMatch(/\d+\s*%/);
       expect(tier.unlocks.length).toBeGreaterThan(20);
     }
   });
 
   it("reports nothing unlocked on an empty profile, and names the next rung", () => {
-    const progress = progression(emptyReadiness);
+    const progress = progression(emptyReadiness, NO_ALTITUDE);
     expect(progress.tiers.every((t) => !t.reached)).toBe(true);
     expect(progress.next?.key).toBe("search");
   });
@@ -117,8 +131,37 @@ describe("progression", () => {
       testimonialCount: 0,
       openTrajectoryQuestions: 0,
     });
-    const progress = progression(readiness);
+    const progress = progression(readiness, NO_ALTITUDE);
     expect(readiness.canSearch).toBe(true);
     expect(progress.tiers.find((t) => t.key === "search")?.reached).toBe(true);
+  });
+
+  it("refuses the step-up tier on a profile with no altitude in it", () => {
+    // THE BUG THIS PINS. The tier used to key off the readiness `trajectory`
+    // ratio, which the dashboard marks complete as soon as ANY claim exists —
+    // so a profile holding six skills and nothing else announced that the step
+    // up was unlocked. A tier must be checkable against something real.
+    const readiness = assessReadiness({
+      confirmedClaims: Array.from({ length: 6 }, (_, i) => ({
+        kind: "skill",
+        value: { name: `skill-${i}` },
+      })),
+      preferences: {
+        targetRoleFamilies: [],
+        allowedWorkRegions: [],
+        preferredEngagementTypes: [],
+        remotePolicy: null,
+      },
+      testimonialCount: 0,
+      // What the dashboard actually passes once a single claim exists.
+      openTrajectoryQuestions: 0,
+    });
+    const progress = progression(readiness, NO_ALTITUDE);
+    expect(progress.tiers.find((t) => t.key === "stepUp")?.reached).toBe(false);
+  });
+
+  it("grants the step-up tier once the record carries altitude", () => {
+    const progress = progression(emptyReadiness, FULL_ALTITUDE);
+    expect(progress.tiers.find((t) => t.key === "stepUp")?.reached).toBe(true);
   });
 });

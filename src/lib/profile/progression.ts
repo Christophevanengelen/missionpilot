@@ -48,10 +48,38 @@ export type Progression = {
  *  CV genuinely is progress the person made. */
 const FLOOR = 12;
 
-export function progression(readiness: Readiness): Progression {
-  const trajectory =
-    readiness.dimensions.find((d) => d.key === "trajectory")?.ratio ?? 0;
+export type AltitudeEvidence = {
+  hasRole: boolean;
+  hasSeniority: boolean;
+  hasYears: boolean;
+  achievementCount: number;
+};
 
+/**
+ * Whether the record contains enough ALTITUDE for a career to be read as a
+ * curve — a title, a level, a span of years, and at least one thing actually
+ * accomplished.
+ *
+ * This replaces a genuine bug: the tier used to key off the readiness
+ * `trajectory` ratio, which the dashboard sets to "complete" as soon as ANY
+ * claim exists. A profile holding six skills and nothing else therefore
+ * announced that the step up was unlocked — the decorative milestone this
+ * module exists to refuse, shipped by the module itself. A tier must be
+ * checkable against something real, or it is a promise we cannot keep.
+ */
+export function hasAltitudeEvidence(evidence: AltitudeEvidence): boolean {
+  return (
+    evidence.hasRole &&
+    evidence.hasSeniority &&
+    evidence.hasYears &&
+    evidence.achievementCount >= 1
+  );
+}
+
+export function progression(
+  readiness: Readiness,
+  evidence: AltitudeEvidence,
+): Progression {
   const tiers: Tier[] = [
     {
       key: "search",
@@ -62,9 +90,9 @@ export function progression(readiness: Readiness): Progression {
       key: "stepUp",
       unlocks:
         "je peux viser la marche d'après — les postes d'un cran au-dessus, avec les preuves de votre parcours",
-      // The staircase needs the career read as a CURVE, which needs scope. A
-      // score alone never earns it.
-      reached: trajectory >= 1,
+      // The staircase needs the career read as a CURVE, which needs altitude
+      // in the record. A score alone never earns it.
+      reached: hasAltitudeEvidence(evidence),
     },
     {
       key: "digest",

@@ -62,7 +62,19 @@ export default async function ProfilePage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <ProgressPanel
-        progress={progression(readiness)}
+        progress={progression(readiness, {
+          hasRole: understood.lines.some(
+            (l) => l.kind === "role" && l.value !== null,
+          ),
+          hasSeniority: understood.lines.some(
+            (l) => l.kind === "seniority" && l.value !== null,
+          ),
+          hasYears: understood.lines.some(
+            (l) => l.kind === "years_experience" && l.value !== null,
+          ),
+          achievementCount: confirmed.filter((c) => c.kind === "achievement")
+            .length,
+        })}
         questions={pendingQuestions({
           readiness,
           understood,
