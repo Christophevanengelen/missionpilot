@@ -46,7 +46,25 @@ async function signInAndOpen(page: Page) {
   await page.getByRole("button", { name: "Entrer" }).click();
   await page.waitForURL(/\/dashboard/);
   await page.goto("/profile");
+  await openInterview(page);
   await expect(page).toHaveURL(/\/profile$/);
+  await openInterview(page);
+}
+
+/**
+ * The detailed interview is folded away by default — it used to compete with
+ * the one-question flow on the same screen. Every test of it opens the
+ * disclosure first, which is also the honest reproduction of what a user does.
+ */
+async function openInterview(page: Page) {
+  const disclosure = page.getByText("Reprendre l'entretien détaillé");
+  if ((await disclosure.count()) > 0) {
+    const open = await page
+      .locator("details")
+      .first()
+      .evaluate((d) => (d as HTMLDetailsElement).open);
+    if (!open) await disclosure.click();
+  }
 }
 
 async function answer(page: Page, text: string) {
@@ -79,6 +97,7 @@ test.describe.serial("Entretien de profil guidé", () => {
 
   test("anonymous visitors are sent to login", async ({ page }) => {
     await page.goto("/profile");
+    await openInterview(page);
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -292,6 +311,9 @@ test.describe.serial("Entretien de profil guidé", () => {
         .allTextContents(),
     };
     await page.reload();
+    // A reload closes the disclosure — that is the browser's own behaviour and
+    // it is fine; what must survive is the interview STATE underneath it.
+    await openInterview(page);
     await expect(page.getByText("Reprenons.")).toBeVisible();
     await expect(
       page.getByText(/Socle du profil : \d éléments? sur 6/).first(),
@@ -350,6 +372,7 @@ test.describe.serial("Entretien de profil guidé", () => {
       await page.getByRole("button", { name: "Entrer" }).click();
       await page.waitForURL(/\/dashboard/);
       await page.goto("/profile");
+      await openInterview(page);
 
       await answer(page, "Rôle que je préfère taire");
       await page.getByRole("button", { name: "Ignorer" }).click();
@@ -389,12 +412,24 @@ test.describe.serial("Entretien de profil guidé", () => {
     await signInAndOpen(page);
     await expectNoSeriousAxeViolations(page, "profile light");
 
-    // Keyboard: the panel toggle and composer are reachable and operable.
+    // Keyboard: tabbing lands on a real, operable control.
+    //
+    // This used to assert that the focused element had non-empty text, which
+    // only ever held by accident — the first tab stop happened to be a link.
+    // An input is a perfectly good tab stop and has no text at all, so the
+    // assertion now checks what the test actually means.
     await page.keyboard.press("Tab");
-    const active = await page.evaluate(
-      () => document.activeElement?.textContent ?? "",
+    const active = await page.evaluate(() => {
+      const el = document.activeElement;
+      return {
+        tag: el?.tagName.toLowerCase() ?? "",
+        isBody: el === document.body,
+      };
+    });
+    expect(active.isBody).toBe(false);
+    expect(["a", "button", "input", "textarea", "select", "summary"]).toContain(
+      active.tag,
     );
-    expect(active.length).toBeGreaterThan(0);
 
     await page.emulateMedia({ colorScheme: "dark" });
     await page.reload();
@@ -411,6 +446,7 @@ test.describe.serial("Entretien de profil guidé", () => {
     for (const width of [390, 414]) {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/profile");
+      await openInterview(page);
       await expect(page).toHaveURL(/\/profile$/);
       // Measure AFTER the layout settles (content painted + two frames):
       // under CPU throttling an early scrollWidth reads a mid-layout DOM.
