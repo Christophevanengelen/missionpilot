@@ -86,11 +86,16 @@ create policy "clarifications owner delete" on public.profile_clarifications
 grant select, insert, update, delete on public.profile_clarifications
   to authenticated;
 
--- Stamping note (2026-07-26): this migration was first committed as
--- 20260726010000, a timestamp taken from LOCAL time (CEST) and therefore two
--- hours ahead of UTC — twelve minutes in the future at the moment the deploy
--- job ran. `supabase db push` reported "Remote database is up to date" and
--- applied nothing, silently, while the application had already shipped code
--- that reads this table. Re-stamped in the past so the push is unambiguous.
--- Migration filenames are UTC. A future-dated one is not a harmless quirk: it
--- is a migration that never runs and a deploy that reports success.
+-- Stamping note (2026-07-26). This migration was briefly renamed to
+-- 20260725234500 on the theory that its timestamp — taken from local time,
+-- and so twelve minutes ahead of the deploy job's clock — had made
+-- `supabase db push` skip it. That diagnosis was WRONG: the migration had
+-- already been applied, and "Remote database is up to date" meant exactly
+-- what it said. The rename then broke the migration history, because the
+-- remote had recorded the original version. Name restored.
+--
+-- What the incident actually taught, and why the deploy workflow now prints
+-- `supabase migration list --linked`: the failure was not the timestamp, it
+-- was that the deploy log could not distinguish "already applied" from
+-- "nothing found to apply". Ambiguity in a deploy log gets paid for later, by
+-- someone reasoning confidently from too little.

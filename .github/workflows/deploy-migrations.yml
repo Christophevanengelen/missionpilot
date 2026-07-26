@@ -80,3 +80,23 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: pnpm exec supabase db push
+
+      # What is ACTUALLY in production, printed on every deploy.
+      #
+      # Added after a real incident (2026-07-26): `db push` reported "Remote
+      # database is up to date" and the log gave no way to tell whether that
+      # meant "already applied" or "found nothing to apply". A whole debugging
+      # detour — and a wrong fix, since the migration HAD landed — came out of
+      # that ambiguity. A deploy that cannot show what it deployed is a deploy
+      # you have to guess about, and guessing about production is how a
+      # migration silently misses.
+      #
+      # `migration list` prints Local and Remote side by side, so a version
+      # present on one side and missing on the other is visible immediately
+      # instead of being inferred from a sentence.
+      - name: Show the migration state of the hosted database
+        if: steps.guard.outputs.ready == 'true' && always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: pnpm exec supabase migration list --linked
