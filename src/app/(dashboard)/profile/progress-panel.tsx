@@ -134,6 +134,14 @@ export function ProgressPanel({
                     {item.draft}
                   </pre>
                 ) : null}
+                {item.follow !== null ? (
+                  <Link
+                    href={item.follow.href}
+                    className="mt-1 self-start text-sm underline underline-offset-2"
+                  >
+                    {item.follow.label}
+                  </Link>
+                ) : null}
               </li>
             ))}
           </ul>

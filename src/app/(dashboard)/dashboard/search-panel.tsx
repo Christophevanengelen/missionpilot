@@ -22,6 +22,7 @@ import {
 } from "@/lib/search/refine";
 import { annualEquivalent, payParts } from "@/lib/search/compensation";
 import { buildStaircase } from "@/lib/search/staircase";
+import { creditsFor } from "@/lib/discovery/credits";
 import type { MarketHit, MarketSearchResult } from "@/lib/search/types";
 import type { EngagementType, RemoteType } from "@/domain/opportunity";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
@@ -330,6 +331,38 @@ export function SearchPanel({
           {shown.length === 0 ? (
             <p className="text-muted-foreground text-sm">{copy.noneShown}</p>
           ) : null}
+
+          {/* Credits owed for the results ACTUALLY on screen. Several sources
+              make a named mention and a link back a condition of use, and a
+              per-card attribution does not satisfy a clause that asks for a
+              visible credit on the set. Computed from the displayed hits, not
+              from what is configured: crediting a source that returned nothing
+              would misstate where these offers came from. */}
+          {(() => {
+            const credits = creditsFor(
+              shown.flatMap((hit) => hit.sources.map((s) => s.name)),
+            );
+            if (credits.length === 0) return null;
+            return (
+              <p className="text-muted-foreground border-border border-t pt-3 text-xs">
+                {credits.map((credit, index) => (
+                  <span key={credit.source}>
+                    {index > 0 ? " · " : ""}
+                    {credit.prefix}
+                    <a
+                      href={credit.href}
+                      target="_blank"
+                      rel="noopener"
+                      className="underline underline-offset-2"
+                    >
+                      {credit.linkText}
+                    </a>
+                    {credit.suffix}
+                  </span>
+                ))}
+              </p>
+            );
+          })()}
         </>
       ) : null}
 

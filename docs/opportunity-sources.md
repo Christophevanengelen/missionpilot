@@ -144,6 +144,37 @@ définitive**, y compris sous pression.
 
 ---
 
+## Crédits de source — ce qui est fait, ce qui ne l'est pas
+
+Plusieurs sources font d'une mention nommée et d'un lien retour une **condition
+d'usage**, et une attribution par carte ne satisfait pas une clause qui exige un
+crédit visible sur l'ENSEMBLE des résultats.
+
+Depuis le 2026-07-26, un bloc de crédits est rendu sous les résultats, calculé
+**à partir des offres réellement affichées** — jamais à partir des sources
+configurées : créditer une source qui n'a rien renvoyé serait mentir sur la
+provenance de ce qui est à l'écran.
+
+| Source        | Clause                                                   | État                                  |
+| ------------- | -------------------------------------------------------- | ------------------------------------- |
+| **Adzuna**    | « Jobs by Adzuna », « Jobs » hyperlié vers adzuna.co.uk  | ⚠️ **Partiel** — voir ci-dessous      |
+| **Remote OK** | Lien **dofollow** + mention « Remote OK », logo interdit | Fait (mention + lien, aucun logo)     |
+| **Jobicy**    | Crédit + lien direct vers l'annonce d'origine            | Fait (crédit global + lien par offre) |
+| **Himalayas** | Lien retour visible                                      | Fait                                  |
+| **Remotive**  | Attribution + lien retour                                | Fait                                  |
+
+⚠️ **Deux points Adzuna restent ouverts, et ils appartiennent au propriétaire :**
+
+1. Leur clause spécifie un **badge IMAGE d'au moins 116×23 px**. Ce qui est
+   rendu aujourd'hui est la formulation et le lien exigés — strictement mieux
+   que le néant précédent, mais ce n'est pas le badge image.
+2. Le **palier gratuit est non commercial**, et leur clause interdit l'usage
+   « in aggregation … to deliver any ongoing work or research » au-delà de
+   14 jours sans accord écrit. Un méta-moteur tombe littéralement dedans.
+
+Tant que ces deux points ne sont pas tranchés, Adzuna ne devrait pas être mis en
+avant comme source de production.
+
 ## Les trous de couverture — sans complaisance
 
 Un registre qui ne liste que ses réussites ment par omission. Ce que le moteur

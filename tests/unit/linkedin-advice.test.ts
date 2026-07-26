@@ -46,6 +46,19 @@ describe("linkedinAdvice", () => {
     expect(ask?.draft).toContain("Bonjour");
   });
 
+  it("carries the advice through: there is somewhere to record the reply", () => {
+    // A hole we dug ourselves: telling someone to ask for a recommendation and
+    // giving them no way to record the one that comes back wastes the exact
+    // moment they were willing to act.
+    const advice = linkedinAdvice({
+      understood: summariseUnderstanding([]),
+      testimonialCount: 0,
+      achievementCount: 4,
+    });
+    const ask = advice.find((a) => a.key === "ask-recommendation");
+    expect(ask?.follow?.href).toBe("/profile/recommendations");
+  });
+
   it("stops asking for recommendations once some exist", () => {
     const advice = linkedinAdvice({
       understood: summariseUnderstanding([]),
