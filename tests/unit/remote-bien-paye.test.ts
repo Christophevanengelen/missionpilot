@@ -31,3 +31,24 @@ describe("what the engine is allowed to carry", () => {
     expect(COMP_PERIODS).toContain("hour");
   });
 });
+
+describe("the country vocabulary", () => {
+  it("can name the United States and Canada", async () => {
+    // Their absence was not a neutral default. The list held eight European
+    // countries and nothing else, so "remote work in the US" could not even be
+    // EXPRESSED — a vocabulary that cannot name a place quietly decides you
+    // will not go there.
+    const { SEARCH_COUNTRIES } = await import("@/domain/countries");
+    const codes = SEARCH_COUNTRIES.map((c) => c.code);
+    expect(codes).toContain("us");
+    expect(codes).toContain("ca");
+  });
+
+  it("puts them first, because that is what was asked for", async () => {
+    const { SEARCH_COUNTRIES } = await import("@/domain/countries");
+    expect(SEARCH_COUNTRIES.slice(0, 2).map((c) => c.code)).toEqual([
+      "us",
+      "ca",
+    ]);
+  });
+});
