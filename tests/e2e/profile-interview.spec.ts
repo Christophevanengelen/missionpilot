@@ -117,8 +117,8 @@ test.describe.serial("Entretien de profil guidé", () => {
     // Regression (refresh race): trigger simultaneous navigation prefetches
     // right before confirming — the action-borne revalidation must win; a
     // stale prefetched snapshot can never be restored.
-    await page.getByRole("link", { name: "Dashboard" }).hover();
-    await page.getByRole("link", { name: "Runs & Quality" }).hover();
+    await page.getByRole("link", { name: "Mes opportunités" }).hover();
+    await page.getByRole("link", { name: "Mon profil" }).hover();
     await page.getByRole("button", { name: "Confirmer" }).click();
 
     // 4. Years — invalid input is refused in plain French, input preserved.

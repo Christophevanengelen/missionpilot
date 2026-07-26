@@ -52,9 +52,14 @@ test.describe("phase 0 smoke journey", () => {
     await expect(page.locator("#dashboard-title")).toBeVisible();
     await expectNoSeriousAxeViolations(page, "dashboard");
 
-    // Diagnostics (Runs & Quality).
-    await page.getByRole("link", { name: "Runs & Quality" }).click();
-    await expect(page).toHaveURL(/\/diagnostics$/);
+    // The profile — the only other destination in the shell.
+    await page.getByRole("link", { name: "Mon profil" }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expectNoSeriousAxeViolations(page, "profile");
+
+    // Diagnostics is operations, not product: it is still served and still
+    // protected, but it has no seat in the navigation, so it is reached by URL.
+    await page.goto("/diagnostics");
     await expect(
       page.getByRole("heading", { name: "Runs & Quality" }),
     ).toBeVisible();

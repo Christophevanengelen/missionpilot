@@ -1,216 +1,211 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
-import { getOwnProfile, listOpportunities } from "@/lib/opportunity/logic";
+import { getOwnProfile } from "@/lib/opportunity/logic";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
-import { loadInsights } from "@/lib/matching/insight-logic";
-import { profileSignalsFromClaims } from "@/lib/matching/score";
-import { buildPositioning, type Positioning } from "@/lib/matching/positioning";
 import {
-  summarizeOnboarding,
-  type OnboardingSummary,
-} from "@/lib/profile/onboarding";
+  assessReadiness,
+  nextStep,
+  type ReadinessInput,
+} from "@/lib/profile/readiness";
+import { discoveryConfigured } from "@/lib/discovery/sources";
 import { t } from "@/lib/copy";
-import { Button } from "@/components/ui/button";
+import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
+import { summariseUnderstanding } from "@/lib/profile/understood";
+import { nextQuestion } from "@/lib/profile/next-question";
+import { loadSettledKeys } from "@/lib/profile/clarifications";
 import { CvImport } from "../profile/cv-import";
-import { DashboardHome } from "./dashboard-home";
+import { Mirror } from "./mirror";
+import { NextQuestion } from "./next-question";
+import { AutoResults } from "./auto-results";
 
-export const metadata: Metadata = { title: "Dashboard" };
-
-type DashboardCopy = ReturnType<typeof t>["dashboard"];
+export const metadata: Metadata = { title: "Mes opportunités" };
 
 /**
- * The dashboard's two faces (owner fluidity mandate). First login — nothing
- * confirmed yet — is a CV hero that leads straight into the "upload → results"
- * flow (the CvImport screens auto-chain discovery + AI insights). Once a role
- * or a skill is confirmed, it becomes a status view: profile at a glance, how
- * many offers were found and analyzed, and the way through to them.
+ * The product, in one screen.
  *
- * The choice is latched client-side (see DashboardHome) so the mid-flow
- * refresh the CV import fires never yanks a first-login user out of the hero.
+ * Three states, and the order between them is the whole design:
+ *
+ * - **Nothing at all** — one sentence, one drop zone, and no other affordance
+ *   on the page. Anything else here is a form standing between someone and the
+ *   reason they came.
+ * - **We read something, not yet enough** — the mirror: what we understood,
+ *   said back, gaps included, THEN one question. Never the drop zone again;
+ *   handing back an empty box to someone who just filled one is how a product
+ *   teaches that effort disappears into it.
+ * - **Enough to work with** — what the market has for them RIGHT NOW, searched
+ *   before they asked, laid out as a staircase with the step up first.
+ *
+ * This screen replaces a dashboard of metrics ("N offres découvertes",
+ * positioning charts) that measured the PRODUCT rather than serving the person.
+ * Nobody arrives here to read a statistic about themselves.
+ *
+ * The switch is the readiness score, not a flag: the search opens where it
+ * stops being noise, deliberately well before the profile is perfect, because
+ * the first result is what makes someone want to finish the rest.
  */
-export default async function DashboardPage() {
+export default async function HomePage() {
   await verifySession();
   const client = await createClient();
   const profile = await getOwnProfile(client);
-  const [living, opportunities, insights, preferences] = await Promise.all([
+  const [living, preferences, settledKeys] = await Promise.all([
     loadLivingProfile(client, profile.id),
-    listOpportunities(client, profile.id),
-    loadInsights(client, profile.id),
     loadPreferences(client, profile.id),
+    loadSettledKeys(client, profile.id),
   ]);
+  const copy = t().home;
 
-  const summary = summarizeOnboarding(
-    living.claims,
-    opportunities.length,
-    insights.size,
-    preferences.targetRoleFamilies,
-  );
-  const copy = t().dashboard;
-  // Market positioning from the user's OWN corpus (deterministic, null when
-  // there is not enough of it to say anything honestly).
-  const positioning = buildPositioning(
-    opportunities.map((o) => ({ skills: (o.skills as string[]) ?? null })),
-    profileSignalsFromClaims(living.claims).skills,
-  );
+  const confirmed = living.claims
+    .filter((c) => c.state === "confirmed")
+    .map((c) => ({ kind: c.kind, value: c.value }));
+  const readinessInput: ReadinessInput = {
+    confirmedClaims: confirmed,
+    preferences: {
+      targetRoleFamilies: preferences.targetRoleFamilies,
+      allowedWorkRegions: preferences.allowedWorkRegions,
+      preferredEngagementTypes: preferences.preferredEngagementTypes,
+      remotePolicy: preferences.remotePolicy ?? null,
+    },
+    testimonialCount: living.evidence.filter((e) => e.type === "testimonial")
+      .length,
+    // The career reading happens inside the search, so at this point we only
+    // know whether anything has been settled at all. An untouched profile
+    // counts its trajectory as fully open rather than pretending otherwise.
+    openTrajectoryQuestions: confirmed.length === 0 ? 3 : 0,
+  };
+  const readiness = assessReadiness(readinessInput);
+  const step = nextStep(readiness);
 
-  return (
-    <DashboardHome
-      initialHasProfile={summary.hasProfile}
-      hero={<Hero copy={copy} />}
-      status={
-        <StatusView summary={summary} copy={copy} positioning={positioning} />
-      }
-    />
-  );
-}
+  const countries = preferences.allowedWorkRegions
+    .map((r) => r.trim().toLowerCase())
+    .map(
+      (r) =>
+        SEARCH_COUNTRIES.find(
+          (c) => c.code === r || c.label.toLowerCase() === r,
+        )?.code,
+    )
+    .filter((c) => c !== undefined)
+    .slice(0, MAX_COUNTRIES_PER_SEARCH);
 
-function Hero({ copy }: { copy: DashboardCopy }) {
-  return (
-    <section
-      aria-labelledby="dashboard-title"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6"
-    >
-      <header className="flex flex-col gap-2">
-        <h1 id="dashboard-title" className="text-2xl font-semibold">
-          {copy.hero.title}
-        </h1>
-        <p className="text-muted-foreground text-sm">{copy.hero.lead}</p>
-        <p className="text-muted-foreground text-xs">{copy.hero.privacy}</p>
-      </header>
-      <CvImport />
-    </section>
-  );
-}
+  const understood = summariseUnderstanding(confirmed);
+  const question = nextQuestion({
+    readiness,
+    understood,
+    preferences: readinessInput.preferences,
+    settledKeys,
+  });
 
-function StatusView({
-  summary,
-  copy,
-  positioning,
-}: {
-  summary: OnboardingSummary;
-  copy: DashboardCopy;
-  positioning: Positioning | null;
-}) {
-  const status = copy.status;
-  return (
-    <section
-      aria-labelledby="dashboard-title"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6"
-    >
-      <h1 id="dashboard-title" className="text-2xl font-semibold">
-        {status.title}
-      </h1>
+  // ── Nothing at all: one invitation, nothing else ────────────────────────
+  if (understood.empty) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 py-8">
+        <header className="flex flex-col gap-3">
+          <h1
+            id="dashboard-title"
+            className="text-3xl font-semibold tracking-tight text-balance"
+          >
+            {copy.heroTitle}
+          </h1>
+          <p className="text-muted-foreground text-base text-pretty">
+            {copy.heroLead}
+          </p>
+        </header>
+        <CvImport />
+        <p className="text-muted-foreground text-xs">{copy.heroPromise}</p>
+      </div>
+    );
+  }
 
-      <dl className="grid gap-3 sm:grid-cols-2">
-        <StatCard label={status.roleLabel}>
-          <span className="text-base font-semibold break-words">
-            {summary.roleTitle ?? (
-              <span className="text-muted-foreground font-normal">
-                {status.roleMissing}
-              </span>
-            )}
-          </span>
-          <span className="text-muted-foreground text-xs">
-            {status.skillsLabel(summary.confirmedSkills)}
-          </span>
-        </StatCard>
+  // ── We read something, but not enough to search honestly ────────────────
+  //
+  // The state this exists to kill: someone uploads a CV, we extract their
+  // skills, and the next screen hands them the same empty drop zone. Their
+  // effort vanished. So the screen says what it now knows, then asks for ONE
+  // more thing — and the mirror comes first, because a question from someone
+  // who just proved they were listening is a different question entirely.
+  if (!readiness.canSearch) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 py-8">
+        <header className="flex flex-col gap-3">
+          <h1
+            id="dashboard-title"
+            className="text-3xl font-semibold tracking-tight text-balance"
+          >
+            {copy.mirrorTitle}
+          </h1>
+          <p className="text-muted-foreground text-base text-pretty">
+            {copy.mirrorLead}
+          </p>
+        </header>
 
-        <StatCard label={status.targetsLabel}>
-          <span className="text-sm break-words">
-            {summary.targetRoles.length > 0 ? (
-              summary.targetRoles.join(" · ")
-            ) : (
-              <span className="text-muted-foreground">
-                {status.targetsMissing}
-              </span>
-            )}
-          </span>
-        </StatCard>
+        <Mirror understood={understood} />
 
-        <StatCard label={status.offersLabel(summary.opportunities)}>
-          {summary.opportunities > 0 ? (
-            <span className="text-muted-foreground text-xs">
-              {status.analyzedLabel(summary.analyzed)}
-            </span>
-          ) : null}
-        </StatCard>
-      </dl>
-
-      {positioning ? (
-        <section
-          aria-label={copy.positioning.title}
-          className="border-border bg-card flex flex-col gap-2 rounded-xl border p-4"
-        >
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              {copy.positioning.title}
-            </h2>
-            <span className="text-sm font-semibold tabular-nums">
-              {copy.positioning.coverage(positioning.coverage)}
-            </span>
+        {/* The mirror proved we listened; NOW one question is fair to ask. */}
+        {question ? (
+          <NextQuestion question={question} />
+        ) : step ? (
+          <div className="border-border flex flex-col gap-3 rounded-lg border p-4">
+            <p className="text-sm">{copy.mirrorAsk(step.ask)}</p>
+            <Link
+              href="/profile"
+              className="text-sm underline underline-offset-2"
+            >
+              {copy.mirrorAskLink}
+            </Link>
           </div>
-          <p className="text-muted-foreground text-xs">
-            {copy.positioning.note(positioning.corpusSize)}
-          </p>
-          <ul className="flex flex-wrap gap-2">
-            {positioning.topSkills.map((s) => (
-              <li key={s.label}>
-                <span
-                  className={`text-foreground rounded-full border px-2 py-0.5 text-xs ${
-                    s.covered
-                      ? "border-success/50 bg-success/10"
-                      : "border-border bg-muted/40"
-                  }`}
-                >
-                  {/* Status carried by a VISIBLE marker, not colour alone
-                      (WCAG 1.4.1) — the sr-only text spells it out for AT. */}
-                  <span aria-hidden="true">{s.covered ? "✓ " : "+ "}</span>
-                  {copy.positioning.chip(s.label, s.share)}
-                  <span className="sr-only">
-                    {" "}
-                    {s.covered
-                      ? copy.positioning.covered
-                      : copy.positioning.missing}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-muted-foreground text-xs">
-            {copy.positioning.legend}
-          </p>
-        </section>
+        ) : null}
+
+        <p className="text-muted-foreground text-xs">{copy.heroPromise}</p>
+      </div>
+    );
+  }
+
+  // ── Enough to work with: the market, now ────────────────────────────────
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-4">
+      <header className="flex flex-col gap-1">
+        <h1
+          id="dashboard-title"
+          className="text-2xl font-semibold tracking-tight"
+        >
+          {copy.resultsTitle}
+        </h1>
+        <p className="text-muted-foreground text-sm">{copy.resultsLead}</p>
+      </header>
+
+      {/* ONE nudge, never a list of gaps: a wall of eight missing things is
+          where people stop. And it stays a quiet line under the title — the
+          opportunities are what this page is for. */}
+      {step ? (
+        <p className="text-muted-foreground text-xs">
+          {copy.nudge(readiness.score, step.ask)}{" "}
+          <Link href="/profile" className="underline underline-offset-2">
+            {copy.nudgeLink}
+          </Link>
+        </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-3">
-        {summary.opportunities > 0 ? (
-          <Button asChild size="sm">
-            <Link href="/opportunities">{status.seeOffers}</Link>
-          </Button>
-        ) : (
-          <p className="text-muted-foreground text-sm">{status.noOffersHint}</p>
-        )}
-        <Button asChild variant="outline" size="sm">
-          <Link href="/profile">{status.refreshCta}</Link>
-        </Button>
-      </div>
-    </section>
-  );
-}
+      {/* The conversation does not stop once the search opens — that is the
+          point. Each answer re-filters the list SHOWN BELOW IT, which is the
+          only reason a question is worth someone's time. Asking everything up
+          front and searching afterwards is the form we refused to build. */}
+      {question ? <NextQuestion question={question} /> : null}
 
-function StatCard({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-border bg-card flex min-w-0 flex-col gap-1 rounded-xl border p-4">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="flex flex-col gap-1">{children}</dd>
+      {discoveryConfigured() ? (
+        <Suspense
+          fallback={
+            <p role="status" className="text-muted-foreground text-sm">
+              {copy.searching}
+            </p>
+          }
+        >
+          <AutoResults countries={countries} />
+        </Suspense>
+      ) : (
+        <p className="text-muted-foreground text-sm">{copy.unconfigured}</p>
+      )}
     </div>
   );
 }

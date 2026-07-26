@@ -366,7 +366,7 @@ export function CvImport() {
         {discoveryLine(step.discovery)}
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm">
-            <Link href="/opportunities">{copy.seeOffers}</Link>
+            <Link href="/dashboard">{copy.seeOffers}</Link>
           </Button>
           <Button
             type="button"
@@ -504,7 +504,7 @@ export function CvImport() {
               earlier runs. Hiding the way there was a second punishment for a
               failure the user did not cause. */}
           <Button asChild size="sm">
-            <Link href="/opportunities">{copy.seeOffers}</Link>
+            <Link href="/dashboard">{copy.seeOffers}</Link>
           </Button>
           <Button
             type="button"

@@ -93,7 +93,7 @@ export async function discoverOpportunitiesAction(): Promise<DiscoveryResult> {
       }
     }
     try {
-      revalidatePath("/opportunities");
+      revalidatePath("/dashboard");
     } catch (error) {
       logger.error("discovery revalidation failed", {
         step: "revalidatePath",

@@ -795,6 +795,50 @@ export type Database = {
           },
         ];
       };
+      profile_clarifications: {
+        Row: {
+          answer: string | null;
+          asked_at: string;
+          id: string;
+          origin: string;
+          profile_id: string;
+          question: string;
+          question_key: string;
+          settled_at: string | null;
+          skipped: boolean;
+        };
+        Insert: {
+          answer?: string | null;
+          asked_at?: string;
+          id?: string;
+          origin: string;
+          profile_id: string;
+          question: string;
+          question_key: string;
+          settled_at?: string | null;
+          skipped?: boolean;
+        };
+        Update: {
+          answer?: string | null;
+          asked_at?: string;
+          id?: string;
+          origin?: string;
+          profile_id?: string;
+          question?: string;
+          question_key?: string;
+          settled_at?: string | null;
+          skipped?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_clarifications_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profile_versions: {
         Row: {
           change_summary: string;

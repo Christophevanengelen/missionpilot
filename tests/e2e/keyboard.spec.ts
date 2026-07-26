@@ -101,11 +101,11 @@ test.describe("keyboard-only interaction", () => {
 
     const navLink = await tabUntil(
       page,
-      (i) => i.tag === "a" && i.text.startsWith("Runs & Quality"),
+      (i) => i.tag === "a" && i.text.startsWith("Mon profil"),
     );
     expect(navLink.focusVisible).toBe(true);
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/\/diagnostics$/);
+    await expect(page).toHaveURL(/\/profile$/);
   });
 
   test("diagnostics trigger via keyboard: error is announced and focus is preserved", async ({
