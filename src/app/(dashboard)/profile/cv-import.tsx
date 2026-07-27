@@ -54,7 +54,16 @@ type Step =
  * discovery. The CV itself is NEVER stored — analysis happens in-memory and
  * only the validated claims are saved.
  */
-export function CvImport() {
+/**
+ * `only` narrows the component to ONE import path.
+ *
+ * The first screen used to offer four ways to begin — a PDF field, a paste
+ * box, a LinkedIn archive field, and two buttons — which is three choices too
+ * many for someone who has not yet been shown a single result. Onboarding asks
+ * one thing; the profile screen, where people go deliberately, still offers
+ * both.
+ */
+export function CvImport({ only }: { only?: Source } = {}) {
   const router = useRouter();
   const copy = t().cvImport;
   const discoverCopy = t().opportunities.discover;
@@ -579,72 +588,76 @@ export function CvImport() {
 
   return (
     <div className="flex flex-col gap-3">
-      <form
-        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void analyze();
-        }}
-      >
-        <p className="text-sm font-medium">{copy.title}</p>
-        <p className="text-muted-foreground text-xs">{copy.note}</p>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="cv-file">{copy.fileLabel}</Label>
-          <input
-            id="cv-file"
-            ref={fileRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            disabled={busy}
-            className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="cv-text">{copy.pasteLabel}</Label>
-          <textarea
-            id="cv-text"
-            value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
-            disabled={busy}
-            maxLength={100000}
-            rows={4}
-            placeholder={copy.pastePlaceholder}
-            className="border-input bg-background w-full min-w-0 rounded-lg border p-3 text-sm"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="sm" {...busyProps}>
-            {copy.analyze}
-          </Button>
-        </div>
-      </form>
+      {only === "linkedin" ? null : (
+        <form
+          className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void analyze();
+          }}
+        >
+          <p className="text-sm font-medium">{copy.title}</p>
+          <p className="text-muted-foreground text-xs">{copy.note}</p>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="cv-file">{copy.fileLabel}</Label>
+            <input
+              id="cv-file"
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              disabled={busy}
+              className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="cv-text">{copy.pasteLabel}</Label>
+            <textarea
+              id="cv-text"
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              disabled={busy}
+              maxLength={100000}
+              rows={4}
+              placeholder={copy.pastePlaceholder}
+              className="border-input bg-background w-full min-w-0 rounded-lg border p-3 text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" size="sm" {...busyProps}>
+              {copy.analyze}
+            </Button>
+          </div>
+        </form>
+      )}
 
-      <form
-        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void analyzeLinkedIn();
-        }}
-      >
-        <p className="text-sm font-medium">{copy.linkedin.title}</p>
-        <p className="text-muted-foreground text-xs">{copy.linkedin.note}</p>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="linkedin-file">{copy.linkedin.fileLabel}</Label>
-          <input
-            id="linkedin-file"
-            ref={linkedinRef}
-            type="file"
-            accept="application/zip,.zip"
-            disabled={busy}
-            className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="sm" variant="outline" {...busyProps}>
-            {copy.linkedin.analyze}
-          </Button>
-        </div>
-      </form>
+      {only === "cv" ? null : (
+        <form
+          className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void analyzeLinkedIn();
+          }}
+        >
+          <p className="text-sm font-medium">{copy.linkedin.title}</p>
+          <p className="text-muted-foreground text-xs">{copy.linkedin.note}</p>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="linkedin-file">{copy.linkedin.fileLabel}</Label>
+            <input
+              id="linkedin-file"
+              ref={linkedinRef}
+              type="file"
+              accept="application/zip,.zip"
+              disabled={busy}
+              className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" size="sm" variant="outline" {...busyProps}>
+              {copy.linkedin.analyze}
+            </Button>
+          </div>
+        </form>
+      )}
 
       {error ? (
         <p role="alert" className="text-destructive text-sm">
