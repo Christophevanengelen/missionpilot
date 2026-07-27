@@ -70,6 +70,7 @@ test("@capture le parcours complet, en images", async ({ page }) => {
   await shot(page, "1-depot");
 
   // 2 — The mirror: what we understood, gaps included, then ONE question.
+  await page.getByRole("button", { name: "Mon CV" }).click();
   await page
     .getByLabel("…ou collez le texte de votre CV")
     .fill(
@@ -80,8 +81,13 @@ test("@capture le parcours complet, en images", async ({ page }) => {
     page.getByText("Compétences détectées dans votre CV"),
   ).toBeVisible();
   await page.getByRole("button", { name: "Ajouter à mon profil" }).click();
+  // The import either stays on its own confirmation or chains straight on,
+  // depending on whether a discovery source is enabled — wait for EITHER, so
+  // the capture does not depend on an environment flag.
   await expect(
-    page.getByText(/compétences? confirmées? dans votre profil/),
+    page.getByText(
+      /compétences? confirmées? dans votre profil|Voilà ce que j'ai compris/,
+    ),
   ).toBeVisible();
   await page.goto("/dashboard");
   await expect(

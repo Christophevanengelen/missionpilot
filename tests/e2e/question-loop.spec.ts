@@ -55,6 +55,7 @@ test("une question posée reçoit une réponse, le profil change, et elle n'est 
   await signIn(page);
 
   // Give the profile something to reflect, so the mirror state is reached.
+  await page.getByRole("button", { name: "Mon CV" }).click();
   await page
     .getByLabel("…ou collez le texte de votre CV")
     .fill(

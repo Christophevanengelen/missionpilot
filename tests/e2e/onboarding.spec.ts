@@ -55,7 +55,13 @@ test("premier login : dépôt du CV → l'écran RESTITUE ce qu'il a compris, il
   await expect(
     page.getByRole("heading", { name: "Déposez votre CV" }),
   ).toBeVisible();
-  await expect(page.getByText("Importer mon CV")).toBeVisible();
+  // ONE question, two answers — not four fields at once.
+  await expect(
+    page.getByRole("heading", { name: "Par quoi commence-t-on ?" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mon export LinkedIn" }),
+  ).toBeVisible();
 
   const axe = await new AxeBuilder({ page }).analyze();
   expect(
@@ -65,6 +71,7 @@ test("premier login : dépôt du CV → l'écran RESTITUE ce qu'il a compris, il
   ).toEqual([]);
 
   // Paste a CV, analyse, keep the detected skills, add them.
+  await page.getByRole("button", { name: "Mon CV" }).click();
   await page
     .getByLabel("…ou collez le texte de votre CV")
     .fill("Ingénieur senior. Stack: TypeScript, React, PostgreSQL, Docker.");
@@ -101,5 +108,7 @@ test("premier login : dépôt du CV → l'écran RESTITUE ce qu'il a compris, il
 
   // And the drop zone is gone: asking again for what was already given is the
   // failure mode, not a fallback.
-  await expect(page.getByText("Importer mon CV")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Par quoi commence-t-on ?" }),
+  ).toHaveCount(0);
 });

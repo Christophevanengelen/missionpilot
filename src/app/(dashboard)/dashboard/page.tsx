@@ -19,7 +19,7 @@ import {
   loadPendingCareer,
   loadSettledKeys,
 } from "@/lib/profile/clarifications";
-import { CvImport } from "../profile/cv-import";
+import { OnboardingStart } from "./onboarding-start";
 import { Mirror } from "./mirror";
 import { NextQuestion } from "./next-question";
 import { AutoResults } from "./auto-results";
@@ -119,7 +119,7 @@ export default async function HomePage() {
             {copy.heroLead}
           </p>
         </header>
-        <CvImport />
+        <OnboardingStart />
         <p className="text-muted-foreground text-xs">{copy.heroPromise}</p>
       </div>
     );
