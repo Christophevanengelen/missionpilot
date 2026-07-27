@@ -15,16 +15,6 @@ import {
 } from "@/lib/profile/cv-actions";
 import type { CvProfileUnderstanding } from "@/lib/profile/cv-ai";
 import type { AtsFinding } from "@/lib/profile/cv-ats-lint";
-import {
-  discoverOpportunitiesAction,
-  type DiscoveryResult,
-} from "@/lib/discovery/actions";
-import { explainMatchesAction } from "@/lib/matching/insight-actions";
-
-/** Auto-chained discovery state on the success screens (owner mandate:
- *  validate once, then just discover the results — no more buttons). */
-type AutoDiscovery =
-  { phase: "searching" } | { phase: "done"; result: DiscoveryResult };
 
 type Source = "cv" | "linkedin";
 
@@ -44,8 +34,8 @@ type Step =
       chosen: Set<string>;
       atsFindings: AtsFinding[];
     }
-  | { name: "added"; count: number; discovery: AutoDiscovery }
-  | { name: "applied"; count: number; discovery: AutoDiscovery };
+  | { name: "added"; count: number }
+  | { name: "applied"; count: number };
 
 /**
  * "Import my CV" — upload a PDF (or paste the text) → deep AI understanding
@@ -69,7 +59,6 @@ export function CvImport({
 }: { only?: Source; linkedInPret?: boolean } = {}) {
   const router = useRouter();
   const copy = t().cvImport;
-  const discoverCopy = t().opportunities.discover;
   const [step, setStep] = useState<Step>({ name: "idle" });
   const [pasted, setPasted] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,9 +69,6 @@ export function CvImport({
   const fileRef = useRef<HTMLInputElement>(null);
   const linkedinRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
-  // Identity of the LATEST auto-discovery run: a stale completion from a
-  // previous import cycle must never overwrite the current screen's result.
-  const discoverRunRef = useRef(0);
 
   const busyProps = {
     "aria-busy": busy || undefined,
@@ -212,47 +198,6 @@ export function CvImport({
     }
   }
 
-  /**
-   * The auto-chained discovery (owner mandate: after the one validation, the
-   * offers just arrive). Runs OUTSIDE the busy window so the user can already
-   * navigate; the functional update keeps a stale completion from clobbering
-   * a screen the user has since left.
-   */
-  async function autoDiscover(target: "added" | "applied") {
-    const run = ++discoverRunRef.current;
-    let result: DiscoveryResult;
-    try {
-      result = await discoverOpportunitiesAction();
-    } catch {
-      result = { ok: false, error: "generic" };
-    }
-    if (run !== discoverRunRef.current) return; // a newer run owns the screen
-    setStep((s) =>
-      s.name === target ? { ...s, discovery: { phase: "done", result } } : s,
-    );
-    if (result.ok && result.imported > 0) {
-      router.refresh();
-      // Full fluidity: the freshly imported offers get their "pourquoi ce
-      // match" analysis without another click. Server-side it is inert when
-      // AI is unconfigured, cost-bounded and freshness-aware; here it stays
-      // silent (the inbox shows the insights when ready) — same run-token
-      // guard so an obsolete completion refreshes nothing.
-      try {
-        const explained = await explainMatchesAction();
-        if (
-          run === discoverRunRef.current &&
-          explained.ok &&
-          explained.analyzed > 0
-        ) {
-          router.refresh();
-        }
-      } catch {
-        // Honest degradation: the offers are already there; the analysis can
-        // be relaunched from the inbox.
-      }
-    }
-  }
-
   async function addChosen() {
     if (inFlightRef.current || step.name !== "detected") return;
     const skills = [...step.chosen];
@@ -272,7 +217,6 @@ export function CvImport({
       setStep({
         name: "added",
         count: result.added,
-        discovery: { phase: "searching" },
       });
       setPasted("");
       if (fileRef.current) fileRef.current.value = "";
@@ -284,7 +228,6 @@ export function CvImport({
       inFlightRef.current = false;
       setBusy(false);
     }
-    await autoDiscover("added");
   }
 
   function toggle(skill: string) {
@@ -317,7 +260,6 @@ export function CvImport({
       setStep({
         name: "applied",
         count: result.confirmed,
-        discovery: { phase: "searching" },
       });
       setPasted("");
       if (fileRef.current) fileRef.current.value = "";
@@ -329,44 +271,9 @@ export function CvImport({
       inFlightRef.current = false;
       setBusy(false);
     }
-    await autoDiscover("applied");
   }
 
   /** The discovery status line shared by the two success screens. */
-  function discoveryLine(discovery: AutoDiscovery) {
-    if (discovery.phase === "searching") {
-      return (
-        <p className="text-muted-foreground text-xs motion-safe:animate-pulse">
-          {discoverCopy.searching}
-        </p>
-      );
-    }
-    const { result } = discovery;
-    if (result.ok) {
-      const incomplete = result.failedSources.length > 0;
-      return (
-        <p className="text-muted-foreground text-xs">
-          {discoverCopy.result(
-            result.imported,
-            result.duplicates,
-            result.failed,
-            incomplete,
-          )}
-          {incomplete ? ` ${discoverCopy.partial(result.failedSources)}` : ""}
-        </p>
-      );
-    }
-    // A failure must READ like a failure here too. This line sits under a
-    // "profile confirmed" banner inside a role="status" container: rendered
-    // muted like the success case, a discovery that never ran looks like part
-    // of the good news.
-    return (
-      <p role="alert" className="text-destructive text-xs">
-        {discoverCopy.errors[result.error]}
-      </p>
-    );
-  }
-
   if (step.name === "applied") {
     return (
       <div
@@ -375,7 +282,6 @@ export function CvImport({
       >
         <p className="text-sm font-medium">{copy.applied(step.count)}</p>
         <p className="text-muted-foreground text-xs">{copy.appliedNote}</p>
-        {discoveryLine(step.discovery)}
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm">
             <Link href="/dashboard">{copy.seeOffers}</Link>
@@ -509,7 +415,6 @@ export function CvImport({
         className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
       >
         <p className="text-sm font-medium">{copy.added(step.count)}</p>
-        {discoveryLine(step.discovery)}
         <div className="flex flex-wrap gap-2">
           {/* Unconditional, like the "applied" screen above: this run failing
               says nothing about the inbox, which may already hold offers from
