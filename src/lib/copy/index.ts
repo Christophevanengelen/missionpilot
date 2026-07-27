@@ -251,7 +251,7 @@ export const copy = {
       },
       linkedin: {
         title: "…ou importez votre export LinkedIn",
-        note: "Sur LinkedIn : Préférences → Confidentialité des données → « Obtenir une copie de vos données » → cochez Profil, Postes, Compétences, Formation, et surtout Recommandations et Préférences de recherche — ce sont celles qui disent l'ampleur de vos missions et le poste que vous visez. Déposez l'archive .zip ici. Rien n'est récupéré automatiquement : c'est votre propre export officiel.",
+        note: "Déposez ici l'archive que LinkedIn vous a envoyée par e-mail.",
         fileLabel: "Archive d'export LinkedIn (.zip)",
         analyze: "Analyser mon export LinkedIn",
         needFile: "Déposez votre archive d'export LinkedIn (.zip).",
@@ -1140,7 +1140,7 @@ export const copy = {
       },
       linkedin: {
         title: "…or import your LinkedIn export",
-        note: 'On LinkedIn: Settings → Data privacy → "Get a copy of your data" → tick Profile, Positions, Skills, Education, and above all Recommendations and Job seeker preferences — those are the ones that state the scope of your work and the role you are aiming for. Drop the .zip archive here. Nothing is fetched automatically: it is your own official export.',
+        note: "Drop the archive LinkedIn emailed you.",
         fileLabel: "LinkedIn export archive (.zip)",
         analyze: "Analyze my LinkedIn export",
         needFile: "Drop your LinkedIn export archive (.zip).",
