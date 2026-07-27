@@ -470,9 +470,9 @@ export function Landing() {
           <ul className="grid gap-px overflow-hidden rounded-xl bg-[oklch(0.97_0.005_85_/_14%)] sm:grid-cols-2">
             {[
               {
-                titre: "Aucune offre n’est stockée.",
+                titre: "Rien qui soit déjà pourvu.",
                 detail:
-                  "Chaque recherche interroge les plateformes en direct. Votre profil est la seule chose que nous gardons.",
+                  "Chaque recherche interroge les plateformes en direct. Vous ne perdez pas vos soirées sur des annonces fermées depuis trois semaines.",
               },
               {
                 titre: "Nous ne postulons jamais à votre place.",
@@ -717,7 +717,7 @@ export function Landing() {
             </a>
           </div>
           <p className={`${INK_MUTED} ${LABEL} border-t pt-6 ${INK_RULE} mt-4`}>
-            Aucune offre stockée · aucune candidature envoyée en votre nom
+            Des annonces vivantes · aucune candidature envoyée en votre nom
           </p>
         </div>
       </section>

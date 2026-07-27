@@ -68,7 +68,8 @@ test("@capture le parcours complet, en images", async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 900 });
 
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "J’ai déjà un mot de passe" }).click();
+  await page.getByLabel("Votre e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
   await page.getByRole("button", { name: "Entrer" }).click();
   await page.waitForURL(/\/dashboard/);

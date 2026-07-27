@@ -28,13 +28,20 @@ test.describe("authentication boundary", () => {
     page,
   }) => {
     await page.goto("/login");
-    await page.getByLabel("Email").fill(DEV_EMAIL);
+    await page
+      .getByRole("button", { name: "J’ai déjà un mot de passe" })
+      .click();
+    await page.getByLabel("Votre e-mail").fill(DEV_EMAIL);
     await page.getByLabel("Mot de passe").fill("definitely-wrong-password");
     await page.getByRole("button", { name: "Entrer" }).click();
     // #login-error, not getByRole("alert"): Next's route announcer is also
     // role=alert and trips Playwright's strict mode.
+    // Le message était en ANGLAIS dans une interface française — corrigé avec
+    // le passage au lien magique. Il reste volontairement indistinct : il ne
+    // dit jamais si c'est le compte ou le mot de passe qui est faux, sans quoi
+    // il offrirait un moyen de savoir qui a un compte ici.
     await expect(page.locator("#login-error")).toHaveText(
-      "Invalid email or password.",
+      "E-mail ou mot de passe incorrect.",
     );
     await expect(page).toHaveURL(/\/login$/);
   });
@@ -45,7 +52,10 @@ test.describe("authentication boundary", () => {
     test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
 
     await page.goto("/login");
-    await page.getByLabel("Email").fill(DEV_EMAIL);
+    await page
+      .getByRole("button", { name: "J’ai déjà un mot de passe" })
+      .click();
+    await page.getByLabel("Votre e-mail").fill(DEV_EMAIL);
     await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
     await page.getByRole("button", { name: "Entrer" }).click();
 
@@ -69,7 +79,10 @@ test.describe("authentication boundary", () => {
     test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
 
     await page.goto("/login");
-    await page.getByLabel("Email").fill(DEV_EMAIL);
+    await page
+      .getByRole("button", { name: "J’ai déjà un mot de passe" })
+      .click();
+    await page.getByLabel("Votre e-mail").fill(DEV_EMAIL);
     await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
     await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);

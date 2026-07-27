@@ -54,7 +54,7 @@ export const copy = {
       heroLead:
         "On lit votre parcours, on comprend où vous en êtes — et à chaque connexion, on vous montre ce que le marché a pour vous maintenant. Y compris le poste d'un cran au-dessus.",
       heroPromise:
-        "Aucune offre n'est stockée. On ne postule jamais à votre place : vous cliquez, vous partez sur l'annonce d'origine.",
+        "Rien qui soit déjà pourvu. On ne postule jamais à votre place : vous cliquez, vous partez sur l'annonce d'origine.",
       mirrorTitle: "Voilà ce que j'ai compris.",
       mirrorLead:
         "Corrigez-moi si je me trompe. Il me manque encore une chose avant de pouvoir chercher sérieusement pour vous.",

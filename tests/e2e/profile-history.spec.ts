@@ -133,7 +133,8 @@ test.afterAll(async () => {
 
 async function signIn(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "J’ai déjà un mot de passe" }).click();
+  await page.getByLabel("Votre e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
   await page.getByRole("button", { name: "Entrer" }).click();
   await page.waitForURL(/\/dashboard/);

@@ -69,6 +69,16 @@ test.describe("keyboard-only interaction", () => {
     expect(email.focusVisible).toBe(true);
     await page.keyboard.type(DEV_EMAIL);
 
+    // Le mot de passe est replié derrière un lien depuis le passage au lien
+    // magique : on l'atteint au clavier, ce qui prouve du même coup que le
+    // repli n'est pas une souricière pour qui n'utilise pas la souris.
+    const repli = await tabUntil(
+      page,
+      (i) => i.tag === "button" && i.text.startsWith("J’ai déjà"),
+    );
+    expect(repli.focusVisible).toBe(true);
+    await page.keyboard.press("Enter");
+
     const password = await tabUntil(page, (i) => i.id === "password");
     expect(password.focusVisible).toBe(true);
     await page.keyboard.type(DEV_PASSWORD);
@@ -88,7 +98,10 @@ test.describe("keyboard-only interaction", () => {
     test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
 
     await page.goto("/login");
-    await page.getByLabel("Email").fill(DEV_EMAIL);
+    await page
+      .getByRole("button", { name: "J’ai déjà un mot de passe" })
+      .click();
+    await page.getByLabel("Votre e-mail").fill(DEV_EMAIL);
     await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
     await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -114,7 +127,10 @@ test.describe("keyboard-only interaction", () => {
     test.skip(!DEV_PASSWORD, "DEV_USER_PASSWORD not configured");
 
     await page.goto("/login");
-    await page.getByLabel("Email").fill(DEV_EMAIL);
+    await page
+      .getByRole("button", { name: "J’ai déjà un mot de passe" })
+      .click();
+    await page.getByLabel("Votre e-mail").fill(DEV_EMAIL);
     await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
     await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);

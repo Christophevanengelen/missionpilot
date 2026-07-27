@@ -15,6 +15,11 @@ test.describe("page publique", () => {
   test("axe propre en clair ET en sombre, y compris le plan encre", async ({
     page,
   }) => {
+    // Mouvement réduit AVANT le chargement : sinon axe mesure les couleurs
+    // pendant le fondu d'entrée, où l'opacité partielle mélange le texte au
+    // fond et fait chuter le ratio sous le seuil pour de mauvaises raisons.
+    // La page rend alors son état final d'emblée, qui est celui à contrôler.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await expect(
       page.getByRole("heading", { name: /monter d’une marche/i }),
@@ -40,12 +45,15 @@ test.describe("page publique", () => {
     }
   });
 
-  test("les deux refus sont énoncés avant tout le reste", async ({ page }) => {
-    // Ce ne sont pas deux phrases parmi d'autres : ce sont les engagements qui
-    // rendent le reste croyable. S'ils disparaissent d'un remaniement, la page
-    // ne remplit plus son office même si elle reste belle.
+  test("les deux promesses tiennent sur ce que la personne y gagne", async ({
+    page,
+  }) => {
+    // Elles ont remplacé « aucune offre n'est stockée », qui décrivait comment
+    // le produit est BÂTI plutôt que ce qu'on y gagne. Personne ne cherche un
+    // emploi en se demandant où sont rangées les annonces — en revanche tout le
+    // monde a déjà perdu une soirée sur un poste pourvu depuis trois semaines.
     await page.goto("/");
-    await expect(page.getByText("Aucune offre n’est stockée.")).toBeVisible();
+    await expect(page.getByText("Rien qui soit déjà pourvu.")).toBeVisible();
     await expect(
       page.getByText("Nous ne postulons jamais à votre place."),
     ).toBeVisible();

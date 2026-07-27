@@ -2,7 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseConfig } from "@/lib/db/config";
 
-const PUBLIC_PATHS = new Set(["/", "/login"]);
+/**
+ * `/auth/confirm` est public POUR UNE RAISON PRÉCISE : c'est le retour du lien
+ * magique, et au moment du clic aucune session n'existe encore. Le protéger
+ * comme les autres renverrait la personne vers la connexion AVANT que la
+ * session soit créée — elle cliquerait sur son lien pour retomber d'où elle
+ * vient, redemanderait un lien, et recommencerait sans qu'un seul message ne
+ * lui dise pourquoi. C'est la panne la plus muette que ce produit puisse
+ * produire, et elle tient à cette ligne.
+ */
+const PUBLIC_PATHS = new Set(["/", "/login", "/auth/confirm"]);
 
 /**
  * Proxy-level session refresh + OPTIMISTIC redirect (Next 16 proxy.ts).
