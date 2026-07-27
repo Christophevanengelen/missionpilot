@@ -725,6 +725,21 @@ export function Landing() {
           <p className={`${INK_MUTED} ${LABEL} border-t pt-6 ${INK_RULE} mt-4`}>
             Des annonces vivantes · aucune candidature envoyée en votre nom
           </p>
+          {/* Les documents juridiques dans le pied, pas dans le corps : ils ne
+              vendent rien, et quelqu'un qui les cherche sait où regarder. Mais
+              ils sont là AVANT l'inscription — on doit pouvoir lire ce qu'un
+              service fera de ses données avant de lui en confier. */}
+          <p className={`${INK_MUTED} flex flex-wrap gap-x-4 gap-y-1 text-sm`}>
+            <Link
+              href="/confidentialite"
+              className="underline underline-offset-4"
+            >
+              Politique de confidentialité
+            </Link>
+            <Link href="/conditions" className="underline underline-offset-4">
+              Conditions d’utilisation
+            </Link>
+          </p>
         </div>
       </section>
     </main>

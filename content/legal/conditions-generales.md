@@ -1,6 +1,6 @@
 # MissionPilot — Conditions générales d'utilisation
 
-**Version 1.0** — dernière mise à jour : **27 juillet 2026** — entrée en vigueur le ⟦date de publication — à compléter⟧
+**Version 1.0** — dernière mise à jour et entrée en vigueur : **27 juillet 2026**
 
 ---
 
@@ -78,9 +78,9 @@ Ces données servent uniquement à pré-remplir votre profil. Nous ne les vendon
 
 Le code de MissionPilot est publié publiquement à l'adresse https://github.com/Christophevanengelen/missionpilot. Cette publication vous permet de vérifier ce que le service fait de vos données.
 
-⟦À COMPLÉTER — POINT BLOQUANT : le dépôt ne contient aujourd'hui aucun fichier `LICENSE`, et `package.json` ne déclare aucune licence. En l'absence de licence explicite, un code public reste sous droit d'auteur intégral : aucun droit de réutilisation, de modification ou de redistribution n'est concédé, et le projet ne peut pas être décrit comme « open source ». Phrase à publier une fois le fichier ajouté : « Ce code est mis à disposition sous licence ⟦nom⟧, dont le texte figure dans le fichier `LICENSE` du dépôt. »⟧
+Ce code est mis à disposition sous licence **GNU Affero General Public License v3.0 ou ultérieure**, dont le texte figure dans le fichier `LICENSE` du dépôt. L'AGPL a été choisie à dessein : quiconque exploite une version modifiée de ce service en réseau doit publier ses modifications. Autrement dit, on peut forker MissionPilot et l'héberger ; on ne peut pas le forker, affaiblir discrètement ce qu'il fait de vos données, et continuer à se réclamer de la même chose ouverte., dont le texte figure dans le fichier `LICENSE` du dépôt. »⟧
 
-La publication du code ne vous donne aucun droit sur le service hébergé à l'adresse missionpilot.vercel.app, sur son nom, ni sur les données qu'il contient.
+La publication du code ne vous donne aucun droit sur le service hébergé à l'adresse missionpilot.net, sur son nom, ni sur les données qu'il contient.
 
 ## 11. Responsabilité
 

@@ -1,8 +1,8 @@
 # MissionPilot — Politique de confidentialité
 
-**Version 1.0** — dernière mise à jour : **27 juillet 2026** — entrée en vigueur le ⟦date de publication — à compléter⟧
+**Version 1.0** — dernière mise à jour et entrée en vigueur : **27 juillet 2026**
 
-Service concerné : https://missionpilot.vercel.app
+Service concerné : https://missionpilot.net
 Code source, lisible publiquement : https://github.com/Christophevanengelen/missionpilot
 
 ---
@@ -17,7 +17,7 @@ MissionPilot cherche des offres d'emploi pour vous. Pour cela, il lit votre CV. 
 
 Ce document décrit ce que le service fait réellement de vos données. Il est écrit pour être relu avec le code sous les yeux : le code est public, et chaque affirmation technique ci-dessous s'y vérifie.
 
-MissionPilot a une règle : on n'affirme jamais comme un fait ce qu'on n'a pas constaté. Cette politique suit la même règle. Là où nous ne savons pas, nous l'écrivons entre crochets ⟦comme ceci⟧ plutôt que de combler.
+MissionPilot a une règle : on n'affirme jamais comme un fait ce qu'on n'a pas constaté. Cette politique suit la même règle. Là où nous ne savons pas encore, nous l'écrivons en toutes lettres plutôt que de combler. Vous trouverez donc dans ce document des phrases qui commencent par « nous n'avons pas encore vérifié ». Elles sont volontaires : une politique de confidentialité qui n'a aucun trou est presque toujours une politique qui n'a pas été relue contre le code.
 
 ---
 
@@ -55,7 +55,7 @@ Un CV mentionne souvent, sans que son auteur y ait pensé, une interruption de c
 
 Le responsable du traitement est établi en Belgique. Aucun représentant au sens de l'art. 27 RGPD n'est requis ni désigné.
 
-**Délégué à la protection des données** (art. 13(1)(b)) : aucun délégué à la protection des données n'est désigné pour MissionPilot. Adressez toute demande relative à vos données à **cve@hi-def.be**, ou par courrier à Productions Associées ASBL — MissionPilot, Rue Coenraets 72, 1060 Saint-Gilles, Belgique. ⟦À confirmer avant publication auprès de Productions Associées.⟧
+**Délégué à la protection des données** (art. 13(1)(b)) : aucun délégué à la protection des données n'est désigné pour MissionPilot. Adressez toute demande relative à vos données à **cve@hi-def.be**, ou par courrier à Productions Associées ASBL — MissionPilot, Rue Coenraets 72, 1060 Saint-Gilles, Belgique.
 
 ---
 
@@ -163,7 +163,7 @@ La lecture est la même qu'au point 6.1, et l'envoi à OpenAI aussi. Le dépôt 
 
 **MissionPilot n'affirme pas, et ne laisse pas entendre, que LinkedIn a vérifié ou confirmé l'exactitude de ces données.** LinkedIn nous transmet ce que vous y avez écrit.
 
-**Disponibilité** : LinkedIn réserve ce consentement aux membres situés dans l'Espace économique européen, d'après la localisation figurant dans leur profil LinkedIn. ⟦La documentation de LinkedIn se contredit sur l'inclusion de la Suisse pour ce produit ; le texte affiché dans l'application doit être aligné sur la formulation retenue ici.⟧
+**Disponibilité** : LinkedIn réserve ce consentement aux membres situés dans l'Espace économique européen, d'après la localisation figurant dans leur profil LinkedIn. La documentation de LinkedIn se contredit sur l'inclusion de la Suisse pour ce produit ; nous ne l'affirmons donc ni dans un sens ni dans l'autre.
 
 ---
 
@@ -223,9 +223,9 @@ Le **dossier professionnel** contient : votre rôle, votre séniorité, vos ann�
 
 **Nous n'anonymisons rien et nous ne masquons rien avant l'envoi.**
 
-**Nous n'entraînons aucun modèle d'intelligence artificielle sur vos données.** Aucun dispositif d'entraînement n'existe dans le code, et nous n'en avons pas le projet. Ce qu'OpenAI fait des données que nous lui envoyons ne dépend pas de nous mais du contrat qui nous lie à cette société : ⟦durée de rétention appliquée par OpenAI, exclusion de l'usage à des fins d'entraînement, éventuelle résidence des données dans l'UE — à compléter avant publication⟧.
+**Nous n'entraînons aucun modèle d'intelligence artificielle sur vos données.** Aucun dispositif d'entraînement n'existe dans le code, et nous n'en avons pas le projet. Ce qu'OpenAI fait des données que nous lui envoyons ne dépend pas de nous seuls. Deux réglages sont vérifiés sur notre compte, et vous pouvez nous demander une capture : le partage des entrées et sorties avec OpenAI à des fins d'amélioration de ses modèles est **désactivé**, ainsi que le partage des données d'évaluation et des retours. Nos requêtes précisent en outre `store: false`, ce qui demande à OpenAI de ne pas les conserver pour consultation. **Ce que nous n'avons pas encore établi**, et que nous ne prétendrons donc pas : la durée de rétention exacte qu'OpenAI applique malgré cela pour sa surveillance des abus, l'entité juridique avec laquelle nous avons contracté, et l'existence d'un accord de sous-traitance signé au sens de l'art. 28. Tant que ces trois points ne sont pas documentés ici, considérez que le texte de votre CV a été traité aux États-Unis sans garantie contractuelle vérifiée par nos soins.
 
-Cette analyse fonctionne parce que le service est configuré avec OpenAI. ⟦À confirmer sur le déploiement de production avant publication. Si vous installez ce code vous-même sans clé OpenAI, rien n'est envoyé à personne : le service se replie sur un calcul local, moins fin.⟧
+Cette analyse fonctionne parce que le service est configuré avec OpenAI — c'est le cas sur le déploiement de production, vérifié le 27 juillet 2026. Si vous installez ce code vous-même sans clé OpenAI, rien n'est envoyé à personne : le service se replie sur un calcul local, moins fin.
 
 ---
 
@@ -237,7 +237,7 @@ Nous nommons chaque destinataire. Nous n'écrivons pas « des prestataires ».
 |---|---|---|
 | **OpenAI** | Ce qui figure en section 9 | Sous-traitant : il traite sur nos instructions, pour nos seules finalités, sous contrat au sens de l'art. 28 RGPD |
 | **Supabase** | Toutes les données de la section 3. C'est notre base de données, notre système d'authentification, l'émetteur de vos cookies de session et l'expéditeur de vos liens de connexion — aucun autre service d'e-mail n'intervient | Sous-traitant (art. 28) |
-| **Vercel** | Tout ce qui transite entre votre navigateur et nous, le temps du passage, plus les journaux serveur. Nous nommons Vercel sur la foi de l'adresse de déploiement `missionpilot.vercel.app`, non sur la foi du dépôt, qui ne le nomme pas | Sous-traitant (art. 28) |
+| **Vercel** | Tout ce qui transite entre votre navigateur et nous, le temps du passage, plus les journaux serveur. Nous nommons Vercel sur la foi de l'adresse de déploiement `missionpilot.vercel.app`, qui reste un alias du service, et non sur la foi du dépôt, qui ne le nomme nulle part | Sous-traitant (art. 28) |
 | **Inngest** | Un seul message, pour la vérification technique : votre identifiant interne et un code qui empêche d'exécuter deux fois la même vérification. **Aucun contenu** | Sous-traitant (art. 28) |
 | **Adzuna, France Travail, Himalayas, Jobicy, Remotive, Remote OK, Recruitee** | Ce qui figure en section 8 | Destinataires |
 
@@ -251,11 +251,11 @@ Nous ne transmettons de données à une autorité que sur réquisition légale �
 
 ### 11.1 OpenAI
 
-**Nous transmettons à OpenAI, établie aux États-Unis d'Amérique**, les données décrites en section 9 : le texte intégral de votre CV, le texte de votre parcours LinkedIn, votre dossier professionnel et les offres à trier. Entité contractante : ⟦à compléter⟧.
+**Nous transmettons à OpenAI, établie aux États-Unis d'Amérique**, les données décrites en section 9 : le texte intégral de votre CV, le texte de votre parcours LinkedIn, votre dossier professionnel et les offres à trier. Nous n'avons pas encore établi avec quelle entité juridique d'OpenAI nous avons contracté, et nous ne le devinerons pas ici.
 
 **Décision d'adéquation.** Les États-Unis ne font pas l'objet d'une décision d'adéquation générale. Il existe une décision d'adéquation limitée — le **EU-U.S. Data Privacy Framework**, décision d'exécution (UE) 2023/1795 du 10 juillet 2023 — qui ne couvre que les organisations américaines certifiées à ce titre. **Nous ne fondons pas ce transfert sur elle.**
 
-**Garanties.** Ce transfert est encadré par les **clauses contractuelles types adoptées par la Commission européenne, décision d'exécution (UE) 2021/914 du 4 juin 2021**. ⟦À confirmer avant publication contre le contrat de sous-traitance effectivement signé avec OpenAI ; ne pas publier cette phrase sans lui.⟧
+**Garanties.** Nous ne pouvons pas encore affirmer que ce transfert est couvert par les clauses contractuelles types de la Commission européenne, ni par une autre garantie de l'article 46 : nous n'avons pas vérifié le contrat qui nous lie à OpenAI. Nous nous l'interdisons plutôt que de recopier une phrase que tout le monde écrit. C'est le premier point que nous devons régler, et il est ouvert.
 
 **Comment en obtenir copie.** Écrivez à **cve@hi-def.be** : nous vous en adressons copie dans le mois.
 
@@ -265,7 +265,11 @@ Les données que vous importez depuis LinkedIn nous parviennent à votre demande
 
 ### 11.3 Notre infrastructure
 
-Supabase, Vercel et Inngest sont des sociétés américaines. ⟦À compléter avant publication : région d'hébergement de la base et de l'application, entité contractante figurant sur chaque contrat de sous-traitance, mécanisme de transfert souscrit et moyen d'en obtenir copie. Tant que ces réponses manquent, cette sous-section n'est pas publiable.⟧
+Supabase, Vercel et Inngest sont des sociétés américaines.
+
+**Ce que nous avons vérifié.** La base de données qui contient votre profil est hébergée dans la région **West EU (Irlande)** — constaté dans la console Supabase le 27 juillet 2026. Vos données de profil sont donc stockées dans l'Union européenne.
+
+**Ce que nous n'avons pas encore établi**, et que nous ne comblerons pas par une formule : la région d'exécution des fonctions applicatives chez Vercel, la région d'Inngest, l'entité juridique figurant sur chacun de ces contrats, et le mécanisme de transfert souscrit avec chacune. Tant que ces points ne sont pas documentés ici, considérez qu'un accès depuis les États-Unis par le personnel de ces sociétés est possible.
 
 ---
 
@@ -297,13 +301,21 @@ Supabase, Vercel et Inngest sont des sociétés américaines. ⟦À compléter a
 
 **Un CV en contient souvent, sans que son auteur y ait pensé** : une interruption de carrière pour raison de santé, un aménagement de poste, un mandat syndical, un engagement confessionnel ou politique, une langue maternelle qui révèle une origine.
 
-**Ce qui se passe alors, exactement.** La mention part chez OpenAI avec le reste du texte : nous ne la retirons pas. Chez nous, aucun champ n'est prévu pour la recevoir. Trois zones de texte libre en accueillent une malgré tout : le résumé que le modèle rédige, vos réponses aux questions du produit, et le texte des preuves que vous ajoutez. Et le résumé fait partie du dossier professionnel : il repart donc chez OpenAI à chaque recherche, pour trier les offres, lire votre trajectoire et chercher le vocabulaire de votre métier.
+**Ce qui se passe alors, exactement.** La mention part chez OpenAI avec le reste du texte : nous ne la retirons pas du CV avant de l'envoyer. Chez nous, aucun champ n'est prévu pour la recevoir. Trois zones de texte libre en accueillent une malgré tout : le résumé que le modèle rédige, vos réponses aux questions du produit, et le texte des preuves que vous ajoutez. Et le résumé fait partie du dossier professionnel : il repart donc chez OpenAI à chaque recherche, pour trier les offres, lire votre trajectoire et chercher le vocabulaire de votre métier.
 
-**Ce que nous ne faisons pas, et que nous n'écrirons pas.** Nous n'avons donné au modèle aucune instruction lui interdisant d'extraire ces catégories. Aucune mesure technique ne les écarte du tri. Écrire le contraire serait faux.
+**La mesure technique que nous appliquons.** Les deux instructions que nous envoyons au modèle — celle qui analyse votre parcours et celle qui en extrait vos compétences — lui interdisent nommément d'extraire **et de reformuler** votre état de santé, un handicap, une grossesse, votre origine raciale ou ethnique, votre nationalité, vos opinions politiques, vos convictions religieuses ou philosophiques, une appartenance syndicale, votre vie ou orientation sexuelle, des données biométriques ou génétiques, et des condamnations pénales. Elles lui interdisent également de donner le motif d'une interruption de carrière.
+
+L'interdiction porte sur la reformulation autant que sur l'extraction, et ce n'est pas un détail : « n'extrais pas » laisserait le modèle libre de conserver une mention en la réécrivant — « disponible après une longue convalescence ».
+
+**Ce que cette mesure ne garantit pas.** Un modèle de langage n'obéit pas comme une règle de filtrage. Nous ne pouvons pas vous promettre qu'aucune mention ne survivra, et nous ne le promettons pas. C'est pourquoi la recommandation ci-dessous reste, à nos yeux, la protection principale — celle qui ne dépend pas de nous.
 
 **Ce que nous vous recommandons** : retirez de votre CV toute mention relative à votre santé, votre origine, vos convictions ou votre appartenance syndicale avant de le déposer. Ici, votre CV n'est pas destiné à un recruteur : il sert à décrire ce que vous savez faire.
 
-**Où nous en sommes.** Le RGPD interdit par principe le traitement de ces catégories, sauf exception de son article 9 — laquelle s'ajoute à la base légale du traitement et ne la remplace pas. La seule exception réaliste ici serait votre consentement explicite, recueilli par une case dédiée, non pré-cochée, distincte de l'acceptation des conditions générales, au moment du dépôt de votre CV. **Cette case n'existe pas aujourd'hui.** Tant qu'elle n'existe pas, la recommandation ci-dessus est la seule protection réelle, et c'est vous qui l'appliquez. Nous préférons l'écrire.
+**Notre base légale.** Le RGPD interdit par principe le traitement de ces catégories, sauf exception de son article 9 — laquelle s'ajoute à la base légale du traitement et ne la remplace pas. Nous nous fondons sur votre **consentement explicite, art. 9(2)(a)**, recueilli par une case dédiée, jamais pré-cochée, distincte de l'acceptation des conditions générales, et présentée au moment du dépôt de votre CV. Sans elle, nous ne lisons pas votre CV : la demande est refusée côté serveur, et non seulement dans votre navigateur.
+
+La date de votre accord est enregistrée, parce que l'art. 7(1) nous demande de pouvoir le démontrer. Une date déjà enregistrée n'est pas réécrite aux dépôts suivants : elle reste celle du moment où vous avez dit oui.
+
+**Vous pouvez le retirer à tout moment** (art. 7(3)), depuis « Mon compte », sans avoir à vous justifier. Le retrait vaut pour l'avenir : nous ne lirons plus de nouveau CV tant que vous ne l'aurez pas redonné. Ce que le modèle a déjà lu a déjà été lu, et les affirmations qui en sont issues restent dans votre profil, où vous pouvez les rejeter une par une — elles disparaissent avec votre compte.
 
 Nous ne nous fondons **pas** sur l'art. 9(2)(e) (« données manifestement rendues publiques ») : un CV déposé en privé n'est en aucun cas manifestement public.
 
@@ -314,7 +326,7 @@ Nous ne nous fondons **pas** sur l'art. 9(2)(e) (« données manifestement rendu
 | Élément | Durée |
 |---|---|
 | Fichier PDF de votre CV | **Zéro.** Lu en mémoire, jamais écrit |
-| Texte de votre CV | **Zéro chez nous.** Chez OpenAI : ⟦à compléter — section 9⟧ |
+| Texte de votre CV | **Zéro chez nous.** Chez OpenAI : durée non établie — voir section 9 |
 | Archive ZIP LinkedIn | **Zéro.** Décompressée en mémoire, jamais écrite |
 | Jeton d'accès LinkedIn | **Zéro.** Ni stocké, ni journalisé |
 | Texte de parcours LinkedIn reconstitué | **Zéro** |
@@ -322,10 +334,10 @@ Nous ne nous fondons **pas** sur l'art. 9(2)(e) (« données manifestement rendu
 | Dossier professionnel en cache mémoire | **Une heure au plus**, puis le plan est recalculé |
 | Compte, profil, préférences, affirmations et leur historique, preuves, réponses, versions de profil, traces et résultats de vérification technique | **Jusqu'à ce que vous supprimiez votre compte.** Aucune purge automatique n'est programmée : tant que votre compte existe, ces données existent |
 | Mot de passe, pour les comptes qui en ont un | Empreinte détenue par Supabase, jusqu'à la suppression du compte |
-| Lien de connexion envoyé par e-mail | **Une heure** ⟦durée fixée dans la configuration du projet Supabase, à confirmer par capture avant publication⟧ |
+| Lien de connexion envoyé par e-mail | **Une heure** |
 | Cookie `mp_li_state` | **Dix minutes**, et supprimé dès votre retour de LinkedIn, quelle que soit l'issue |
-| Cookies de session | ⟦Durée fixée par Supabase Auth — à compléter⟧ |
-| Journaux serveur | ⟦Durée fixée par notre hébergeur — à compléter⟧ |
+| Cookies de session | Durée fixée par Supabase Auth, que nous n'avons pas encore relevée |
+| Journaux serveur | Durée fixée par notre hébergeur, que nous n'avons pas encore relevée |
 
 ### Supprimer votre compte
 
@@ -344,9 +356,9 @@ Nous procédons de même, sans délai, si vous demandez la suppression par e-mai
 
 **Trois réserves, écrites parce qu'elles sont vraies :**
 
-- les données déjà transmises à OpenAI suivent le cycle prévu au contrat qui nous lie à cette société ⟦section 9⟧ ;
+- les données déjà transmises à OpenAI suivent le cycle propre à cette société, que nous n'avons pas encore établi (section 9) ;
 - les journaux serveur déjà écrits, qui ne contiennent pas votre identifiant utilisateur, suivent leur propre cycle chez notre hébergeur ;
-- les sauvegardes techniques de la base suivent le cycle de Supabase ⟦à compléter⟧.
+- les sauvegardes techniques de la base suivent le cycle de rotation de Supabase, dont nous n'avons pas encore relevé la durée.
 
 ---
 
@@ -354,17 +366,17 @@ Nous procédons de même, sans délai, si vous demandez la suppression par e-mai
 
 Vous disposez, sur les données que nous détenons à votre sujet, des droits suivants.
 
-**Accès** (art. 15) — obtenir la confirmation que vos données sont traitées et en recevoir copie.
+**Accès** (art. 15) — obtenir la confirmation que vos données sont traitées et en recevoir copie. Le bouton de téléchargement décrit ci-dessous (portabilité) vous en donne une copie immédiate, sans nous écrire.
 
 **Rectification** (art. 16) — corriger ce qui est inexact. Vous le faites depuis votre profil : la correction ajoute une nouvelle affirmation qui remplace la précédente, et la valeur antérieure reste chaînée dans la base. Pour l'effacement de la valeur antérieure elle-même, écrivez-nous.
 
-**Effacement** (art. 17) — supprimer l'intégralité de votre compte depuis votre profil (section 14). **Une affirmation ou une preuve prise isolément ne se supprime pas depuis l'interface** : vous pouvez la rejeter, ce qui la retire de votre profil et de la recherche sans effacer la ligne. Pour l'effacement de la donnée elle-même, écrivez à cve@hi-def.be ; nous procédons manuellement dans le mois.
+**Effacement** (art. 17) — supprimer l'intégralité de votre compte depuis « Mon compte ». La suppression est immédiate et définitive : elle efface votre profil, ses versions, vos affirmations et preuves, vos réponses, les offres importées, les analyses écrites pour vous, les traces d'exécution, et votre identité de connexion — e-mail, sessions et journal d'authentification, adresses IP comprises. L'écran vous montre ce qui va disparaître, avec les nombres de l'instant, et ce que nous ne pouvons pas effacer. **Une affirmation ou une preuve prise isolément ne se supprime pas depuis l'interface** : vous pouvez la rejeter, ce qui la retire de votre profil et de la recherche sans effacer la ligne. Pour l'effacement de la donnée elle-même, écrivez à cve@hi-def.be ; nous procédons manuellement dans le mois.
 
 **Limitation** (art. 18) — demander le gel d'un traitement le temps d'une contestation.
 
-**Portabilité** (art. 20) — recevoir vos données dans un format structuré, couramment utilisé et lisible par machine. Aucun bouton d'export n'existe : ce droit s'exerce par e-mail, et nous répondons dans le mois.
+**Portabilité** (art. 20) — recevoir vos données dans un format structuré, couramment utilisé et lisible par machine. Un bouton **« Télécharger mes données (JSON) »** est disponible depuis « Mon compte » : le fichier est produit immédiatement et contient les seize familles de données que nos bases détiennent sur vous. Il indique lui-même ce qu'il ne contient pas, et signale toute section qu'il n'aurait pas su lire — une section vide et une section manquante ne se confondent pas.
 
-**Retrait du consentement** (art. 13(2)(c)) — à tout moment, pour l'import LinkedIn par l'API (section 6.3). Le retrait vaut pour l'avenir et ne remet pas en cause la licéité de ce qui a été traité avant.
+**Retrait du consentement** (art. 13(2)(c)) — à tout moment, depuis « Mon compte », pour la lecture des informations sensibles d'un CV (section 13) comme pour l'import LinkedIn par l'API (section 6.3). Le retrait vaut pour l'avenir et ne remet pas en cause la licéité de ce qui a été traité avant.
 
 > ### Votre droit d'opposition
 >
@@ -421,7 +433,7 @@ Nous décrivons la logique, parce qu'elle vous concerne.
 
 **Importance et conséquences.** Ce mécanisme modifie l'ordre et la longueur d'une liste que vous consultez. **Il ne décide rien à votre sujet** : il ne vous embauche pas, ne vous refuse pas, ne transmet aucune évaluation de vous à un employeur, n'envoie aucune candidature, et ne vous attribue aucun score enregistré ni transmissible. Sa conséquence est qu'une offre pertinente ne vous est parfois pas présentée.
 
-**Nous en concluons que ce traitement ne constitue pas une décision individuelle automatisée au sens de l'art. 22 RGPD.** Nous le décrivons intégralement quand même, parce qu'il écarte réellement des offres et que vous avez le droit de le savoir. ⟦Qualification à faire confirmer par un juriste.⟧
+**Nous en concluons que ce traitement ne constitue pas une décision individuelle automatisée au sens de l'art. 22 RGPD.** Nous le décrivons intégralement quand même, parce qu'il écarte réellement des offres et que vous avez le droit de le savoir. Cette qualification est la nôtre et n'a pas été confirmée par un juriste ; nous préférons vous le dire.
 
 **Vous gardez la main** : vous modifiez vos préférences, vous corrigez ou rejetez toute affirmation, vous lancez vos propres recherches par mots-clés, et vous demandez une explication ou contestez le classement en écrivant à cve@hi-def.be.
 
@@ -447,7 +459,7 @@ MissionPilot dépose un cookie de son propre fait. S'y ajoute le cookie de sessi
 
 | Cookie | À quoi il sert | Durée |
 |---|---|---|
-| Cookie de session, posé par Supabase Auth | Vous garder connecté d'une page à l'autre | ⟦à compléter⟧ |
+| Cookie de session, posé par Supabase Auth | Vous garder connecté d'une page à l'autre | Durée fixée par Supabase Auth, non encore relevée |
 | `mp_li_state` | Vérifier que c'est bien vous qui revenez de LinkedIn, et empêcher qu'un autre site déclenche cet import à votre place. Il contient un identifiant aléatoire et rien d'autre. Il est inaccessible au JavaScript de la page | 10 minutes, supprimé au retour de LinkedIn |
 | — | **Aucun autre cookie applicatif.** Aucun cookie publicitaire, aucun cookie de mesure d'audience | — |
 | Stockage local du navigateur | Votre choix de thème clair ou sombre. Il reste sur votre appareil et ne nous est jamais transmis | Jusqu'à ce que vous l'effaciez |
@@ -459,7 +471,7 @@ Ces deux cookies sont strictement nécessaires au service que vous demandez : la
 ## 21. Sécurité
 
 - **Chiffrement en transit** : tous les échanges passent en HTTPS/TLS — avec votre navigateur, avec OpenAI, avec LinkedIn, avec les plateformes d'offres et avec la base de données.
-- **Chiffrement au repos** : Supabase chiffre les données stockées au repos ⟦affirmation du fournisseur, non vérifiable dans le dépôt — à confirmer avant publication⟧.
+- **Chiffrement au repos** : Supabase déclare chiffrer les données stockées au repos. C'est l'affirmation de notre fournisseur ; elle n'est pas vérifiable depuis notre code, et nous la rapportons comme telle plutôt que de la reprendre à notre compte.
 - **Cloisonnement par utilisateur** : les 16 tables du schéma portent une règle de sécurité au niveau de la ligne. Le contrôle est fait par la base, pas par l'application. Cette isolation est couverte par des tests automatisés.
 - **Immutabilité choisie** : les versions de profil et les captures d'offres ne sont modifiables par aucun rôle applicatif ; les traces d'exécution sont en ajout seul.
 - **Vérification de session** : nous validons votre session côté serveur, sur le jeton signé, et non par simple lecture du cookie — un cookie recopié ne suffit pas à se faire passer pour vous. Nous n'en extrayons que deux choses : votre identifiant et votre adresse e-mail.
