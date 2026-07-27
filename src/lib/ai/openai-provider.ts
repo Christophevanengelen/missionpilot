@@ -143,6 +143,15 @@ export class OpenAiProvider implements AiProvider {
           model: this.model,
           temperature: 0,
           max_completion_tokens: MAX_OUTPUT_TOKENS,
+          // Explicit, though `false` is already the default for this endpoint.
+          //
+          // What travels here is the FULL TEXT of someone's CV. The privacy
+          // policy states that it is not retained for review in the provider's
+          // console, and that promise must not rest on a remote default that
+          // OpenAI is free to change without telling us. Stating it in the
+          // request makes the claim verifiable in this file — which is the
+          // whole point of the product being readable.
+          store: false,
           response_format: {
             type: "json_schema",
             json_schema: {

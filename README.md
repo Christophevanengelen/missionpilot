@@ -213,3 +213,17 @@ explicitly approved step:
 
 No feature is complete until its acceptance criteria, automated checks,
 failure handling, audit trail and user-visible explanation are implemented.
+
+## Licence
+
+**GNU Affero General Public License v3.0 or later** — full text in
+[LICENSE](LICENSE).
+
+The AGPL was chosen deliberately, and the reason is the same one that runs
+through the product: this is a job-search engine that reads people's CVs. Its
+promise — that it does not sell, does not train on, and does not keep what it is
+given — is only verifiable because the code is readable. The AGPL keeps that
+true one step further than MIT would: **anyone who runs a modified version as a
+network service must publish their modifications.** Someone can fork this and
+host it; they cannot fork it, quietly weaken what it does with people's data,
+and still call it the same open thing.
