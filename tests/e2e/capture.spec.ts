@@ -50,7 +50,17 @@ test.afterAll(async () => {
 });
 
 async function shot(page: Page, name: string) {
-  await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
+  // `animations: "allow"` n'est pas un détail de confort. Par défaut Playwright
+  // désactive les animations pour la capture et rembobine celles qui ont un
+  // `animation-fill-mode: both` à leur image de DÉPART — ce qui, sur la page
+  // publique, effaçait tout le tracé de l'escalier d'une page pourtant juste
+  // (vérifié en direct : `stroke-dashoffset: 0`, animation `finished`).
+  // Une capture qui ment coûte plus cher que pas de capture : on y croit.
+  await page.screenshot({
+    path: `${OUT}/${name}.png`,
+    fullPage: true,
+    animations: "allow",
+  });
 }
 
 test("@capture le parcours complet, en images", async ({ page }) => {
