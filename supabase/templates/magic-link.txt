@@ -1,0 +1,44 @@
+MISSIONPILOT
+Lien de connexion
+
+------------------------------------------------------------
+
+Une demande de connexion vient d'être faite avec cette adresse.
+Le lien est ci-dessous. Un clic, et rien d'autre à faire.
+
+{{ .ConfirmationURL }}
+
+Ce lien ouvre la session : il vaut identifiant, ne le transférez
+à personne. MissionPilot fonctionne sans mot de passe et ne vous
+en demandera jamais.
+
+------------------------------------------------------------
+
+DESTINATAIRE   {{ .Email }}
+VALIDITÉ       Une heure à compter de la demande. Si vous en avez
+               demandé plusieurs, ouvrez le plus récent.
+ARRIVÉE        {{ .SiteURL }}
+
+L'adresse du lien ne commence pas par notre nom : il passe d'abord
+par notre prestataire d'authentification, puis ouvre {{ .SiteURL }}.
+S'il ne fonctionne plus, redemandez-en un : c'est sans conséquence.
+
+------------------------------------------------------------
+
+SI VOUS N'AVEZ RIEN DEMANDÉ
+
+Quelqu'un a saisi cette adresse sur MissionPilot. Si ce n'est pas
+vous, ignorez cet e-mail : sans ce clic, aucune session ne s'ouvre,
+et le lien expire seul.
+
+Si vous en recevez plusieurs sans les avoir demandés, écrivez-nous
+à cve@hi-def.be.
+
+------------------------------------------------------------
+
+Cet e-mail ne demande rien d'autre qu'un clic : aucune donnée,
+aucun formulaire, aucun code à transmettre. Votre CV ne se dépose
+que dans votre espace, jamais par e-mail. Nous ne postulons jamais
+à votre place.
+
+MissionPilot - {{ .SiteURL }}

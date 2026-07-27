@@ -437,3 +437,12 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Gabarit du lien de connexion — versionné ici pour que la pile LOCALE l'utilise.
+# La production ne lit PAS ce fichier : les gabarits hébergés vivent dans le
+# tableau de bord Supabase, et la CI ne fait que `db push`, jamais `config push`.
+# Toute modification doit donc être reportée aux deux endroits — c'est le même
+# piège que les réglages d'authentification, et il se paie de la même façon.
+[auth.email.template.magic_link]
+subject = "MissionPilot — votre lien de connexion (valable 1 heure)"
+content_path = "./supabase/templates/magic-link.html"
