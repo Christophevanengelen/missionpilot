@@ -257,6 +257,27 @@ export const copy = {
         needFile: "Déposez votre archive d'export LinkedIn (.zip).",
         detectedTitle: "Compétences détectées dans votre export LinkedIn",
       },
+      /**
+       * L'import automatique par l'API LinkedIn. Les mots comptent ici :
+       * « connecter » promettrait un bouton OAuth qui n'existe pas pour ce
+       * produit, et « jeton » dit la vérité sur ce qui est demandé. La phrase
+       * sur la non-conservation n'est pas rassurante par politesse : c'est la
+       * règle appliquée dans le code, où le jeton n'est ni stocké ni journalisé.
+       */
+      linkedinApi: {
+        title: "…ou laissez LinkedIn vous l'envoyer directement",
+        note: "Import automatique de vos postes, formations, compétences et préférences, via l'API officielle de portabilité des données. Il faut d'abord créer une application sur le portail développeur LinkedIn (gratuit, sans société, accordé sans revue) puis y générer un jeton. Réservé aux membres de l'UE et de Suisse.",
+        tokenLabel: "Jeton d'accès LinkedIn",
+        tokenHelp:
+          "Le jeton n'est ni enregistré ni journalisé : il sert à cet import, puis il disparaît. Il expire de lui-même au bout de 60 jours.",
+        portail: "Ouvrir le portail développeur LinkedIn",
+        analyze: "Importer depuis LinkedIn",
+        needToken: "Collez le jeton généré dans le portail LinkedIn.",
+        rapportTitle: "Ce que LinkedIn a renvoyé",
+        rapportVide: "aucune donnée",
+        rapportLignes: (n: number) =>
+          n === 1 ? "1 enregistrement" : `${n} enregistrements`,
+      },
       errors: {
         empty: "Le document semble vide.",
         pdf: "Ce PDF n'a pas pu être lu. Collez plutôt le texte de votre CV.",
@@ -1124,6 +1145,22 @@ export const copy = {
         analyze: "Analyze my LinkedIn export",
         needFile: "Drop your LinkedIn export archive (.zip).",
         detectedTitle: "Skills detected in your LinkedIn export",
+      },
+      /** Wording matters: "connect" would promise an OAuth button that does not
+       *  exist for this product, "token" states what is actually being asked.
+       *  The not-stored sentence is the rule the code enforces, not a courtesy. */
+      linkedinApi: {
+        title: "…or let LinkedIn send it to you directly",
+        note: "Automatic import of your positions, education, skills and preferences, through the official data-portability API. You first create an app on the LinkedIn developer portal (free, no company required, granted without review) and generate a token there. Available to EU and Swiss members only.",
+        tokenLabel: "LinkedIn access token",
+        tokenHelp:
+          "The token is neither stored nor logged: it serves this import, then it is gone. It expires on its own after 60 days.",
+        portail: "Open the LinkedIn developer portal",
+        analyze: "Import from LinkedIn",
+        needToken: "Paste the token generated in the LinkedIn portal.",
+        rapportTitle: "What LinkedIn returned",
+        rapportVide: "no data",
+        rapportLignes: (n: number) => (n === 1 ? "1 record" : `${n} records`),
       },
       errors: {
         empty: "The document looks empty.",

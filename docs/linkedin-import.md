@@ -130,3 +130,77 @@ Le **scraping de LinkedIn**, définitivement. La question ci-dessus ne porte que
 sur les API officielles, avec le consentement explicite du membre. Un
 `robots.txt` permissif ne serait pas un consentement, et une API fermée n'est pas
 une invitation à passer par la fenêtre.
+
+---
+
+## Import automatique par l'API (Member Data Portability) — vérifié le 27/07/2026
+
+La conclusion précédente de ce document — « aucune API n'est accessible sans
+société vérifiée » — était **fausse pour une des deux variantes**. Correction.
+
+### Ce que la documentation LinkedIn établit
+
+| Voie                         | Rend le parcours ?            | Société vérifiée ?              | Self-service ?                                          |
+| ---------------------------- | ----------------------------- | ------------------------------- | ------------------------------------------------------- |
+| Sign In with LinkedIn (OIDC) | **Non** — 8 champs d'identité | Non                             | Oui                                                     |
+| Profile API `r_basicprofile` | Non                           | Approbation                     | Non                                                     |
+| `r_fullprofile`              | —                             | —                               | **Fermé** (« Access to `r_fullprofile` is now closed ») |
+| **MDP (Member)**             | **Oui, complet**              | **Non**                         | **Oui, sans revue**                                     |
+| MDP (3rd Party)              | Oui, complet                  | **Oui** + e-mail de domaine pro | Non, revue                                              |
+
+La variante **Member** est celle qui est implémentée. LinkedIn fournit une page
+entreprise par défaut exprès pour elle ; créer la sienne rendrait au contraire
+la demande d'accès impossible.
+
+Contraintes assumées : membres **UE/Suisse uniquement**, jeton **généré à la
+main** dans le portail et valable ~60 jours, donc **pas de bouton public** —
+c'est un import qu'une personne déclenche pour elle-même.
+
+### Mise en service (actions du propriétaire — jamais automatisables)
+
+1. <https://www.linkedin.com/developers/apps> → **Create app**.
+2. Associer la page **« Member Data Portability (Member) Default Company »**.
+   Ne PAS créer de page entreprise : l'accès ne serait alors pas proposé.
+3. Onglet **Products** → **Member Data Portability API (Member)** → accepter
+   les conditions. Accès accordé immédiatement, sans revue.
+4. **Docs and tools** → **OAuth Token Tools** → _Create token_ → cocher le
+   scope de portabilité → consentir. Copier le jeton.
+5. Dans MissionPilot : `/profile` → « …ou laissez LinkedIn vous l'envoyer
+   directement » → coller le jeton → **Importer depuis LinkedIn**.
+
+### Décisions d'implémentation
+
+**Le jeton n'est jamais conservé.** Ni colonne, ni variable d'environnement, ni
+cache : il arrive en argument de l'action, il sert, il disparaît — comme le
+fichier CV. La promesse « rien n'est gardé sauf le profil » ne souffre pas
+d'exception, surtout pas pour un secret. Il n'entre pas non plus dans les
+journaux ni dans les messages d'erreur, qui sont rédigés à partir du seul code
+de statut.
+
+**Les recommandations ne sont pas importées sans discriminant.** Le domaine
+`RECOMMENDATIONS` mélange celles reçues et celles écrites pour d'autres, et le
+champ qui les distingue n'est pas documenté. En son absence : rien n'est
+importé, et l'écran le dit. Verser dans le dossier de quelqu'un l'éloge qu'il a
+rédigé pour un tiers serait la pire faute possible pour un produit qui cite des
+preuves.
+
+**Un compte rendu par domaine est affiché.** Les libellés renvoyés ne sont
+documentés pour aucun domaine sauf `PROFILE` ; sans ce compte rendu, un import
+qui ne trouve rien ressemblerait trait pour trait à un import réussi.
+
+**Les deux chemins partagent `buildCareerProfileFromRecords`.** Les règles
+d'honnêteté vivent dans cette fonction ; un second constructeur serait un
+endroit où les oublier.
+
+### Pièges vérifiés dans la documentation
+
+- `Linkedin-Version: 202312` est la **seule** version acceptée (sinon `426`).
+- `start` est un **numéro de page**, pas un décalage d'éléments.
+- `elements` contient **toujours exactement un** élément.
+- Les noms de domaines sont **sensibles à la casse**.
+- `snapshotData` a des clés **lisibles avec espaces et majuscules**
+  (« First Name »), jamais du camelCase — d'où la minusculisation à la lecture,
+  sans quoi l'import ne trouverait rien **sans lever d'erreur**.
+- Après consentement, certains domaines mettent un moment à être prêts.
+
+Sources : [Member Snapshot API](https://learn.microsoft.com/en-us/linkedin/dma/member-data-portability/shared/member-snapshot-api), [Snapshot Domains](https://learn.microsoft.com/en-us/linkedin/dma/member-data-portability/shared/snapshot-domain), [MDP (Member)](https://learn.microsoft.com/en-us/linkedin/dma/member-data-portability/member-data-portability-member/), [MDP (3rd Party)](https://learn.microsoft.com/en-us/linkedin/dma/member-data-portability/member-data-portability-3rd-party/).
