@@ -59,16 +59,29 @@ test.describe("page publique", () => {
     ).toBeVisible();
   });
 
-  test("ne prétend pas qu'on puisse s'inscrire", async ({ page }) => {
-    // Les inscriptions sont fermées. Un bouton d'espoir menant à un mur est
-    // pire qu'une page qui dit franchement pour qui elle est aujourd'hui.
+  test("mène quelque part : un chemin d’entrée, et il dit ce qui attend", async ({
+    page,
+  }) => {
+    // Ce test disait l'inverse tant que les inscriptions étaient fermées. La
+    // page a longtemps eu raison de ne rien promettre — mais une landing qui
+    // explique un produit sans porte d'entrée n'est pas honnête, c'est juste
+    // une impasse. Les trois étapes valent autant que le bouton : quelqu'un qui
+    // donne son adresse a le droit de savoir ce qu'il y a derrière.
     await page.goto("/");
-    await expect(page.getByText(/bêta privée/i)).toBeVisible();
     await expect(
-      page.getByRole("link", {
-        name: /créer un compte|s’inscrire|inscription/i,
-      }),
-    ).toHaveCount(0);
+      page.getByRole("link", { name: "Démarrer" }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/aucun mot de passe à inventer/i),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/votre CV, ou votre export LinkedIn/i),
+    ).toBeVisible();
+
+    // Et le chemin mène vraiment à l'entrée, pas à un cul-de-sac.
+    await page.getByRole("link", { name: "Démarrer" }).first().click();
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByLabel("Votre e-mail")).toBeVisible();
   });
 
   test("aucun débordement horizontal à 390 px, et le dessin reste lisible", async ({
