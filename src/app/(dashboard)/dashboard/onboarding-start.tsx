@@ -21,13 +21,15 @@ import { CvImport } from "../profile/cv-import";
  * what the archive already contains. Naming it "connect" would promise a
  * button that cannot exist — see docs/linkedin-import.md.
  */
-export function OnboardingStart() {
+export function OnboardingStart({
+  linkedInPret = false,
+}: { linkedInPret?: boolean } = {}) {
   const [choice, setChoice] = useState<"cv" | "linkedin" | null>(null);
 
   if (choice !== null) {
     return (
       <div className="flex flex-col gap-3">
-        <CvImport only={choice} />
+        <CvImport only={choice} linkedInPret={linkedInPret} />
         <button
           type="button"
           onClick={() => setChoice(null)}
@@ -60,7 +62,9 @@ export function OnboardingStart() {
           onClick={() => setChoice("linkedin")}
           className="border-border hover:border-foreground/40 flex flex-col gap-1 rounded-lg border p-4 text-left motion-safe:transition-colors"
         >
-          <span className="font-medium">Mon export LinkedIn</span>
+          <span className="font-medium">
+            {linkedInPret ? "Remplir avec LinkedIn" : "Mon export LinkedIn"}
+          </span>
           <span className="text-muted-foreground text-sm text-pretty">
             Votre propre archive officielle. Elle contient vos recommandations,
             que votre CV n&apos;a pas.
