@@ -422,7 +422,7 @@ export function Landing() {
                 href="/login"
                 className="rounded-md bg-[oklch(0.97_0.005_85)] px-5 py-2.5 text-sm font-medium text-[oklch(0.155_0.025_265)] motion-safe:transition-opacity hover:opacity-90"
               >
-                J’ai un compte — se connecter
+                Démarrer
               </Link>
               <a
                 href="https://github.com/Christophevanengelen/missionpilot"
@@ -678,34 +678,36 @@ export function Landing() {
             id="acces"
             className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
           >
-            Y accéder
+            Commencer
           </h2>
-          <p
-            className={`${INK_MUTED} max-w-2xl text-lg leading-relaxed text-pretty`}
+          {/* Les trois étapes AVANT le bouton. Quelqu'un qui donne son adresse
+              a le droit de savoir ce qui l'attend derrière — et surtout que ça
+              se compte en minutes, pas en formulaire de dix champs. */}
+          <ol
+            className={`${INK_MUTED} flex max-w-2xl flex-col gap-3 text-lg leading-relaxed`}
           >
-            MissionPilot est en{" "}
-            <strong className="font-medium text-[oklch(0.97_0.005_85)]">
-              bêta privée
-            </strong>{" "}
-            : les comptes sont créés par l’administrateur et les inscriptions
-            sont fermées. Il n’y a donc rien à remplir ici, et ce serait vous
-            faire perdre votre temps que de le prétendre.
-          </p>
-          <p
-            className={`${INK_MUTED} max-w-2xl text-lg leading-relaxed text-pretty`}
-          >
-            En revanche le projet est{" "}
-            <strong className="font-medium text-[oklch(0.97_0.005_85)]">
-              open source
-            </strong>{" "}
-            : vous pouvez lire le code, et l’héberger vous-même.
-          </p>
+            <li className="text-pretty">
+              <span className={`${GOLD} ${LABEL} mr-3`}>01</span>
+              Votre e-mail, et rien d’autre. Un lien de connexion arrive — aucun
+              mot de passe à inventer.
+            </li>
+            <li className="text-pretty">
+              <span className={`${GOLD} ${LABEL} mr-3`}>02</span>
+              Votre CV, ou votre export LinkedIn. L’IA le lit et vous restitue
+              ce qu’elle a compris, y compris ce qu’elle ignore.
+            </li>
+            <li className="text-pretty">
+              <span className={`${GOLD} ${LABEL} mr-3`}>03</span>
+              Les offres arrivent, et reviennent à chaque connexion — sans que
+              vous ayez à chercher.
+            </li>
+          </ol>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/login"
               className="rounded-md bg-[oklch(0.97_0.005_85)] px-5 py-2.5 text-sm font-medium text-[oklch(0.155_0.025_265)] motion-safe:transition-opacity hover:opacity-90"
             >
-              J’ai un compte — se connecter
+              Démarrer
             </Link>
             <a
               href="https://github.com/Christophevanengelen/missionpilot"
@@ -716,6 +718,10 @@ export function Landing() {
               Voir le code
             </a>
           </div>
+          <p className={`${INK_MUTED} max-w-2xl text-pretty`}>
+            Le projet est open source : vous pouvez lire le code, vérifier ce
+            qu’il fait de vos données, et l’héberger vous-même.
+          </p>
           <p className={`${INK_MUTED} ${LABEL} border-t pt-6 ${INK_RULE} mt-4`}>
             Des annonces vivantes · aucune candidature envoyée en votre nom
           </p>
