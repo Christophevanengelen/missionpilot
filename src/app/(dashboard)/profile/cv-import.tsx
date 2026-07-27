@@ -66,6 +66,11 @@ export function CvImport({
   // ATS findings to show alongside an error on the idle form (e.g. a scanned
   // image PDF that extracts no text — the note is the actionable message).
   const [idleAtsFindings, setIdleAtsFindings] = useState<AtsFinding[]>([]);
+  /* Jamais pré-coché, et à dessein : un consentement pré-coché n'en est pas un
+     (art. 4(11) — « acte positif clair »). L'état repart à faux à chaque
+     montage, donc à chaque nouveau dépôt. */
+  const [consentArt9, setConsentArt9] = useState(false);
+  const consentRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const linkedinRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
@@ -148,6 +153,13 @@ export function CvImport({
       setError(copy.errors.tooLarge);
       return;
     }
+    // Refus AVANT l'envoi : inutile de faire voyager un CV pour le renvoyer.
+    // Le focus va sur la case, pas sur le message — c'est là qu'il faut agir.
+    if (!consentArt9) {
+      setError(copy.errors.consent);
+      consentRef.current?.focus();
+      return;
+    }
     inFlightRef.current = true;
     setBusy(true);
     setError(null);
@@ -156,6 +168,9 @@ export function CvImport({
       const formData = new FormData();
       if (file) formData.set("file", file);
       if (pasted.trim()) formData.set("text", pasted);
+      // Le consentement voyage avec le dépôt. Le serveur le revérifie : ici ce
+      // n'est qu'un transport, pas un contrôle.
+      if (consentArt9) formData.set("consentArt9", "on");
       const result = await analyzeCvAction(formData);
       // On an error/no-skills path the idle form stays visible — surface the
       // ATS note there (a scanned image PDF's key guidance). `atsFindings` is
@@ -530,6 +545,31 @@ export function CvImport({
               className="border-input bg-background w-full min-w-0 rounded-lg border p-3 text-sm"
             />
           </div>
+          {/* Le consentement de l'art. 9, juste avant le bouton : c'est le
+              moment de la décision, pas une case perdue en bas de page. */}
+          <div className="border-border flex flex-col gap-2 border-t pt-3">
+            <div className="flex items-start gap-2">
+              <input
+                id="cv-consent-art9"
+                ref={consentRef}
+                type="checkbox"
+                checked={consentArt9}
+                onChange={(e) => setConsentArt9(e.target.checked)}
+                disabled={busy}
+                className="border-input mt-1 size-4 shrink-0 rounded"
+              />
+              <Label htmlFor="cv-consent-art9" className="text-sm font-normal">
+                {copy.art9.label}
+              </Label>
+            </div>
+            <p className="text-muted-foreground pl-6 text-xs text-pretty">
+              {copy.art9.detail}
+            </p>
+            <p className="text-muted-foreground pl-6 text-xs text-pretty">
+              {copy.art9.mesure}
+            </p>
+          </div>
+
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" size="sm" {...busyProps}>
               {copy.analyze}

@@ -2,7 +2,9 @@ import { verifySession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/db/server";
 import { loadAccountFootprint } from "@/lib/account/logic";
 import { lignesEmpreinte, NON_INCLUS } from "@/lib/account/export";
+import { lireMonConsentementArt9 } from "@/lib/profile/cv-actions";
 import { ExportPanel } from "./export-panel";
+import { ConsentPanel } from "./consent-panel";
 import { DeleteAccount } from "./delete-account";
 
 export const metadata = { title: "Vos données et votre compte" };
@@ -23,6 +25,7 @@ export default async function ComptePage() {
   const client = await createClient();
   const empreinte = await loadAccountFootprint(client);
   const lignes = lignesEmpreinte(empreinte);
+  const consentArt9 = await lireMonConsentementArt9();
 
   return (
     <div className="flex max-w-2xl flex-col gap-10">
@@ -40,6 +43,8 @@ export default async function ComptePage() {
       </header>
 
       <ExportPanel />
+
+      <ConsentPanel donneLe={consentArt9} />
 
       <section
         aria-labelledby="suppression"

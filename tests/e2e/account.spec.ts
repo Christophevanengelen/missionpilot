@@ -167,3 +167,31 @@ test("/au-revoir sans témoin n'affirme aucune suppression", async ({ page }) =>
   ).toBeVisible();
   await expect(page.getByText("Votre compte a été supprimé.")).toHaveCount(0);
 });
+
+test("le CV n'est pas lu tant que la case de consentement n'est pas cochée", async ({
+  page,
+}) => {
+  const u = await creerUtilisateur();
+  try {
+    await seConnecter(page, u.email, u.password);
+    await page.goto("/profile");
+
+    // Coller un CV sans cocher : le refus doit venir AVANT tout envoi.
+    await page
+      .getByLabel("…ou collez le texte de votre CV")
+      .fill("Service Designer, 11 ans d'expérience. Refonte pilotée.");
+    await page.getByRole("button", { name: "Analyser mon CV" }).click();
+
+    await expect(page.getByText(/Cochez la case ci-dessus/)).toBeVisible();
+    // Ce n'est pas une panne : le message ne doit pas inviter à réessayer.
+    await expect(page.getByText(/Réessayez/)).toHaveCount(0);
+
+    // Et la page de compte confirme qu'aucun accord n'a été donné.
+    await page.goto("/compte");
+    await expect(
+      page.getByText(/Vous n’avez pas donné cet accord/),
+    ).toBeVisible();
+  } finally {
+    await admin().auth.admin.deleteUser(u.userId);
+  }
+});

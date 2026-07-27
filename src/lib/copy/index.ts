@@ -302,6 +302,21 @@ export const copy = {
         tooLarge:
           "Ce fichier dépasse 10 Mo. Exportez une version plus légère ou collez le texte de votre CV.",
         generic: "L'analyse n'a pas abouti. Réessayez.",
+        /* Ce n'est PAS une panne : c'est un refus délibéré. Le message ne dit
+           donc pas « réessayez » — il dit quoi faire pour avancer. */
+        consent:
+          "Cochez la case ci-dessus pour que nous puissions lire votre CV. Sans elle, nous n'y touchons pas.",
+      },
+      /* La case du consentement — art. 9(2)(a). Elle est dédiée, séparée de
+         toute autre acceptation, et jamais pré-cochée : un consentement
+         pré-coché n'en est pas un. */
+      art9: {
+        label:
+          "J'accepte que MissionPilot lise mon CV, y compris si j'y ai laissé une information sensible.",
+        detail:
+          "Un CV mentionne parfois une interruption de carrière pour raison de santé, un mandat syndical, une nationalité, un engagement associatif ou religieux. Ces informations sont protégées, et les lire demande votre accord explicite.",
+        mesure:
+          "De notre côté, nous demandons au modèle de ne pas les extraire ni les reformuler. Nous ne pouvons pas vous le garantir : le meilleur réflexe reste de les retirer de votre CV avant de le déposer.",
       },
       ats: {
         title: "Lisibilité par les logiciels de recrutement (ATS)",
@@ -1194,6 +1209,16 @@ export const copy = {
         tooLarge:
           "This file exceeds 10 MB. Export a lighter version or paste your CV's text.",
         generic: "The analysis did not go through. Try again.",
+        consent:
+          "Tick the box above so we can read your CV. Without it, we do not touch it.",
+      },
+      art9: {
+        label:
+          "I agree that MissionPilot may read my CV, including if I have left sensitive information in it.",
+        detail:
+          "A CV sometimes mentions a career break for health reasons, a union mandate, a nationality, a religious or community involvement. That information is protected, and reading it requires your explicit agreement.",
+        mesure:
+          "On our side, we instruct the model not to extract or rephrase it. We cannot guarantee this: the safest move is still to remove it from your CV before uploading.",
       },
       ats: {
         title: "Readability by recruiting software (ATS)",
