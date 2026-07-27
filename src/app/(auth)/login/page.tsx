@@ -74,8 +74,8 @@ export default async function LoginPage() {
               <span aria-hidden="true" className="mr-2">
                 —
               </span>
-              Aucune offre n&apos;est stockée. Votre profil est la seule chose
-              que nous gardons.
+              Rien qui soit déjà pourvu : chaque recherche interroge les
+              plateformes en direct.
             </li>
             <li>
               <span aria-hidden="true" className="mr-2">
