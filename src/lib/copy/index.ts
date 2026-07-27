@@ -72,7 +72,7 @@ export const copy = {
       answerFailed: "Je n'ai pas pu enregistrer. Réessayez.",
       resultsTitle: "Ce que le marché a pour vous",
       resultsLead:
-        "Cherché à l'instant, sur les plateformes que nous couvrons. Chaque résultat mène à l'annonce d'origine.",
+        "Les plateformes que nous couvrons, interrogées en direct. Chaque résultat mène à l'annonce d'origine.",
       searching: "Nous interrogeons les plateformes…",
       nudge: (score: number, ask: string) =>
         `Profil à ${score} %. En nous donnant ${ask}, on cherche mieux pour vous.`,
@@ -111,6 +111,16 @@ export const copy = {
       trajectoryQuestions: "Ce qu'il nous manque pour en être sûrs",
       autoNote:
         "Cette liste a été cherchée pour vous à l'ouverture, sur les métiers déduits de votre CV. Ajustez ci-dessous si vous voulez autre chose.",
+      // Deux messages et non un seul : « on n'a pas su formuler votre
+      // recherche » et « la recherche a échoué » ne se réparent pas du tout de
+      // la même façon. Les confondre enverrait la moitié des gens cliquer sur
+      // un bouton qui ne peut rien pour eux.
+      openingNoPlan:
+        "Nous n'avons pas su formuler une recherche pour vous : votre métier visé n'est pas encore renseigné.",
+      openingNoPlanAction: "Choisir un métier et chercher",
+      openingFailed:
+        "La recherche d'ouverture n'a pas abouti. Rien n'a pu être interrogé.",
+      openingFailedAction: "Relancer la recherche",
       loading: "Nous interrogeons les plateformes…",
       searching: "Recherche en cours…",
       refineLabel: "Affiner les résultats",
@@ -973,7 +983,7 @@ export const copy = {
       answerFailed: "I could not save that. Try again.",
       resultsTitle: "What the market has for you",
       resultsLead:
-        "Searched just now, across the platforms we cover. Every result leads to the original posting.",
+        "The platforms we cover, queried live. Every result leads to the original posting.",
       searching: "Querying the platforms…",
       nudge: (score: number, ask: string) =>
         `Profile at ${score}%. Give us ${ask} and we search better for you.`,
@@ -1007,6 +1017,14 @@ export const copy = {
       trajectoryQuestions: "What we still need to be sure",
       autoNote:
         "This list was searched for you on arrival, using the roles inferred from your CV. Adjust below if you want something else.",
+      // Two messages, not one: "we could not put a search together" and "the
+      // search failed" are not fixed the same way.
+      openingNoPlan:
+        "We could not put a search together for you: your target role is not set yet.",
+      openingNoPlanAction: "Pick a role and search",
+      openingFailed:
+        "The opening search did not go through. Nothing could be queried.",
+      openingFailedAction: "Run the search again",
       loading: "Querying the platforms…",
       searching: "Searching…",
       refineLabel: "Refine results",

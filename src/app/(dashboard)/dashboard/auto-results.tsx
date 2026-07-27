@@ -34,6 +34,16 @@ export async function AutoResults({ countries }: { countries: string[] }) {
   let initial: MarketSearchResult | null = null;
   let query = "";
   let plan: Awaited<ReturnType<typeof planFromProfile>> | null = null;
+  /**
+   * Pourquoi l'ouverture n'a rien donné, quand c'est le cas.
+   *
+   * Le défaut par défaut est "error" : si le bloc lève avant même d'avoir pu
+   * décider, c'est bien une panne. Le motif est posé LÀ OÙ IL SE PRODUIT et
+   * jamais déduit d'un `initial === null` — le triage IA peut échouer après
+   * une recherche parfaitement réussie, et on annoncerait alors une panne à
+   * quelqu'un dont la recherche a marché.
+   */
+  let issue: "ok" | "no_plan" | "error" = "error";
   try {
     const client = await createClient();
     const profile = await getOwnProfile(client);
@@ -62,6 +72,7 @@ export async function AutoResults({ countries }: { countries: string[] }) {
     query = preferences.targetRoleFamilies[0] ?? "";
     const sources = configuredSources(countries);
     if (plans.length > 0 && sources.length > 0) {
+      issue = "ok";
       initial = await searchMarket(
         plans,
         sources,
@@ -75,6 +86,8 @@ export async function AutoResults({ countries }: { countries: string[] }) {
           });
         },
       );
+    } else {
+      issue = "no_plan";
     }
     // Read the offers and drop the noise. Until now the engine compared job
     // TITLES and nothing else — the demand side of an offer was never
@@ -100,7 +113,9 @@ export async function AutoResults({ countries }: { countries: string[] }) {
       defaultQuery={query}
       defaultCountries={countries}
       initialResult={initial}
+      openingOutcome={issue}
       stepUpTitles={plan?.stepUpTitles ?? []}
+      searchedTitles={plan?.searchedTitles ?? []}
       trajectory={
         plan?.trajectory
           ? {
