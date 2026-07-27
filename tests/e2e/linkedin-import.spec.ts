@@ -95,36 +95,28 @@ test("import export LinkedIn : archive → narratif → compétences déclarées
 });
 
 /**
- * L'import automatique par l'API de portabilité. Il n'est pas exercé de bout en
- * bout ici : cela demanderait un vrai jeton LinkedIn, c'est-à-dire un secret
- * dans le dépôt. Ce qui EST vérifié est ce qui peut l'être sans secret, et qui
- * est exactement ce qui protège la personne — le champ masque la saisie, et
- * l'écran énonce que le jeton n'est pas conservé.
+ * Le chemin « Remplir avec LinkedIn ».
+ *
+ * Ce que ce test protège vraiment : l'ABSENCE du bouton quand rien n'est
+ * configuré. Un bouton visible qui mène à une erreur de configuration se paie
+ * sur le premier écran, là où ça coûte le plus — et c'est précisément ce qui
+ * arrive si l'on oublie de conditionner l'affichage.
+ *
+ * Il vérifie aussi qu'aucun champ « jeton » ne subsiste. C'est le vestige d'une
+ * erreur de conception : un outil de développeur exposé à un utilisateur. Il ne
+ * doit pas revenir par inadvertance.
  */
-test("import par l’API LinkedIn : le jeton est masqué et sa non-conservation est écrite", async ({
+test("sans configuration LinkedIn : pas de bouton, pas de champ jeton, et l'archive reste possible", async ({
   page,
 }) => {
   await signIn(page);
   await page.goto("/profile");
 
-  const champ = page.getByLabel("Jeton d'accès LinkedIn");
-  await expect(champ).toBeVisible();
-  // Un jeton en clair finit dans une capture d'écran ou dans le dos de
-  // quelqu'un ; le masquage n'est pas cosmétique.
-  await expect(champ).toHaveAttribute("type", "password");
-  // Et il ne doit jamais être proposé au remplissage automatique du navigateur.
-  await expect(champ).toHaveAttribute("autocomplete", "off");
-
+  await expect(page.getByLabel("Jeton d'accès LinkedIn")).toHaveCount(0);
   await expect(
-    page.getByText(/n'est ni enregistré ni journalisé/i),
-  ).toBeVisible();
+    page.getByRole("link", { name: "Remplir avec LinkedIn" }),
+  ).toHaveCount(0);
 
-  // Sans jeton, l'écran demande, il n'appelle pas LinkedIn.
-  await page.getByRole("button", { name: "Importer depuis LinkedIn" }).click();
-  // Filtré sur le contenu : Next rend son propre annonceur de route avec
-  // `role="alert"`, toujours vide. Viser le rôle seul rend l'assertion
-  // ambiguë — et une assertion ambiguë échoue pour la mauvaise raison.
-  await expect(
-    page.getByRole("alert").filter({ hasText: "Collez le jeton" }),
-  ).toBeVisible();
+  // Le chemin qui marche pour tout le monde, lui, doit toujours être là.
+  await expect(page.getByText("importez votre export LinkedIn")).toBeVisible();
 });

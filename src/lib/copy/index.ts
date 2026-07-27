@@ -251,7 +251,7 @@ export const copy = {
       },
       linkedin: {
         title: "…ou importez votre export LinkedIn",
-        note: "Sur LinkedIn : Préférences → Confidentialité des données → « Obtenir une copie de vos données » → cochez Profil, Postes, Compétences, Formation, et surtout Recommandations et Préférences de recherche — ce sont celles qui disent l'ampleur de vos missions et le poste que vous visez. Déposez l'archive .zip ici. Rien n'est récupéré automatiquement : c'est votre propre export officiel.",
+        note: "Déposez ici l'archive que LinkedIn vous a envoyée par e-mail.",
         fileLabel: "Archive d'export LinkedIn (.zip)",
         analyze: "Analyser mon export LinkedIn",
         needFile: "Déposez votre archive d'export LinkedIn (.zip).",
@@ -265,13 +265,13 @@ export const copy = {
        * règle appliquée dans le code, où le jeton n'est ni stocké ni journalisé.
        */
       linkedinApi: {
-        title: "…ou laissez LinkedIn vous l'envoyer directement",
-        note: "Import automatique de vos postes, formations, compétences et préférences, via l'API officielle de portabilité des données. Il faut d'abord créer une application sur le portail développeur LinkedIn (gratuit, sans société, accordé sans revue) puis y générer un jeton. Réservé aux membres de l'UE et de Suisse.",
+        title: "…ou remplissez avec LinkedIn",
+        note: "LinkedIn vous demandera votre accord, puis nous enverra vos postes, formations et compétences. Rien n'est confirmé automatiquement : vous relisez et vous validez, comme pour un CV. Réservé aux membres de l'UE et de Suisse.",
         tokenLabel: "Jeton d'accès LinkedIn",
         tokenHelp:
-          "Le jeton n'est ni enregistré ni journalisé : il sert à cet import, puis il disparaît. Il expire de lui-même au bout de 60 jours.",
+          "L'autorisation n'est pas conservée : elle sert à cet import, puis elle disparaît.",
         portail: "Ouvrir le portail développeur LinkedIn",
-        analyze: "Importer depuis LinkedIn",
+        analyze: "Remplir avec LinkedIn",
         needToken: "Collez le jeton généré dans le portail LinkedIn.",
         rapportTitle: "Ce que LinkedIn a renvoyé",
         rapportVide: "aucune donnée",
@@ -1140,7 +1140,7 @@ export const copy = {
       },
       linkedin: {
         title: "…or import your LinkedIn export",
-        note: 'On LinkedIn: Settings → Data privacy → "Get a copy of your data" → tick Profile, Positions, Skills, Education, and above all Recommendations and Job seeker preferences — those are the ones that state the scope of your work and the role you are aiming for. Drop the .zip archive here. Nothing is fetched automatically: it is your own official export.',
+        note: "Drop the archive LinkedIn emailed you.",
         fileLabel: "LinkedIn export archive (.zip)",
         analyze: "Analyze my LinkedIn export",
         needFile: "Drop your LinkedIn export archive (.zip).",
@@ -1150,13 +1150,13 @@ export const copy = {
        *  exist for this product, "token" states what is actually being asked.
        *  The not-stored sentence is the rule the code enforces, not a courtesy. */
       linkedinApi: {
-        title: "…or let LinkedIn send it to you directly",
-        note: "Automatic import of your positions, education, skills and preferences, through the official data-portability API. You first create an app on the LinkedIn developer portal (free, no company required, granted without review) and generate a token there. Available to EU and Swiss members only.",
+        title: "…or fill it with LinkedIn",
+        note: "LinkedIn will ask for your consent, then send us your positions, education and skills. Nothing is confirmed automatically: you review and validate, just like a CV. Available to EU and Swiss members only.",
         tokenLabel: "LinkedIn access token",
         tokenHelp:
-          "The token is neither stored nor logged: it serves this import, then it is gone. It expires on its own after 60 days.",
+          "The authorization is not kept: it serves this import, then it is gone.",
         portail: "Open the LinkedIn developer portal",
-        analyze: "Import from LinkedIn",
+        analyze: "Fill with LinkedIn",
         needToken: "Paste the token generated in the LinkedIn portal.",
         rapportTitle: "What LinkedIn returned",
         rapportVide: "no data",

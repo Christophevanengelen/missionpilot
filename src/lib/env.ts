@@ -71,6 +71,24 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    /**
+     * « Remplir avec LinkedIn » — le vrai bouton, par le flux OAuth de
+     * Member Data Portability (3rd Party).
+     *
+     * Les trois valeurs vont ensemble : sans elles le bouton n'apparaît pas du
+     * tout, et l'onboarding ne propose que le dépôt d'archive. Un bouton visible
+     * qui mène à une erreur de configuration serait pire que pas de bouton —
+     * il perdrait la personne au premier écran, là où ça coûte le plus.
+     *
+     * Le SECRET ne sort jamais du serveur : il ne sert qu'à l'échange
+     * code → jeton, côté serveur, dans le gestionnaire de retour.
+     */
+    LINKEDIN_CLIENT_ID: z.string().min(1).optional(),
+    LINKEDIN_CLIENT_SECRET: z.string().min(1).optional(),
+    LINKEDIN_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
   },
   client: {

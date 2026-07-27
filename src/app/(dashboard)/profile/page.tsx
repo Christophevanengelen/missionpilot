@@ -18,6 +18,7 @@ import {
 import { linkedinAdvice } from "@/lib/profile/linkedin-advice";
 import type { ClaimKind, ClaimState } from "@/domain/profile";
 import { CvImport } from "./cv-import";
+import { linkedInConfigure } from "@/lib/profile/linkedin-oauth";
 import { ProgressPanel } from "./progress-panel";
 import { ProfileInterview } from "./profile-interview";
 
@@ -94,7 +95,7 @@ export default async function ProfilePage() {
             .length,
         })}
       />
-      <CvImport />
+      <CvImport linkedInPret={linkedInConfigure()} />
 
       {/* The detailed interview, deliberately folded away.
        *
