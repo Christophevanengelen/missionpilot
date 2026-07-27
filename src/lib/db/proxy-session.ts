@@ -11,7 +11,13 @@ import { getSupabaseConfig } from "@/lib/db/config";
  * lui dise pourquoi. C'est la panne la plus muette que ce produit puisse
  * produire, et elle tient à cette ligne.
  */
-const PUBLIC_PATHS = new Set(["/", "/login", "/auth/confirm"]);
+/* `/au-revoir` est public à dessein : on y arrive PRÉCISÉMENT au moment où le
+   compte n'existe plus. Protégée, la page renverrait vers la connexion la
+   personne qui vient de tout supprimer — le seul écran qui devait lui confirmer
+   que son geste a abouti serait le seul qu'elle ne verrait jamais.
+   Le `Set` est interrogé par `.has(pathname)` : correspondance exacte, aucun
+   élargissement par préfixe. */
+const PUBLIC_PATHS = new Set(["/", "/login", "/auth/confirm", "/au-revoir"]);
 
 /**
  * Proxy-level session refresh + OPTIMISTIC redirect (Next 16 proxy.ts).
