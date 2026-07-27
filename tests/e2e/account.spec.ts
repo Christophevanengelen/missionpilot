@@ -83,7 +83,9 @@ test("la page des données est accessible et n'ouvre pas le panneau toute seule"
   }
 });
 
-test("l'export produit un fichier nommé et téléchargeable", async ({ page }) => {
+test("l'export produit un fichier nommé et téléchargeable", async ({
+  page,
+}) => {
   const u = await creerUtilisateur();
   try {
     await seConnecter(page, u.email, u.password);
@@ -98,9 +100,14 @@ test("l'export produit un fichier nommé et téléchargeable", async ({ page }) 
     const lien = page.getByRole("link", { name: "Enregistrer le fichier" });
     await expect(lien).toBeVisible({ timeout: 20_000 });
     await expect(
-      page.getByText(/Fichier prêt : missionpilot-donnees-\d{4}-\d{2}-\d{2}\.json/),
+      page.getByText(
+        /Fichier prêt : missionpilot-donnees-\d{4}-\d{2}-\d{2}\.json/,
+      ),
     ).toBeVisible();
-    await expect(lien).toHaveAttribute("download", /missionpilot-donnees-.*\.json/);
+    await expect(lien).toHaveAttribute(
+      "download",
+      /missionpilot-donnees-.*\.json/,
+    );
   } finally {
     await admin().auth.admin.deleteUser(u.userId);
   }
@@ -157,7 +164,9 @@ test("la suppression efface RÉELLEMENT le compte, et mène à /au-revoir", asyn
   expect(data.user).toBeNull();
 });
 
-test("/au-revoir sans témoin n'affirme aucune suppression", async ({ page }) => {
+test("/au-revoir sans témoin n'affirme aucune suppression", async ({
+  page,
+}) => {
   // Elle ne sait pas qui vous êtes — c'est voulu — donc elle ne peut rien
   // confirmer. Une page qui affirmerait quand même serait un bandeau
   // falsifiable par n'importe qui.

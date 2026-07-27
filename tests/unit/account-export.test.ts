@@ -23,7 +23,9 @@ describe("buildAccountExport", () => {
     // La première veut dire « on n'a pas su lire », la seconde « vous n'avez
     // rien ici » — les confondre laisse croire qu'on a tout reçu.
     const out = buildAccountExport({}, compte, date);
-    expect(Object.keys(out.donnees).sort()).toEqual([...PERSONAL_TABLES].sort());
+    expect(Object.keys(out.donnees).sort()).toEqual(
+      [...PERSONAL_TABLES].sort(),
+    );
     for (const table of PERSONAL_TABLES) {
       expect(out.donnees[table]).toEqual([]);
     }
@@ -150,9 +152,11 @@ describe("lignesEmpreinte", () => {
   });
 
   it("rattache les suivis aux offres plutôt que d'en faire une ligne", () => {
-    expect(lignesEmpreinte({ opportunities: 128, opportunity_tracking: 12 })).toEqual(
-      ["128 offres importées, dont 12 suivies"],
-    );
-    expect(lignesEmpreinte({ opportunities: 5 })).toEqual(["5 offres importées"]);
+    expect(
+      lignesEmpreinte({ opportunities: 128, opportunity_tracking: 12 }),
+    ).toEqual(["128 offres importées, dont 12 suivies"]);
+    expect(lignesEmpreinte({ opportunities: 5 })).toEqual([
+      "5 offres importées",
+    ]);
   });
 });

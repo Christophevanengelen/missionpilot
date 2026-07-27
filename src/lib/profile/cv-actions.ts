@@ -33,10 +33,7 @@ import {
 } from "./linkedin-mdp";
 import { extractLinkedInFiles, LinkedInExportError } from "./linkedin-zip";
 
-import {
-  ecrireConsentementArt9,
-  lireConsentementArt9,
-} from "./consentement";
+import { ecrireConsentementArt9, lireConsentementArt9 } from "./consentement";
 
 const logger = createLogger({ module: "cv-actions" });
 

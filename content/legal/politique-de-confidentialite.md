@@ -43,13 +43,13 @@ Un CV mentionne souvent, sans que son auteur y ait pensé, une interruption de c
 
 **Responsable du traitement** (art. 13(1)(a)) :
 
-| | |
-|---|---|
-| Dénomination légale | **Productions Associées** (ASBL / VZW) |
-| Nom commercial | **Smart** |
-| Numéro d'entreprise et de TVA | 0896.755.397 — BE 0896.755.397 |
-| Siège | Rue Coenraets 72, 1060 Saint-Gilles, Belgique |
-| Contact pour ce projet | **cve@hi-def.be** |
+|                               |                                               |
+| ----------------------------- | --------------------------------------------- |
+| Dénomination légale           | **Productions Associées** (ASBL / VZW)        |
+| Nom commercial                | **Smart**                                     |
+| Numéro d'entreprise et de TVA | 0896.755.397 — BE 0896.755.397                |
+| Siège                         | Rue Coenraets 72, 1060 Saint-Gilles, Belgique |
+| Contact pour ce projet        | **cve@hi-def.be**                             |
 
 « Hi-DEF » est le nom du projet MissionPilot et le domaine de l'adresse de contact. Ce n'est pas une société, et ce n'est pas le responsable du traitement.
 
@@ -63,17 +63,17 @@ Le responsable du traitement est établi en Belgique. Aucun représentant au sen
 
 Tout ce qui suit est enregistré chez **Supabase**, qui héberge notre base de données et gère votre connexion. Chaque table porte une règle de sécurité au niveau de la ligne : la base elle-même refuse de rendre vos lignes à quelqu'un d'autre, indépendamment du code de l'application. Ces règles sont actives sur les 16 tables du schéma.
 
-| Ce qui est enregistré | Contenu exact | D'où cela vient |
-|---|---|---|
-| **Votre compte** *(géré par Supabase Auth)* | Votre adresse e-mail. Pour les comptes qui ont un mot de passe, son empreinte, détenue par Supabase — l'application n'en crée aucun et n'y accède jamais. | Vous |
-| **Votre profil et vos préférences** *(`candidate_profiles`)* | Un nom d'affichage, **pré-rempli automatiquement avec la partie de votre adresse e-mail située avant le `@`** — vous le modifiez quand vous voulez. Puis : métiers visés, types de mission, langues, régions de travail acceptées, exclusions fermes, tarif journalier visé et minimum, devise, position sur le télétravail, chevauchement d'horaires accepté avec un autre fuseau, disposition à vous déplacer. | Vous |
-| **Vos affirmations de parcours** *(`profile_claims`)* | Rôle, séniorité, années d'expérience, résumé, compétences, réalisations. Chacune porte un état — proposée, confirmée, à revoir, rejetée — et une origine : vous, ou « l'assistant », c'est-à-dire le modèle d'OpenAI décrit en section 9. | Votre CV, votre import LinkedIn, ou votre saisie |
-| **Vos preuves** *(`evidence_items`)* | Réalisations, éléments de portfolio, et **recommandations reçues** : nom de l'auteur (200 caractères), sa relation avec vous, son organisation, son texte (5 000 caractères) et, si vous l'ajoutez, un lien de vérification (1 000 caractères). Ces preuves viennent uniquement de votre saisie : nous n'allons chercher aucune recommandation nulle part. **Elles contiennent des données concernant d'autres personnes** — voir section 7. | Vous, en collant ce que vous avez reçu |
-| **Les liens entre preuves et affirmations** *(`claim_evidence_links`)* | Quelle preuve étaye quelle affirmation, depuis quand. Détacher une preuve ne supprime rien : cela date le détachement et enregistre le motif que vous écrivez, jusqu'à 500 caractères. | Vous |
-| **Vos réponses aux questions du produit** *(`profile_clarifications`)* | La question posée, reprise mot pour mot, votre réponse (2 000 caractères), ou le fait que vous ayez passé la question. | Vous |
-| **Vos versions de profil enregistrées** *(`profile_versions`)* | Un instantané figé de vos affirmations confirmées et du contenu des preuves liées, au moment où vous le publiez. Ces instantanés sont **visibles de vous seul** : nous ne les publions nulle part et ne les transmettons à aucun employeur. Aucun rôle applicatif ne peut les modifier. | Dérivé de ce qui précède |
-| **Les traces de vérification technique** *(`agent_runs`, `agent_steps`)* | Nom du traitement, horodatages, statut, durée, coût estimé, nom du fournisseur et du modèle, et **une empreinte** de l'entrée et de la sortie : une suite de caractères calculée à partir du contenu, dont on ne peut pas revenir au contenu. Le contenu lui-même n'y est jamais recopié. Deux colonnes accueillent un texte d'erreur technique libre : la réserve de la section 19 s'y applique. Ces tables sont en ajout seul : aucune ligne ne peut y être modifiée ni effacée une par une, par aucun rôle. Elles ne partent qu'avec votre compte. | Le système, uniquement quand vous lancez une vérification depuis la page de diagnostic |
-| **Les résultats de vérification technique** *(`system_health_results`)* | Votre identifiant interne, un horodatage, deux indicateurs techniques (la base répond, l'IA répond), une clé qui empêche d'exécuter deux fois la même vérification, et un champ de détail technique. Aucune donnée de profil. | Le même bouton de diagnostic |
+| Ce qui est enregistré                                                    | Contenu exact                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | D'où cela vient                                                                        |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Votre compte** _(géré par Supabase Auth)_                              | Votre adresse e-mail. Pour les comptes qui ont un mot de passe, son empreinte, détenue par Supabase — l'application n'en crée aucun et n'y accède jamais.                                                                                                                                                                                                                                                                                                                                                                                             | Vous                                                                                   |
+| **Votre profil et vos préférences** _(`candidate_profiles`)_             | Un nom d'affichage, **pré-rempli automatiquement avec la partie de votre adresse e-mail située avant le `@`** — vous le modifiez quand vous voulez. Puis : métiers visés, types de mission, langues, régions de travail acceptées, exclusions fermes, tarif journalier visé et minimum, devise, position sur le télétravail, chevauchement d'horaires accepté avec un autre fuseau, disposition à vous déplacer.                                                                                                                                      | Vous                                                                                   |
+| **Vos affirmations de parcours** _(`profile_claims`)_                    | Rôle, séniorité, années d'expérience, résumé, compétences, réalisations. Chacune porte un état — proposée, confirmée, à revoir, rejetée — et une origine : vous, ou « l'assistant », c'est-à-dire le modèle d'OpenAI décrit en section 9.                                                                                                                                                                                                                                                                                                             | Votre CV, votre import LinkedIn, ou votre saisie                                       |
+| **Vos preuves** _(`evidence_items`)_                                     | Réalisations, éléments de portfolio, et **recommandations reçues** : nom de l'auteur (200 caractères), sa relation avec vous, son organisation, son texte (5 000 caractères) et, si vous l'ajoutez, un lien de vérification (1 000 caractères). Ces preuves viennent uniquement de votre saisie : nous n'allons chercher aucune recommandation nulle part. **Elles contiennent des données concernant d'autres personnes** — voir section 7.                                                                                                          | Vous, en collant ce que vous avez reçu                                                 |
+| **Les liens entre preuves et affirmations** _(`claim_evidence_links`)_   | Quelle preuve étaye quelle affirmation, depuis quand. Détacher une preuve ne supprime rien : cela date le détachement et enregistre le motif que vous écrivez, jusqu'à 500 caractères.                                                                                                                                                                                                                                                                                                                                                                | Vous                                                                                   |
+| **Vos réponses aux questions du produit** _(`profile_clarifications`)_   | La question posée, reprise mot pour mot, votre réponse (2 000 caractères), ou le fait que vous ayez passé la question.                                                                                                                                                                                                                                                                                                                                                                                                                                | Vous                                                                                   |
+| **Vos versions de profil enregistrées** _(`profile_versions`)_           | Un instantané figé de vos affirmations confirmées et du contenu des preuves liées, au moment où vous le publiez. Ces instantanés sont **visibles de vous seul** : nous ne les publions nulle part et ne les transmettons à aucun employeur. Aucun rôle applicatif ne peut les modifier.                                                                                                                                                                                                                                                               | Dérivé de ce qui précède                                                               |
+| **Les traces de vérification technique** _(`agent_runs`, `agent_steps`)_ | Nom du traitement, horodatages, statut, durée, coût estimé, nom du fournisseur et du modèle, et **une empreinte** de l'entrée et de la sortie : une suite de caractères calculée à partir du contenu, dont on ne peut pas revenir au contenu. Le contenu lui-même n'y est jamais recopié. Deux colonnes accueillent un texte d'erreur technique libre : la réserve de la section 19 s'y applique. Ces tables sont en ajout seul : aucune ligne ne peut y être modifiée ni effacée une par une, par aucun rôle. Elles ne partent qu'avec votre compte. | Le système, uniquement quand vous lancez une vérification depuis la page de diagnostic |
+| **Les résultats de vérification technique** _(`system_health_results`)_  | Votre identifiant interne, un horodatage, deux indicateurs techniques (la base répond, l'IA répond), une clé qui empêche d'exécuter deux fois la même vérification, et un champ de détail technique. Aucune donnée de profil.                                                                                                                                                                                                                                                                                                                         | Le même bouton de diagnostic                                                           |
 
 **Sept tables restent vides.** Le schéma comporte des tables héritées d'une version antérieure du produit : des offres et leurs captures brutes, un suivi de candidature avec ses notes (4 000 caractères), des lettres de motivation (6 000 caractères), des préparations d'entretien, des analyses d'adéquation entre un profil et une offre. Aucun écran de l'application ne les remplit, et elles sont vides. Nous écrivons « elles restent vides », et non « elles ne pourraient pas se remplir » : le code de persistance existe, il n'est relié à aucune interface. Si cela change, cette page change avec.
 
@@ -128,18 +128,18 @@ Deux chemins, et ils ne se comportent pas de la même façon.
 
 Vous autorisez MissionPilot dans l'interface de LinkedIn, sur l'autorisation `r_dma_portability_3rd_party` — l'autorisation qui permet à une application tierce de recevoir vos données. LinkedIn nous les transmet ensuite.
 
-**Source des données** (art. 14(2)(f)) : **LinkedIn**, via la **Member Data Portability API**. Ces données ne proviennent pas de sources accessibles au public : elles viennent de votre compte LinkedIn, et vous seul déclenchez leur transmission. Nous ne pratiquons aucune collecte automatisée — ni *scraping*, ni *crawling*, ni *spidering*.
+**Source des données** (art. 14(2)(f)) : **LinkedIn**, via la **Member Data Portability API**. Ces données ne proviennent pas de sources accessibles au public : elles viennent de votre compte LinkedIn, et vous seul déclenchez leur transmission. Nous ne pratiquons aucune collecte automatisée — ni _scraping_, ni _crawling_, ni _spidering_.
 
 **Catégories de données que nous demandons** (art. 14(1)(d)) — **six domaines, pas davantage.** L'API LinkedIn en expose 65 ; nous n'appelons que ceux-ci :
 
-| Domaine | Ce qu'il contient |
-|---|---|
-| `PROFILE` | Votre profil tel que vous l'avez rempli |
-| `POSITIONS` | Vos postes : intitulés, organisations, périodes |
-| `EDUCATION` | Votre formation |
-| `SKILLS` | Vos compétences déclarées |
-| `RECOMMENDATIONS` | Les recommandations que vous avez reçues, avec le nom, la fonction et l'organisation de leur auteur — dix au plus, et uniquement celles qui sont publiées sur votre profil |
-| `JOB_SEEKER_PREFERENCES` | Vos préférences de recherche déclarées sur LinkedIn : postes visés, lieux visés, secteurs visés, types de poste, taille d'entreprise |
+| Domaine                  | Ce qu'il contient                                                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PROFILE`                | Votre profil tel que vous l'avez rempli                                                                                                                                    |
+| `POSITIONS`              | Vos postes : intitulés, organisations, périodes                                                                                                                            |
+| `EDUCATION`              | Votre formation                                                                                                                                                            |
+| `SKILLS`                 | Vos compétences déclarées                                                                                                                                                  |
+| `RECOMMENDATIONS`        | Les recommandations que vous avez reçues, avec le nom, la fonction et l'organisation de leur auteur — dix au plus, et uniquement celles qui sont publiées sur votre profil |
+| `JOB_SEEKER_PREFERENCES` | Vos préférences de recherche déclarées sur LinkedIn : postes visés, lieux visés, secteurs visés, types de poste, taille d'entreprise                                       |
 
 **Quand la collecte a lieu** : au moment où vous validez l'autorisation chez LinkedIn, et à ce moment seulement. Il n'y a aucune synchronisation continue.
 
@@ -159,7 +159,7 @@ La lecture est la même qu'au point 6.1, et l'envoi à OpenAI aussi. Le dépôt 
 
 **Le jeton d'accès** : voir section 4. Nous ne le stockons pas et nous ne le journalisons pas.
 
-**Retirer votre autorisation.** Chez LinkedIn, à tout moment : *Paramètres et confidentialité → Confidentialité des données → Services autorisés*. Le retrait coupe tout accès futur. Il vaut pour l'avenir et ne remet pas en cause ce qui a été traité avant. Les affirmations déjà enregistrées subsistent jusqu'à ce que vous en demandiez l'effacement — ce que le retrait du consentement vous donne le droit d'obtenir (art. 17(1)(b)) : rejetez-les depuis votre profil pour qu'elles cessent d'être utilisées, écrivez-nous pour qu'elles soient effacées, ou supprimez votre compte (section 14).
+**Retirer votre autorisation.** Chez LinkedIn, à tout moment : _Paramètres et confidentialité → Confidentialité des données → Services autorisés_. Le retrait coupe tout accès futur. Il vaut pour l'avenir et ne remet pas en cause ce qui a été traité avant. Les affirmations déjà enregistrées subsistent jusqu'à ce que vous en demandiez l'effacement — ce que le retrait du consentement vous donne le droit d'obtenir (art. 17(1)(b)) : rejetez-les depuis votre profil pour qu'elles cessent d'être utilisées, écrivez-nous pour qu'elles soient effacées, ou supprimez votre compte (section 14).
 
 **MissionPilot n'affirme pas, et ne laisse pas entendre, que LinkedIn a vérifié ou confirmé l'exactitude de ces données.** LinkedIn nous transmet ce que vous y avez écrit.
 
@@ -210,14 +210,14 @@ Nous nommons ces sept plateformes comme destinataires parce que les intitulés e
 
 **Nous transmettons des données à OpenAI**, à l'adresse `https://api.openai.com/v1/chat/completions`. Voici exactement quoi, tâche par tâche.
 
-| Traitement | Ce que nous envoyons |
-|---|---|
-| Lecture de votre CV | **Le texte intégral de votre CV**, tronqué à 30 000 caractères |
-| Extraction de compétences (chemin de repli) | Le même texte |
-| Lecture de votre parcours LinkedIn | Le texte de parcours reconstitué, **recommandations attribuées comprises** |
-| Tri des offres | Votre dossier professionnel, tronqué à 6 000 caractères, et **les 25 premières offres du classement** — pour chacune : intitulé, entreprise, et un extrait de 900 caractères. Les offres suivantes ne sont pas envoyées |
-| Analyse de trajectoire de carrière | Votre dossier professionnel, tronqué à 12 000 caractères |
-| Vocabulaire du métier sur le marché | Votre dossier professionnel, tronqué à 8 000 caractères |
+| Traitement                                  | Ce que nous envoyons                                                                                                                                                                                                    |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lecture de votre CV                         | **Le texte intégral de votre CV**, tronqué à 30 000 caractères                                                                                                                                                          |
+| Extraction de compétences (chemin de repli) | Le même texte                                                                                                                                                                                                           |
+| Lecture de votre parcours LinkedIn          | Le texte de parcours reconstitué, **recommandations attribuées comprises**                                                                                                                                              |
+| Tri des offres                              | Votre dossier professionnel, tronqué à 6 000 caractères, et **les 25 premières offres du classement** — pour chacune : intitulé, entreprise, et un extrait de 900 caractères. Les offres suivantes ne sont pas envoyées |
+| Analyse de trajectoire de carrière          | Votre dossier professionnel, tronqué à 12 000 caractères                                                                                                                                                                |
+| Vocabulaire du métier sur le marché         | Votre dossier professionnel, tronqué à 8 000 caractères                                                                                                                                                                 |
 
 Le **dossier professionnel** contient : votre rôle, votre séniorité, vos années d'expérience, votre résumé, vos compétences confirmées, vos métiers cibles, **et vos réponses aux questions du produit accompagnées des questions correspondantes, les unes et les autres reprises mot pour mot**. Si vous avez répondu « j'ai arrêté six mois en 2022 pour raisons familiales », cette phrase part telle quelle, avec la question qui l'a appelée.
 
@@ -233,13 +233,13 @@ Cette analyse fonctionne parce que le service est configuré avec OpenAI — c'e
 
 Nous nommons chaque destinataire. Nous n'écrivons pas « des prestataires ».
 
-| Destinataire | Ce qu'il reçoit | À quel titre |
-|---|---|---|
-| **OpenAI** | Ce qui figure en section 9 | Sous-traitant : il traite sur nos instructions, pour nos seules finalités, sous contrat au sens de l'art. 28 RGPD |
-| **Supabase** | Toutes les données de la section 3. C'est notre base de données, notre système d'authentification, l'émetteur de vos cookies de session et l'expéditeur de vos liens de connexion — aucun autre service d'e-mail n'intervient | Sous-traitant (art. 28) |
-| **Vercel** | Tout ce qui transite entre votre navigateur et nous, le temps du passage, plus les journaux serveur. Nous nommons Vercel sur la foi de l'adresse de déploiement `missionpilot.vercel.app`, qui reste un alias du service, et non sur la foi du dépôt, qui ne le nomme nulle part | Sous-traitant (art. 28) |
-| **Inngest** | Un seul message, pour la vérification technique : votre identifiant interne et un code qui empêche d'exécuter deux fois la même vérification. **Aucun contenu** | Sous-traitant (art. 28) |
-| **Adzuna, France Travail, Himalayas, Jobicy, Remotive, Remote OK, Recruitee** | Ce qui figure en section 8 | Destinataires |
+| Destinataire                                                                  | Ce qu'il reçoit                                                                                                                                                                                                                                                                  | À quel titre                                                                                                      |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **OpenAI**                                                                    | Ce qui figure en section 9                                                                                                                                                                                                                                                       | Sous-traitant : il traite sur nos instructions, pour nos seules finalités, sous contrat au sens de l'art. 28 RGPD |
+| **Supabase**                                                                  | Toutes les données de la section 3. C'est notre base de données, notre système d'authentification, l'émetteur de vos cookies de session et l'expéditeur de vos liens de connexion — aucun autre service d'e-mail n'intervient                                                    | Sous-traitant (art. 28)                                                                                           |
+| **Vercel**                                                                    | Tout ce qui transite entre votre navigateur et nous, le temps du passage, plus les journaux serveur. Nous nommons Vercel sur la foi de l'adresse de déploiement `missionpilot.vercel.app`, qui reste un alias du service, et non sur la foi du dépôt, qui ne le nomme nulle part | Sous-traitant (art. 28)                                                                                           |
+| **Inngest**                                                                   | Un seul message, pour la vérification technique : votre identifiant interne et un code qui empêche d'exécuter deux fois la même vérification. **Aucun contenu**                                                                                                                  | Sous-traitant (art. 28)                                                                                           |
+| **Adzuna, France Travail, Himalayas, Jobicy, Remotive, Remote OK, Recruitee** | Ce qui figure en section 8                                                                                                                                                                                                                                                       | Destinataires                                                                                                     |
 
 **Nous ne vendons vos données à personne. Nous ne les louons pas, nous ne les cédons pas, nous ne les partageons avec aucun annonceur, aucun courtier en données, aucun recruteur.**
 
@@ -275,21 +275,21 @@ Supabase, Vercel et Inngest sont des sociétés américaines.
 
 ## 12. Finalités et bases juridiques (art. 13(1)(c) et (d))
 
-| Traitement | Finalité | Base juridique |
-|---|---|---|
-| Création du compte, connexion | Vous identifier et vous donner accès à votre profil | **Art. 6(1)(b)** — exécution du contrat |
-| Nom d'affichage dérivé de votre adresse e-mail | Vous adresser un libellé lisible dès la première connexion plutôt qu'un identifiant technique | **Art. 6(1)(f)** — intérêt légitime. Vous le modifiez quand vous voulez |
-| Enregistrement de votre profil, de vos préférences, de vos preuves et de vos réponses | Constituer le dossier à partir duquel la recherche est faite | **Art. 6(1)(b)** |
-| Lecture de votre CV par OpenAI | Extraire les affirmations qui composent votre profil | **Art. 6(1)(b)** |
-| Import LinkedIn **par l'API** | Pré-remplir votre profil | **Art. 6(1)(a)** — votre consentement, exprimé chez LinkedIn, retirable à tout moment (section 6.3) |
-| Import LinkedIn **par archive** | Idem | **Art. 6(1)(b)** — vous nous remettez vous-même le document |
-| Données concernant l'auteur d'une recommandation | Vous permettre d'étayer votre parcours | **Art. 6(1)(f)** — voir section 7 |
-| Interrogation des sept plateformes | Vous rendre des résultats | **Art. 6(1)(b)** |
-| Tri et classement des offres | Vous présenter d'abord ce qui vous correspond | **Art. 6(1)(b)** |
-| Analyse de trajectoire de carrière | Situer le niveau au-dessus du vôtre et le chercher aussi | **Art. 6(1)(b)** |
-| Vocabulaire du métier sur le marché | Chercher avec les mots que le marché emploie, et non les vôtres | **Art. 6(1)(f)** — intérêt légitime : rendre la recherche utilisable. Nous ne rangeons pas ce traitement sous l'exécution du contrat |
-| Vérification technique du service, traces et journaux | Détecter les pannes, prévenir les accès non autorisés | **Art. 6(1)(f)** — intérêt légitime : maintien en fonctionnement et sécurité du service |
-| Données sensibles présentes de façon incidente dans un CV | Voir section 13 | **Aucune exception de l'art. 9 n'est recueillie aujourd'hui** — voir section 13 |
+| Traitement                                                                            | Finalité                                                                                      | Base juridique                                                                                                                       |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Création du compte, connexion                                                         | Vous identifier et vous donner accès à votre profil                                           | **Art. 6(1)(b)** — exécution du contrat                                                                                              |
+| Nom d'affichage dérivé de votre adresse e-mail                                        | Vous adresser un libellé lisible dès la première connexion plutôt qu'un identifiant technique | **Art. 6(1)(f)** — intérêt légitime. Vous le modifiez quand vous voulez                                                              |
+| Enregistrement de votre profil, de vos préférences, de vos preuves et de vos réponses | Constituer le dossier à partir duquel la recherche est faite                                  | **Art. 6(1)(b)**                                                                                                                     |
+| Lecture de votre CV par OpenAI                                                        | Extraire les affirmations qui composent votre profil                                          | **Art. 6(1)(b)**                                                                                                                     |
+| Import LinkedIn **par l'API**                                                         | Pré-remplir votre profil                                                                      | **Art. 6(1)(a)** — votre consentement, exprimé chez LinkedIn, retirable à tout moment (section 6.3)                                  |
+| Import LinkedIn **par archive**                                                       | Idem                                                                                          | **Art. 6(1)(b)** — vous nous remettez vous-même le document                                                                          |
+| Données concernant l'auteur d'une recommandation                                      | Vous permettre d'étayer votre parcours                                                        | **Art. 6(1)(f)** — voir section 7                                                                                                    |
+| Interrogation des sept plateformes                                                    | Vous rendre des résultats                                                                     | **Art. 6(1)(b)**                                                                                                                     |
+| Tri et classement des offres                                                          | Vous présenter d'abord ce qui vous correspond                                                 | **Art. 6(1)(b)**                                                                                                                     |
+| Analyse de trajectoire de carrière                                                    | Situer le niveau au-dessus du vôtre et le chercher aussi                                      | **Art. 6(1)(b)**                                                                                                                     |
+| Vocabulaire du métier sur le marché                                                   | Chercher avec les mots que le marché emploie, et non les vôtres                               | **Art. 6(1)(f)** — intérêt légitime : rendre la recherche utilisable. Nous ne rangeons pas ce traitement sous l'exécution du contrat |
+| Vérification technique du service, traces et journaux                                 | Détecter les pannes, prévenir les accès non autorisés                                         | **Art. 6(1)(f)** — intérêt légitime : maintien en fonctionnement et sécurité du service                                              |
+| Données sensibles présentes de façon incidente dans un CV                             | Voir section 13                                                                               | **Aucune exception de l'art. 9 n'est recueillie aujourd'hui** — voir section 13                                                      |
 
 **Ce sur quoi nous ne nous appuyons pas** : nous n'invoquons l'exécution du contrat ni pour l'amélioration du produit, ni pour des statistiques. Nous n'exerçons aucun de ces traitements. Si nous devions le faire, ce serait sur une base distincte, et vous en seriez informé au préalable (section 22).
 
@@ -323,21 +323,21 @@ Nous ne nous fondons **pas** sur l'art. 9(2)(e) (« données manifestement rendu
 
 ## 14. Combien de temps nous gardons quoi (art. 13(2)(a))
 
-| Élément | Durée |
-|---|---|
-| Fichier PDF de votre CV | **Zéro.** Lu en mémoire, jamais écrit |
-| Texte de votre CV | **Zéro chez nous.** Chez OpenAI : durée non établie — voir section 9 |
-| Archive ZIP LinkedIn | **Zéro.** Décompressée en mémoire, jamais écrite |
-| Jeton d'accès LinkedIn | **Zéro.** Ni stocké, ni journalisé |
-| Texte de parcours LinkedIn reconstitué | **Zéro** |
-| Offres consultées | **Zéro en base de données.** En mémoire du serveur : de trente minutes à six heures selon la source (section 4) |
-| Dossier professionnel en cache mémoire | **Une heure au plus**, puis le plan est recalculé |
+| Élément                                                                                                                                            | Durée                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fichier PDF de votre CV                                                                                                                            | **Zéro.** Lu en mémoire, jamais écrit                                                                                                           |
+| Texte de votre CV                                                                                                                                  | **Zéro chez nous.** Chez OpenAI : durée non établie — voir section 9                                                                            |
+| Archive ZIP LinkedIn                                                                                                                               | **Zéro.** Décompressée en mémoire, jamais écrite                                                                                                |
+| Jeton d'accès LinkedIn                                                                                                                             | **Zéro.** Ni stocké, ni journalisé                                                                                                              |
+| Texte de parcours LinkedIn reconstitué                                                                                                             | **Zéro**                                                                                                                                        |
+| Offres consultées                                                                                                                                  | **Zéro en base de données.** En mémoire du serveur : de trente minutes à six heures selon la source (section 4)                                 |
+| Dossier professionnel en cache mémoire                                                                                                             | **Une heure au plus**, puis le plan est recalculé                                                                                               |
 | Compte, profil, préférences, affirmations et leur historique, preuves, réponses, versions de profil, traces et résultats de vérification technique | **Jusqu'à ce que vous supprimiez votre compte.** Aucune purge automatique n'est programmée : tant que votre compte existe, ces données existent |
-| Mot de passe, pour les comptes qui en ont un | Empreinte détenue par Supabase, jusqu'à la suppression du compte |
-| Lien de connexion envoyé par e-mail | **Une heure** |
-| Cookie `mp_li_state` | **Dix minutes**, et supprimé dès votre retour de LinkedIn, quelle que soit l'issue |
-| Cookies de session | Durée fixée par Supabase Auth, que nous n'avons pas encore relevée |
-| Journaux serveur | Durée fixée par notre hébergeur, que nous n'avons pas encore relevée |
+| Mot de passe, pour les comptes qui en ont un                                                                                                       | Empreinte détenue par Supabase, jusqu'à la suppression du compte                                                                                |
+| Lien de connexion envoyé par e-mail                                                                                                                | **Une heure**                                                                                                                                   |
+| Cookie `mp_li_state`                                                                                                                               | **Dix minutes**, et supprimé dès votre retour de LinkedIn, quelle que soit l'issue                                                              |
+| Cookies de session                                                                                                                                 | Durée fixée par Supabase Auth, que nous n'avons pas encore relevée                                                                              |
+| Journaux serveur                                                                                                                                   | Durée fixée par notre hébergeur, que nous n'avons pas encore relevée                                                                            |
 
 ### Supprimer votre compte
 
@@ -409,13 +409,13 @@ Ce droit s'exerce sans préjudice de tout autre recours administratif ou juridic
 
 Aucune loi ne vous oblige à nous fournir quoi que ce soit. La fourniture de votre adresse e-mail est une **exigence contractuelle** : sans elle, le contrat ne peut pas être conclu.
 
-| Donnée | Nécessaire à quoi | Si vous ne la fournissez pas |
-|---|---|---|
-| Adresse e-mail | Créer votre compte et vous y connecter | Le compte ne peut pas être créé : c'est votre identifiant, et c'est à cette adresse que part votre lien de connexion |
-| CV, parcours saisi ou import LinkedIn | Établir votre profil | Le service n'a rien à partir de quoi chercher. Vous saisissez alors vos affirmations à la main, une par une |
-| Préférences de recherche | Filtrer et classer les résultats | Le service cherche plus large et classe moins bien. **Aucune fonction n'est bloquée** |
-| Réponses aux questions du produit | Préciser votre parcours | Vous passez chaque question. « Je ne sais pas » et « passer » sont des réponses acceptées. **Aucune fonction n'est bloquée** |
-| Import LinkedIn | Pré-remplir votre profil | Rien n'est bloqué. C'est un raccourci, jamais une condition |
+| Donnée                                | Nécessaire à quoi                      | Si vous ne la fournissez pas                                                                                                 |
+| ------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Adresse e-mail                        | Créer votre compte et vous y connecter | Le compte ne peut pas être créé : c'est votre identifiant, et c'est à cette adresse que part votre lien de connexion         |
+| CV, parcours saisi ou import LinkedIn | Établir votre profil                   | Le service n'a rien à partir de quoi chercher. Vous saisissez alors vos affirmations à la main, une par une                  |
+| Préférences de recherche              | Filtrer et classer les résultats       | Le service cherche plus large et classe moins bien. **Aucune fonction n'est bloquée**                                        |
+| Réponses aux questions du produit     | Préciser votre parcours                | Vous passez chaque question. « Je ne sais pas » et « passer » sont des réponses acceptées. **Aucune fonction n'est bloquée** |
+| Import LinkedIn                       | Pré-remplir votre profil               | Rien n'est bloqué. C'est un raccourci, jamais une condition                                                                  |
 
 ---
 
@@ -457,12 +457,12 @@ Le service écrit des journaux techniques au format JSON sur la sortie standard 
 
 MissionPilot dépose un cookie de son propre fait. S'y ajoute le cookie de session posé par Supabase Auth, que sa bibliothèque découpe en plusieurs fragments quand le jeton est long.
 
-| Cookie | À quoi il sert | Durée |
-|---|---|---|
-| Cookie de session, posé par Supabase Auth | Vous garder connecté d'une page à l'autre | Durée fixée par Supabase Auth, non encore relevée |
-| `mp_li_state` | Vérifier que c'est bien vous qui revenez de LinkedIn, et empêcher qu'un autre site déclenche cet import à votre place. Il contient un identifiant aléatoire et rien d'autre. Il est inaccessible au JavaScript de la page | 10 minutes, supprimé au retour de LinkedIn |
-| — | **Aucun autre cookie applicatif.** Aucun cookie publicitaire, aucun cookie de mesure d'audience | — |
-| Stockage local du navigateur | Votre choix de thème clair ou sombre. Il reste sur votre appareil et ne nous est jamais transmis | Jusqu'à ce que vous l'effaciez |
+| Cookie                                    | À quoi il sert                                                                                                                                                                                                            | Durée                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Cookie de session, posé par Supabase Auth | Vous garder connecté d'une page à l'autre                                                                                                                                                                                 | Durée fixée par Supabase Auth, non encore relevée |
+| `mp_li_state`                             | Vérifier que c'est bien vous qui revenez de LinkedIn, et empêcher qu'un autre site déclenche cet import à votre place. Il contient un identifiant aléatoire et rien d'autre. Il est inaccessible au JavaScript de la page | 10 minutes, supprimé au retour de LinkedIn        |
+| —                                         | **Aucun autre cookie applicatif.** Aucun cookie publicitaire, aucun cookie de mesure d'audience                                                                                                                           | —                                                 |
+| Stockage local du navigateur              | Votre choix de thème clair ou sombre. Il reste sur votre appareil et ne nous est jamais transmis                                                                                                                          | Jusqu'à ce que vous l'effaciez                    |
 
 Ces deux cookies sont strictement nécessaires au service que vous demandez : la loi ne nous impose pas de vous demander votre accord avant de les déposer. Il n'y a rien à accepter ni à refuser, et c'est pourquoi vous ne verrez pas de bandeau.
 

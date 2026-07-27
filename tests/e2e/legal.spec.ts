@@ -22,8 +22,14 @@ import { expect, test } from "@playwright/test";
  */
 
 const PAGES = [
-  { url: "/confidentialite", titre: "MissionPilot — Politique de confidentialité" },
-  { url: "/conditions", titre: "MissionPilot — Conditions générales d’utilisation" },
+  {
+    url: "/confidentialite",
+    titre: "MissionPilot — Politique de confidentialité",
+  },
+  {
+    url: "/conditions",
+    titre: "MissionPilot — Conditions générales d’utilisation",
+  },
 ];
 
 for (const page_ of PAGES) {

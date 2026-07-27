@@ -89,7 +89,10 @@ export function ConsentPanel({ donneLe }: { donneLe: string | null }) {
           </div>
         </>
       ) : (
-        <p role={retire ? "status" : undefined} className="text-muted-foreground text-pretty">
+        <p
+          role={retire ? "status" : undefined}
+          className="text-muted-foreground text-pretty"
+        >
           {retire
             ? "Votre accord est retiré. Nous ne lirons plus de nouveau CV tant que vous ne l’aurez pas redonné — la case vous sera reproposée au prochain dépôt."
             : "Vous n’avez pas donné cet accord. Nous ne lisons donc aucun CV : la case vous sera proposée au moment du dépôt."}

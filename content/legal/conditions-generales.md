@@ -70,7 +70,7 @@ Le contenu des offres appartient aux plateformes citées à l'article 6 et aux e
 
 ## 9. Import LinkedIn
 
-Si vous importez votre parcours depuis LinkedIn, cet import s'effectue avec votre autorisation, donnée dans l'interface de LinkedIn, et vous la retirez à tout moment (*Paramètres et confidentialité → Confidentialité des données → Services autorisés*).
+Si vous importez votre parcours depuis LinkedIn, cet import s'effectue avec votre autorisation, donnée dans l'interface de LinkedIn, et vous la retirez à tout moment (_Paramètres et confidentialité → Confidentialité des données → Services autorisés_).
 
 Ces données servent uniquement à pré-remplir votre profil. Nous ne les vendons pas, ne les partageons pas, et ne les combinons avec aucun autre contenu LinkedIn. MissionPilot n'affirme pas que LinkedIn en a vérifié l'exactitude.
 

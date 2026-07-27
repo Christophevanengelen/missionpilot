@@ -55,8 +55,7 @@ export function DeleteAccount({ nonInclus }: { nonInclus: string[] }) {
         router.replace("/au-revoir");
         return;
       }
-      if (res.error === "blocked")
-        setIssue({ type: "blocage", ref: res.ref });
+      if (res.error === "blocked") setIssue({ type: "blocage", ref: res.ref });
       else if (res.error === "unknown") setIssue({ type: "inconnu" });
       else setIssue({ type: "echec" });
     } catch {
@@ -109,9 +108,7 @@ export function DeleteAccount({ nonInclus }: { nonInclus: string[] }) {
             brouillons de lettres, préparations d’entretien ;
           </li>
           <li>vos réponses de clarification ;</li>
-          <li>
-            les traces d’exécution des agents lancés pour votre compte ;
-          </li>
+          <li>les traces d’exécution des agents lancés pour votre compte ;</li>
           <li>
             votre identité de connexion : e-mail, sessions, appareils, et le
             journal d’authentification qui conserve vos adresses IP.
@@ -120,7 +117,9 @@ export function DeleteAccount({ nonInclus }: { nonInclus: string[] }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm">Ce que nous ne pouvons pas effacer, et pourquoi :</p>
+        <p className="text-sm">
+          Ce que nous ne pouvons pas effacer, et pourquoi :
+        </p>
         <ul className="text-muted-foreground list-disc pl-5 text-sm">
           {nonInclus.map((item) => (
             <li key={item}>{item}</li>
