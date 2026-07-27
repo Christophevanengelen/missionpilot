@@ -88,11 +88,14 @@ test("import de CV : texte collé → compétences détectées → ajout au prof
     "4 compétences confirmées",
   );
 
-  // Discovery auto-chains after the validation (no button). Keyless CI: the
-  // honest outcome is the specific "not configured" explanation.
-  await expect(page.getByRole("status")).toContainText(
-    "La découverte automatique n'est pas encore activée",
-  );
+  // Plus de découverte enchaînée ici : elle écrivait des offres en base pour
+  // un écran qui n'est plus la porte d'entrée, pendant que le tableau de bord
+  // interroge les plateformes EN DIRECT. On payait deux fois et on servait du
+  // stock — c'est-à-dire, potentiellement, des annonces déjà pourvues.
+  // L'écran conduit maintenant au marché, où les offres sont vivantes.
+  await expect(
+    page.getByRole("link", { name: /voir (les )?offres|mes opportunités/i }),
+  ).toBeVisible();
 
   const axe = await new AxeBuilder({ page }).analyze();
   expect(
