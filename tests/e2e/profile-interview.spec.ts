@@ -41,7 +41,8 @@ test.afterAll(async () => {
 
 async function signInAndOpen(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "J’ai déjà un mot de passe" }).click();
+  await page.getByLabel("Votre e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
   await page.getByRole("button", { name: "Entrer" }).click();
   await page.waitForURL(/\/dashboard/);
@@ -367,7 +368,10 @@ test.describe.serial("Entretien de profil guidé", () => {
     const page = await ctx.newPage();
     try {
       await page.goto("/login");
-      await page.getByLabel("Email").fill(email2);
+      await page
+        .getByRole("button", { name: "J’ai déjà un mot de passe" })
+        .click();
+      await page.getByLabel("Votre e-mail").fill(email2);
       await page.getByLabel("Mot de passe").fill(password2);
       await page.getByRole("button", { name: "Entrer" }).click();
       await page.waitForURL(/\/dashboard/);

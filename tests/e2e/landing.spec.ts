@@ -15,6 +15,11 @@ test.describe("page publique", () => {
   test("axe propre en clair ET en sombre, y compris le plan encre", async ({
     page,
   }) => {
+    // Mouvement réduit AVANT le chargement : sinon axe mesure les couleurs
+    // pendant le fondu d'entrée, où l'opacité partielle mélange le texte au
+    // fond et fait chuter le ratio sous le seuil pour de mauvaises raisons.
+    // La page rend alors son état final d'emblée, qui est celui à contrôler.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await expect(
       page.getByRole("heading", { name: /monter d’une marche/i }),

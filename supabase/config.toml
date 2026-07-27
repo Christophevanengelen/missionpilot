@@ -160,7 +160,19 @@ site_url = "http://127.0.0.1:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3000"]
+# La route de retour du lien magique DOIT figurer ici, sinon Supabase IGNORE
+# le `emailRedirectTo` demandé par le code et retombe silencieusement sur
+# `site_url` — le lien reçu ramène alors à l'accueil sans jamais créer de
+# session, et rien, ni dans les journaux ni à l'écran, n'explique pourquoi.
+# Diagnostiqué en suivant un vrai lien : redirect_to valait "http://127.0.0.1:3000".
+#
+# À REPORTER DANS LE TABLEAU DE BORD HÉBERGÉ (Authentication → URL
+# Configuration → Redirect URLs) : ce fichier ne pilote que la pile locale.
+additional_redirect_urls = [
+  "http://localhost:3000",
+  "http://localhost:3000/auth/confirm",
+  "http://127.0.0.1:3000/auth/confirm",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -173,9 +185,17 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-# Disabled: MissionPilot is a single-user private beta; the dev/prod user is
-# created via the admin API (scripts/create-dev-user.ts), never via signup.
-enable_signup = false
+# OUVERT : le produit n'est plus une bêta à un seul utilisateur. L'entrée se
+# fait par lien magique (src/lib/auth/actions.ts), et le trigger
+# on_auth_user_created provisionne le profil au premier passage.
+#
+# ATTENTION — ce fichier ne pilote QUE la pile locale. Le projet hébergé lit
+# ses réglages d'authentification dans le tableau de bord Supabase, et la CI ne
+# fait que `supabase db push`, jamais `supabase config push`. Ouvrir les
+# inscriptions EN PRODUCTION est donc une action séparée, dans le dashboard
+# (Authentication → Sign In / Providers → « Allow new users to sign up »).
+# Changer cette ligne seule ne change rien en ligne.
+enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts

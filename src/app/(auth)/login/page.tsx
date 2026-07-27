@@ -90,13 +90,14 @@ export default async function LoginPage() {
         <Card className="border-border/70 shadow-floating w-full md:w-sm">
           <CardHeader>
             <CardTitle>
-              <h2 className="text-base leading-none font-semibold">
-                Se connecter
-              </h2>
+              <h2 className="text-base leading-none font-semibold">Entrer</h2>
             </CardTitle>
+            {/* Ni « connexion » ni « inscription » : avec un lien magique, les
+                deux sont le même geste. Faire choisir entre deux portes qui
+                mènent au même endroit ne sert qu'à faire hésiter. */}
             <CardDescription>
-              Bêta privée : les comptes sont créés par l&apos;administrateur,
-              les inscriptions sont fermées.
+              Donnez votre e-mail, recevez un lien. Aucun mot de passe à
+              inventer ni à retenir.
             </CardDescription>
           </CardHeader>
           <CardContent>

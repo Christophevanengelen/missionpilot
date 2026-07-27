@@ -44,7 +44,10 @@ test.describe("phase 0 smoke journey", () => {
     await expectNoSeriousAxeViolations(page, "login page");
 
     // Sign in.
-    await page.getByLabel("Email").fill(DEV_EMAIL);
+    await page
+      .getByRole("button", { name: "J’ai déjà un mot de passe" })
+      .click();
+    await page.getByLabel("Votre e-mail").fill(DEV_EMAIL);
     await page.getByLabel("Mot de passe").fill(DEV_PASSWORD);
     await page.getByRole("button", { name: "Entrer" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
