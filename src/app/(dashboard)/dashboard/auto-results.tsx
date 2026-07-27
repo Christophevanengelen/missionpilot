@@ -67,6 +67,10 @@ export async function AutoResults({ countries }: { countries: string[] }) {
     plan = await planFromProfile(
       profileDossier,
       preferences.targetRoleFamilies,
+      // Les affirmations du profil : sans elles, l'ouverture ne saurait pas se
+      // rabattre sur le rôle confirmé quand aucun métier cible n'est encore
+      // renseigné — et ne trouverait rien pour un nouvel utilisateur.
+      living.claims,
     );
     const plans = plan.plans;
     query = preferences.targetRoleFamilies[0] ?? "";

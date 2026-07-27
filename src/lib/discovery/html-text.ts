@@ -39,7 +39,16 @@ export function toPlainText(html: string): string {
       .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
       // Tag strip that understands quoted attributes (so `alt="a > b"` cannot
       // eat the following sentence) and drops a trailing unterminated tag.
-      .replace(/<[a-z!/][^>"']*(?:"[^"]*"|'[^']*'[^>"']*)*>/gi, " ")
+      //
+      // Le `[^>"']*` ferme les DEUX branches, et c'est tout le correctif. Il
+      // n'était rattaché qu'à l'apostrophe simple, si bien qu'après un premier
+      // attribut entre guillemets doubles rien ne pouvait consommer le
+      // ` style=` suivant : la correspondance échouait et la balise entière
+      // était recrachée en texte. Autrement dit, le dépouillement ne marchait
+      // que sur les balises à UN seul attribut — presque jamais dans du HTML
+      // réel. Les cartes d'offres affichaient des pavés de CSS à la place des
+      // descriptions.
+      .replace(/<[a-z!/][^>"']*(?:(?:"[^"]*"|'[^']*')[^>"']*)*>/gi, " ")
       .replace(/<[a-z!/][^>]*$/gi, " ")
       .replace(/&nbsp;/gi, " ")
       .replace(/&amp;/gi, "&")
@@ -49,6 +58,10 @@ export function toPlainText(html: string): string {
       .replace(/&quot;/gi, '"')
       .replace(/&hellip;/gi, "…")
       .replace(/[ \t]+/g, " ")
+      // Les balises dépouillées laissent une espace là où elles étaient, donc
+      // chaque paragraphe commençait par une indentation d'un caractère —
+      // discret dans une chaîne, très visible sur une carte d'offre.
+      .replace(/[ \t]*\n[ \t]*/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim()
   );
