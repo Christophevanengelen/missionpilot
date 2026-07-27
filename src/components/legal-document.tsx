@@ -31,7 +31,14 @@ export function LegalDocument({ fichier }: { fichier: string }) {
     <main
       id="main"
       tabIndex={-1}
-      className="mx-auto w-full max-w-3xl px-6 py-16"
+      /* `break-words` est posé ICI, sur l'ancêtre, parce que `overflow-wrap`
+         s'hérite : toute la descendance en bénéficie, y compris les mots longs
+         du corps de texte que je n'aurais pas pensé à cibler.
+         Ce n'est pas une précaution théorique — la version qui ne visait que
+         les liens et le code passait sur macOS et échouait sur Linux en CI, à
+         320 px, parce que les métriques de police diffèrent. Viser les
+         constructions une par une, c'est parier sur la police du relecteur. */
+      className="mx-auto w-full max-w-3xl px-6 py-16 break-words"
     >
       {/* La typographie est portée ici plutôt que par des classes dans le
           Markdown : le document doit rester lisible tel quel dans le dépôt,
