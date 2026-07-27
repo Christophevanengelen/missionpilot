@@ -221,7 +221,13 @@ export const copy = {
     },
     cvImport: {
       title: "Importer mon CV",
-      note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est jamais conservé.",
+      /* « Le fichier n'est jamais conservé » était vrai et trompeur : le fichier
+         ne l'est pas, mais son TEXTE INTÉGRAL part chez OpenAI, aux États-Unis,
+         sans anonymisation (`cv-ai.ts:88`). Cet écran est le moment décisif —
+         celui où l'on décide de déposer ou non — et il produisait exactement la
+         croyance que la politique de confidentialité dément. Nommer le
+         destinataire réel plutôt qu'une catégorie vague est la règle. */
+      note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est pas conservé — son texte, en revanche, est transmis à OpenAI, aux États-Unis, à seule fin d'en extraire votre parcours et vos compétences.",
       fileLabel: "CV (PDF)",
       pasteLabel: "…ou collez le texte de votre CV",
       pastePlaceholder: "Collez ici le contenu de votre CV…",
@@ -1118,7 +1124,7 @@ export const copy = {
     },
     cvImport: {
       title: "Import my CV",
-      note: "Drop your CV (PDF) or paste its text: we detect your skills and you choose which to add. The file is never stored.",
+      note: "Drop your CV (PDF) or paste its text: we detect your skills and you choose which to add. The file is not stored — its text, however, is sent to OpenAI, in the United States, for the sole purpose of extracting your career and skills.",
       fileLabel: "CV (PDF)",
       pasteLabel: "…or paste your CV's text",
       pastePlaceholder: "Paste your CV's content here…",
