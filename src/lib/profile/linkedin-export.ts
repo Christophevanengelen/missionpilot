@@ -92,6 +92,33 @@ export type LinkedInFiles = {
   jobSeekerPreferences?: string;
 };
 
+/**
+ * Les mêmes données, déjà décodées en enregistrements.
+ *
+ * C'est la forme PIVOT du parcours LinkedIn, et elle existe parce qu'il y a
+ * désormais deux façons d'obtenir ces données — l'archive officielle, en CSV,
+ * et l'API Member Data Portability, en JSON. Les faire converger ici plutôt
+ * que d'écrire un second constructeur n'est pas de l'économie de code : les
+ * règles d'honnêteté vivent dans le corps de `buildCareerProfileFromRecords`
+ * (recommandations gardées attribuées et filtrées sur VISIBLE, champs absents
+ * jamais inventés, plafonds). Un deuxième chemin serait un chemin où l'on
+ * pourrait les oublier.
+ *
+ * CONTRAT : les clés doivent être en MINUSCULES. `parseCsvRecords` minuscule
+ * les en-têtes et `field()` cherche en minuscules ; un producteur qui livrerait
+ * « Company Name » tel quel ne déclencherait aucune erreur — il trouverait
+ * simplement zéro champ, et l'import réussirait en ne remontant rien. Un échec
+ * silencieux est le pire mode de défaillance pour ce module, d'où cette ligne.
+ */
+export type LinkedInRecords = {
+  profile?: Record<string, string>[];
+  positions?: Record<string, string>[];
+  skills?: Record<string, string>[];
+  education?: Record<string, string>[];
+  recommendationsReceived?: Record<string, string>[];
+  jobSeekerPreferences?: Record<string, string>[];
+};
+
 const MAX_POSITIONS = 30;
 const MAX_EDUCATION = 15;
 const MAX_SKILLS = 100;
@@ -99,19 +126,40 @@ const MAX_RECOMMENDATIONS = 10;
 const MAX_TEXT_CHARS = 300_000;
 
 /**
- * Build a career narrative + declared-skills list from the export CSVs. Only
- * what the export actually states is included — absent fields are simply
- * omitted (honesty: never invented). The declared skills come from Skills.csv
- * (the user's own list) and are also folded into the text so the LLM and the
- * deterministic detector both see them.
+ * Le chemin de l'archive : les CSV sont décodés, puis on rejoint le tronc
+ * commun. La signature publique ne change pas — tout ce qui appelait déjà
+ * `buildCareerProfile` continue de marcher à l'identique.
  */
 export function buildCareerProfile(files: LinkedInFiles): {
   text: string;
   skills: string[];
 } {
+  return buildCareerProfileFromRecords({
+    profile: parseCsvRecords(files.profile ?? ""),
+    positions: parseCsvRecords(files.positions ?? ""),
+    skills: parseCsvRecords(files.skills ?? ""),
+    education: parseCsvRecords(files.education ?? ""),
+    recommendationsReceived: parseCsvRecords(
+      files.recommendationsReceived ?? "",
+    ),
+    jobSeekerPreferences: parseCsvRecords(files.jobSeekerPreferences ?? ""),
+  });
+}
+
+/**
+ * Le tronc commun : construit le récit de parcours et la liste de compétences
+ * déclarées. Seul ce que la source ÉNONCE réellement entre — un champ absent
+ * est omis, jamais inventé. C'est ici que vivent les règles d'honnêteté, et
+ * c'est pour cela que les deux chemins (archive et API) passent par cette
+ * fonction et non chacun par le sien.
+ */
+export function buildCareerProfileFromRecords(records: LinkedInRecords): {
+  text: string;
+  skills: string[];
+} {
   const lines: string[] = [];
 
-  const profile = parseCsvRecords(files.profile ?? "")[0];
+  const profile = (records.profile ?? [])[0];
   if (profile) {
     const headline = field(profile, "Headline");
     const summary = field(profile, "Summary");
@@ -121,10 +169,7 @@ export function buildCareerProfile(files: LinkedInFiles): {
     if (summary) lines.push(`Résumé : ${summary}`);
   }
 
-  const positions = parseCsvRecords(files.positions ?? "").slice(
-    0,
-    MAX_POSITIONS,
-  );
+  const positions = (records.positions ?? []).slice(0, MAX_POSITIONS);
   if (positions.length > 0) {
     lines.push("", "Expériences :");
     for (const p of positions) {
@@ -147,10 +192,7 @@ export function buildCareerProfile(files: LinkedInFiles): {
     }
   }
 
-  const education = parseCsvRecords(files.education ?? "").slice(
-    0,
-    MAX_EDUCATION,
-  );
+  const education = (records.education ?? []).slice(0, MAX_EDUCATION);
   if (education.length > 0) {
     lines.push("", "Formation :");
     for (const e of education) {
@@ -172,7 +214,7 @@ export function buildCareerProfile(files: LinkedInFiles): {
   // 12") and also the one thing the career reading must not quote as if the
   // person's own record had evidenced it. The label carries that distinction
   // into the dossier.
-  const recommendations = parseCsvRecords(files.recommendationsReceived ?? "")
+  const recommendations = (records.recommendationsReceived ?? [])
     .filter((r) => {
       // Pending or withdrawn recommendations are not visible on the profile
       // and may never have been accepted. Only what is actually published
@@ -204,7 +246,7 @@ export function buildCareerProfile(files: LinkedInFiles): {
 
   // Where the person projects themselves — the only signal in the whole export
   // that is about the NEXT rung rather than the last one.
-  const preferences = parseCsvRecords(files.jobSeekerPreferences ?? "")[0];
+  const preferences = (records.jobSeekerPreferences ?? [])[0];
   if (preferences) {
     const wanted = [
       [
@@ -225,7 +267,7 @@ export function buildCareerProfile(files: LinkedInFiles): {
   // Declared skills — de-duplicated, order preserved.
   const seen = new Set<string>();
   const skills: string[] = [];
-  for (const rec of parseCsvRecords(files.skills ?? "")) {
+  for (const rec of records.skills ?? []) {
     const name = field(rec, "Name", "Skill");
     const key = name.toLowerCase();
     if (!name || seen.has(key)) continue;

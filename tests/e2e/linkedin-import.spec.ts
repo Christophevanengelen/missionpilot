@@ -93,3 +93,38 @@ test("import export LinkedIn : archive → narratif → compétences déclarées
     page.getByText(/compétences? confirmées? dans votre profil/),
   ).toBeVisible();
 });
+
+/**
+ * L'import automatique par l'API de portabilité. Il n'est pas exercé de bout en
+ * bout ici : cela demanderait un vrai jeton LinkedIn, c'est-à-dire un secret
+ * dans le dépôt. Ce qui EST vérifié est ce qui peut l'être sans secret, et qui
+ * est exactement ce qui protège la personne — le champ masque la saisie, et
+ * l'écran énonce que le jeton n'est pas conservé.
+ */
+test("import par l’API LinkedIn : le jeton est masqué et sa non-conservation est écrite", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/profile");
+
+  const champ = page.getByLabel("Jeton d'accès LinkedIn");
+  await expect(champ).toBeVisible();
+  // Un jeton en clair finit dans une capture d'écran ou dans le dos de
+  // quelqu'un ; le masquage n'est pas cosmétique.
+  await expect(champ).toHaveAttribute("type", "password");
+  // Et il ne doit jamais être proposé au remplissage automatique du navigateur.
+  await expect(champ).toHaveAttribute("autocomplete", "off");
+
+  await expect(
+    page.getByText(/n'est ni enregistré ni journalisé/i),
+  ).toBeVisible();
+
+  // Sans jeton, l'écran demande, il n'appelle pas LinkedIn.
+  await page.getByRole("button", { name: "Importer depuis LinkedIn" }).click();
+  // Filtré sur le contenu : Next rend son propre annonceur de route avec
+  // `role="alert"`, toujours vide. Viser le rôle seul rend l'assertion
+  // ambiguë — et une assertion ambiguë échoue pour la mauvaise raison.
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Collez le jeton" }),
+  ).toBeVisible();
+});

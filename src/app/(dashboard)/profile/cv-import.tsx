@@ -10,9 +10,11 @@ import {
   addSkillsAction,
   analyzeCvAction,
   analyzeLinkedInAction,
+  analyzeLinkedInApiAction,
   applyCvProfileAction,
   type CvAnalysis,
 } from "@/lib/profile/cv-actions";
+import type { RapportDomaine } from "@/lib/profile/linkedin-mdp";
 import type { CvProfileUnderstanding } from "@/lib/profile/cv-ai";
 import type { AtsFinding } from "@/lib/profile/cv-ats-lint";
 import {
@@ -76,6 +78,8 @@ export function CvImport({ only }: { only?: Source } = {}) {
   const [idleAtsFindings, setIdleAtsFindings] = useState<AtsFinding[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const linkedinRef = useRef<HTMLInputElement>(null);
+  const [linkedinToken, setLinkedinToken] = useState("");
+  const [rapport, setRapport] = useState<RapportDomaine[] | null>(null);
   const inFlightRef = useRef(false);
   // Identity of the LATEST auto-discovery run: a stale completion from a
   // previous import cycle must never overwrite the current screen's result.
@@ -204,6 +208,42 @@ export function CvImport({ only }: { only?: Source } = {}) {
     } catch {
       setError(copy.errors.generic);
     } finally {
+      inFlightRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Import par l'API LinkedIn. Le jeton n'est jamais placé dans un champ de
+   * formulaire persistant ni dans l'URL : il part dans le corps de l'action et
+   * l'état local est VIDÉ dès l'appel terminé, succès comme échec — un secret
+   * qui reste affiché après usage est un secret qui finit dans une capture
+   * d'écran.
+   */
+  async function analyzeLinkedInApi() {
+    if (inFlightRef.current) return;
+    setIdleAtsFindings([]);
+    setRapport(null);
+    const jeton = linkedinToken.trim();
+    if (jeton === "") {
+      setError(copy.linkedinApi.needToken);
+      return;
+    }
+    inFlightRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("token", jeton);
+      const resultat = await analyzeLinkedInApiAction(formData);
+      if (resultat.ok && resultat.rapportLinkedIn) {
+        setRapport(resultat.rapportLinkedIn);
+      }
+      routeAnalysis(resultat, "linkedin");
+    } catch {
+      setError(copy.errors.generic);
+    } finally {
+      setLinkedinToken("");
       inFlightRef.current = false;
       setBusy(false);
     }
@@ -657,6 +697,76 @@ export function CvImport({ only }: { only?: Source } = {}) {
             </Button>
           </div>
         </form>
+      )}
+
+      {only === "cv" ? null : (
+        <form
+          className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void analyzeLinkedInApi();
+          }}
+        >
+          <p className="text-sm font-medium">{copy.linkedinApi.title}</p>
+          <p className="text-muted-foreground text-xs">
+            {copy.linkedinApi.note}
+          </p>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="linkedin-token">
+              {copy.linkedinApi.tokenLabel}
+            </Label>
+            <input
+              id="linkedin-token"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              value={linkedinToken}
+              onChange={(e) => setLinkedinToken(e.target.value)}
+              disabled={busy}
+              className="border-input bg-background w-full min-w-0 rounded-lg border p-2 font-mono text-sm"
+            />
+            <p className="text-muted-foreground text-xs">
+              {copy.linkedinApi.tokenHelp}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" size="sm" variant="outline" {...busyProps}>
+              {copy.linkedinApi.analyze}
+            </Button>
+            <a
+              href="https://www.linkedin.com/developers/apps"
+              target="_blank"
+              rel="noopener"
+              className="text-muted-foreground text-xs underline underline-offset-2"
+            >
+              {copy.linkedinApi.portail}
+            </a>
+          </div>
+        </form>
+      )}
+
+      {/* Ce que LinkedIn a réellement rendu, domaine par domaine. Les libellés
+          ne sont documentés pour aucun domaine sauf PROFILE : sans ce compte
+          rendu, un import qui ne trouve rien ressemble trait pour trait à un
+          import réussi. */}
+      {rapport === null ? null : (
+        <div className="border-border bg-card flex flex-col gap-2 rounded-xl border p-4">
+          <p className="text-sm font-medium">{copy.linkedinApi.rapportTitle}</p>
+          <ul className="flex flex-col gap-1">
+            {rapport.map((r) => (
+              <li key={r.domaine} className="text-xs">
+                <span className="font-mono">{r.domaine}</span>
+                <span className="text-muted-foreground">
+                  {" — "}
+                  {r.lignes === 0
+                    ? copy.linkedinApi.rapportVide
+                    : copy.linkedinApi.rapportLignes(r.lignes)}
+                  {r.ecarte ? ` · ${r.ecarte}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {error ? (

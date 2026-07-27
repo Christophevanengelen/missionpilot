@@ -22,7 +22,15 @@ import { addCvSkills, applyCvProfile, applyProfileSchema } from "./cv-apply";
 import { detectSkills } from "./cv-extract";
 import { CvPdfError, extractPdf } from "./cv-pdf";
 import { lintCvForAts, type AtsFinding } from "./cv-ats-lint";
-import { buildCareerProfile } from "./linkedin-export";
+import {
+  buildCareerProfile,
+  buildCareerProfileFromRecords,
+} from "./linkedin-export";
+import {
+  LinkedInMdpError,
+  recupererParcours,
+  type RapportDomaine,
+} from "./linkedin-mdp";
 import { extractLinkedInFiles, LinkedInExportError } from "./linkedin-zip";
 
 const logger = createLogger({ module: "cv-actions" });
@@ -38,6 +46,12 @@ export type CvAnalysis =
       /** Deterministic ATS parse-safety findings on the uploaded PDF (empty
        *  for pasted text / LinkedIn imports, which have no file layout). */
       atsFindings: AtsFinding[];
+      /** Import par l'API LinkedIn uniquement : ce que chaque domaine a
+       *  réellement rendu, et ce qui a été délibérément écarté. Les libellés
+       *  renvoyés par LinkedIn ne sont documentés pour aucun domaine sauf
+       *  PROFILE ; sans ce compte rendu, un import qui ne trouve rien ressemble
+       *  trait pour trait à un import réussi. */
+      rapportLinkedIn?: RapportDomaine[];
     }
   | {
       ok: false;
@@ -162,6 +176,44 @@ export async function analyzeLinkedInAction(
     return {
       ok: false,
       error: error instanceof LinkedInExportError ? "linkedin" : "generic",
+    };
+  }
+}
+
+/**
+ * Import du parcours par l'API LinkedIn (Member Data Portability), avec le
+ * jeton que la personne a généré elle-même dans le portail développeur.
+ *
+ * Le jeton traverse cette fonction et n'en ressort pas : il n'est ni stocké,
+ * ni journalisé, ni renvoyé au client. C'est la contrepartie exigée par la
+ * promesse « rien n'est gardé sauf le profil » — la même règle que le fichier
+ * CV, qui n'est jamais conservé non plus.
+ *
+ * Le pipeline d'aval est rigoureusement celui de l'archive : mêmes règles
+ * d'honnêteté, même validation par la personne, même découverte ensuite.
+ */
+export async function analyzeLinkedInApiAction(
+  formData: FormData,
+): Promise<CvAnalysis> {
+  try {
+    await verifySession();
+    const jeton = formData.get("token");
+    if (typeof jeton !== "string" || jeton.trim() === "") {
+      return { ok: false, error: "empty" };
+    }
+    const { records, rapport } = await recupererParcours(jeton);
+    const { text, skills } = buildCareerProfileFromRecords(records);
+    const analyse = await analyzeText(text, skills);
+    return analyse.ok ? { ...analyse, rapportLinkedIn: rapport } : analyse;
+  } catch (error) {
+    // `error.message` de LinkedInMdpError est rédigé pour être lu par la
+    // personne et ne contient jamais le jeton — voir linkedin-mdp.ts.
+    logger.error("linkedin api import failed", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+    return {
+      ok: false,
+      error: error instanceof LinkedInMdpError ? "linkedin" : "generic",
     };
   }
 }
