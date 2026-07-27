@@ -48,12 +48,25 @@ export function SearchPanel({
   defaultCountries,
   initialResult = null,
   stepUpTitles = [],
+  searchedTitles = [],
+  openingOutcome = "ok",
   trajectory = null,
 }: {
   defaultQuery: string;
   defaultCountries: string[];
   /** Title phrasings that mark an offer as the step up. */
   stepUpTitles?: string[];
+  /** Les intitulés sous lesquels la recherche d'ouverture a réellement été
+   *  lancée. Les plateformes ne formulent pas les métiers comme un CV, et
+   *  quelqu'un qui ne voit pas ce qu'on a cherché pour lui ne peut pas savoir
+   *  si la liste est vide parce que le marché est vide, ou parce qu'on a
+   *  cherché à côté. */
+  searchedTitles?: string[];
+  /** Ce qu'a donné la recherche lancée à l'ouverture. Le silence était le pire
+   *  état possible : la personne lisait « cherché à l'instant » au-dessus d'un
+   *  vide, sans savoir si le produit avait cherché, échoué, ou si le marché
+   *  n'avait rien. */
+  openingOutcome?: "ok" | "no_plan" | "error";
   /** The career reading behind the staircase, or null when unavailable. */
   trajectory?: {
     currentLevel: string;
@@ -80,6 +93,13 @@ export function SearchPanel({
   const [filters, setFilters] = useState<MarketFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<MarketSort>(DEFAULT_SORT);
   const inFlightRef = useRef(false);
+  /** Une recherche manuelle a-t-elle eu lieu ? Dès lors, c'est elle qui parle,
+   *  et le diagnostic d'ouverture doit se taire. */
+  const [touched, setTouched] = useState(false);
+  /** Le repli d'affinage devient contrôlé : le diagnostic d'ouverture doit
+   *  pouvoir l'ouvrir, sans casser le clic sur le résumé. */
+  const [refineOpen, setRefineOpen] = useState(false);
+  const queryRef = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(() => {
     if (result === null) return [];
@@ -92,6 +112,7 @@ export function SearchPanel({
   );
 
   async function run() {
+    setTouched(true);
     if (inFlightRef.current) return;
     inFlightRef.current = true;
     setBusy(true);
@@ -135,6 +156,39 @@ export function SearchPanel({
       <p role="alert" className="text-destructive text-sm">
         {error ?? ""}
       </p>
+
+      {/* L'ouverture n'a rien donné, et on le DIT. Le `!touched` est la garde
+          qui compte : dès que la personne a lancé une recherche à la main,
+          c'est le message d'erreur de CETTE recherche qui fait foi, et
+          afficher les deux en même temps serait pire que le silence. */}
+      {result === null && !busy && !touched && openingOutcome !== "ok" ? (
+        <div className="border-border flex flex-col items-start gap-3 rounded-xl border p-4">
+          <p className="text-sm text-pretty">
+            {openingOutcome === "no_plan"
+              ? copy.openingNoPlan
+              : copy.openingFailed}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setRefineOpen(true);
+              if (openingOutcome === "no_plan") {
+                // Pas de tir à l'aveugle : sans métier renseigné la requête
+                // serait vide et reviendrait avec « aucun mot-clé ». On ouvre
+                // et on met le curseur là où la personne doit écrire.
+                queryRef.current?.focus();
+              } else {
+                void run();
+              }
+            }}
+          >
+            {openingOutcome === "no_plan"
+              ? copy.openingNoPlanAction
+              : copy.openingFailedAction}
+          </Button>
+        </div>
+      ) : null}
 
       {result !== null ? (
         <>
@@ -304,6 +358,43 @@ export function SearchPanel({
             ) : null}
           </section>
 
+          {/* LES PREUVES, ET ELLES VIENNENT AVANT L'ESCALIER.
+              C'est la promesse entière du produit : « le poste d'un cran
+              au-dessus, avec les preuves tirées de votre propre parcours ».
+              Elle était calculée par l'IA, transmise jusqu'ici… et jamais
+              affichée. La bande servait une phrase générique, identique pour
+              tout le monde — c'est-à-dire l'instant exact où quelqu'un se dit
+              qu'il a affaire à un agrégateur de plus.
+
+              Placé AVANT `buildStaircase` et non sous le titre de la bande :
+              sous la bande, ce bloc disparaîtrait les jours où aucune offre du
+              marché ne correspond à la marche d'après — c'est-à-dire
+              précisément les jours où savoir pourquoi on est prêt compte le
+              plus. Ce qu'on a compris d'un parcours ne dépend pas de ce que le
+              marché publie ce matin. */}
+          {trajectory !== null && trajectory.evidence.length > 0 ? (
+            <section className="border-rise/40 bg-rise/[0.05] flex flex-col gap-2 rounded-xl border border-l-2 p-4">
+              {trajectory.nextLevel !== null ? (
+                <h2 className="font-medium tracking-tight text-balance">
+                  {copy.trajectoryTitle(
+                    trajectory.currentLevel,
+                    trajectory.nextLevel,
+                  )}
+                </h2>
+              ) : null}
+              <p className="text-muted-foreground text-xs">
+                {copy.trajectoryEvidence}
+              </p>
+              <ul className="flex flex-col gap-1 text-sm">
+                {trajectory.evidence.map((preuve) => (
+                  <li key={preuve} className="text-pretty">
+                    {preuve}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           {buildStaircase(shown, stepUpTitles, {
             stepUp: trajectory?.nextLevel ?? null,
             level: trajectory?.currentLevel ?? null,
@@ -330,6 +421,23 @@ export function SearchPanel({
           ))}
           {shown.length === 0 ? (
             <p className="text-muted-foreground text-sm">{copy.noneShown}</p>
+          ) : null}
+
+          {/* `result === initialResult` n'est pas une précaution : l'affinage
+              manuel remplace `result` par un objet neuf alors que
+              `searchedTitles` reste la prop d'ouverture. Sans cette garde, la
+              ligne affirmerait avoir cherché sous des intitulés qu'elle n'a
+              pas utilisés — un mensonge d'autant plus traître qu'il est
+              plausible. */}
+          {searchedTitles.length > 0 && result === initialResult ? (
+            <div className="flex flex-col gap-1">
+              <p className="text-muted-foreground text-xs">
+                {copy.searchedAs(searchedTitles)}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {copy.searchedAsNote}
+              </p>
+            </div>
           ) : null}
 
           {/* Credits owed for the results ACTUALLY on screen. Several sources
@@ -366,7 +474,11 @@ export function SearchPanel({
         </>
       ) : null}
 
-      <details className="border-border rounded-xl border p-4">
+      <details
+        open={refineOpen}
+        onToggle={(e) => setRefineOpen(e.currentTarget.open)}
+        className="border-border rounded-xl border p-4"
+      >
         <summary className="cursor-pointer text-sm font-medium">
           {copy.refineSummary}
         </summary>
@@ -382,6 +494,7 @@ export function SearchPanel({
               <Label htmlFor="market-query">{copy.queryLabel}</Label>
               <Input
                 id="market-query"
+                ref={queryRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={copy.queryPlaceholder}

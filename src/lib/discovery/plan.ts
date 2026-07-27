@@ -20,7 +20,9 @@ export const MAX_TARGET_SEARCHES = 3;
 const MAX_FALLBACK_KEYWORDS = 4;
 
 export function buildSearchPlans(
-  claims: { kind: string; state: string; value: unknown }[],
+  // `readonly` : cette fonction ne fait que LIRE les affirmations. Le dire dans
+  // la signature évite au passage une copie défensive chez chaque appelant.
+  claims: readonly { kind: string; state: string; value: unknown }[],
   targetRoleFamilies: readonly string[],
 ): SearchPlan[] {
   const seen = new Set<string>();

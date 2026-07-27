@@ -1,7 +1,11 @@
 import "server-only";
 
-import type { SearchPlan } from "@/lib/discovery/plan";
+import { buildSearchPlans, type SearchPlan } from "@/lib/discovery/plan";
 import { createTtlCache } from "@/lib/discovery/cache";
+
+/** La forme minimale d'une affirmation de profil que le planificateur lit —
+ *  la même que celle attendue par `buildSearchPlans`. */
+type ProfileClaim = { kind: string; state: string; value: unknown };
 import { aiMarketVocabulary } from "./ai-vocabulary";
 import {
   aiReadTrajectory,
@@ -46,27 +50,61 @@ export type ProfileSearchPlan = {
  */
 const planCache = createTtlCache<ProfileSearchPlan>(60 * 60 * 1000);
 
-/** Fallback: the métiers as the user confirmed them, searched by title. */
-function fallbackPlans(targetRoleFamilies: readonly string[]): SearchPlan[] {
-  return targetRoleFamilies
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((t) => ({ keywords: [t], mode: "title" as const }));
+/**
+ * Le repli, et il partage désormais celui de la recherche manuelle.
+ *
+ * Il ne regardait AUTREFOIS que les métiers cibles. Conséquence : quelqu'un qui
+ * terminait l'onboarding en répondant « Service Designer » à la question du
+ * métier — donc avec un rôle confirmé — n'obtenait AUCUN résultat, parce que
+ * les métiers cibles, eux, étaient vides. La recherche manuelle, au même
+ * instant, savait très bien quoi chercher : elle se rabat sur le rôle confirmé
+ * puis sur les compétences.
+ *
+ * L'ouverture était donc strictement plus faible que le champ de recherche
+ * qu'elle est censée rendre inutile. C'est la boucle centrale du produit qui
+ * cassait — on donne tout de suite, sans demander de chercher — et elle
+ * cassait précisément pour un nouvel utilisateur.
+ */
+function fallbackPlans(
+  targetRoleFamilies: readonly string[],
+  claims: readonly ProfileClaim[],
+): SearchPlan[] {
+  return buildSearchPlans(claims, targetRoleFamilies);
+}
+
+/** Les mots réellement envoyés aux plateformes, pour pouvoir les MONTRER. */
+function motsCherches(plans: readonly SearchPlan[]): string[] {
+  const vus = new Set<string>();
+  const mots: string[] = [];
+  for (const plan of plans) {
+    for (const mot of plan.keywords) {
+      const cle = mot.trim().toLowerCase();
+      if (!cle || vus.has(cle)) continue;
+      vus.add(cle);
+      mots.push(mot.trim());
+    }
+  }
+  return mots;
 }
 
 export async function planFromProfile(
   dossier: string,
   targetRoleFamilies: readonly string[],
+  claims: readonly ProfileClaim[] = [],
 ): Promise<ProfileSearchPlan> {
   const cached = planCache.get(dossier);
   if (cached) return cached;
 
+  const plansDeRepli = fallbackPlans(targetRoleFamilies, claims);
   const fallback: ProfileSearchPlan = {
-    plans: fallbackPlans(targetRoleFamilies),
+    plans: plansDeRepli,
     stepUpTitles: [],
     trajectory: null,
-    searchedTitles: [...targetRoleFamilies],
+    // Les mots RÉELLEMENT envoyés, et non les métiers cibles : le repli peut
+    // chercher sur le rôle confirmé ou sur des compétences, et annoncer autre
+    // chose que ce qu'on a fait serait un mensonge sur l'écran même qui doit
+    // expliquer pourquoi la liste est ce qu'elle est.
+    searchedTitles: motsCherches(plansDeRepli),
   };
   if (dossier.trim() === "") return fallback;
 
