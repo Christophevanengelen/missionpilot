@@ -45,6 +45,16 @@ export default async function DashboardLayout({
           >
             {session.email ?? "Connecté"}
           </span>
+          {/* Pas d'entrée dans NAV_ITEMS : la doctrine « le produit est UN
+              écran » tient, et l'accès à ses données ne doit pas devenir du
+              mobilier. Mais il doit rester trouvable sans qu'on ait à le
+              chercher — un droit qu'on n'expose pas est un droit théorique. */}
+          <a
+            href="/compte"
+            className="text-muted-foreground hover:text-foreground text-sm"
+          >
+            Mon compte
+          </a>
           <ThemeToggle />
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">

@@ -221,7 +221,13 @@ export const copy = {
     },
     cvImport: {
       title: "Importer mon CV",
-      note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est jamais conservé.",
+      /* « Le fichier n'est jamais conservé » était vrai et trompeur : le fichier
+         ne l'est pas, mais son TEXTE INTÉGRAL part chez OpenAI, aux États-Unis,
+         sans anonymisation (`cv-ai.ts:88`). Cet écran est le moment décisif —
+         celui où l'on décide de déposer ou non — et il produisait exactement la
+         croyance que la politique de confidentialité dément. Nommer le
+         destinataire réel plutôt qu'une catégorie vague est la règle. */
+      note: "Déposez votre CV (PDF) ou collez son texte : nous détectons vos compétences et vous choisissez celles à ajouter. Le fichier n'est pas conservé — son texte, en revanche, est transmis à OpenAI, aux États-Unis, à seule fin d'en extraire votre parcours et vos compétences.",
       fileLabel: "CV (PDF)",
       pasteLabel: "…ou collez le texte de votre CV",
       pastePlaceholder: "Collez ici le contenu de votre CV…",
@@ -296,6 +302,21 @@ export const copy = {
         tooLarge:
           "Ce fichier dépasse 10 Mo. Exportez une version plus légère ou collez le texte de votre CV.",
         generic: "L'analyse n'a pas abouti. Réessayez.",
+        /* Ce n'est PAS une panne : c'est un refus délibéré. Le message ne dit
+           donc pas « réessayez » — il dit quoi faire pour avancer. */
+        consent:
+          "Cochez la case ci-dessus pour que nous puissions lire votre CV. Sans elle, nous n'y touchons pas.",
+      },
+      /* La case du consentement — art. 9(2)(a). Elle est dédiée, séparée de
+         toute autre acceptation, et jamais pré-cochée : un consentement
+         pré-coché n'en est pas un. */
+      art9: {
+        label:
+          "J'accepte que MissionPilot lise mon CV, y compris si j'y ai laissé une information sensible.",
+        detail:
+          "Un CV mentionne parfois une interruption de carrière pour raison de santé, un mandat syndical, une nationalité, un engagement associatif ou religieux. Ces informations sont protégées, et les lire demande votre accord explicite.",
+        mesure:
+          "De notre côté, nous demandons au modèle de ne pas les extraire ni les reformuler. Nous ne pouvons pas vous le garantir : le meilleur réflexe reste de les retirer de votre CV avant de le déposer.",
       },
       ats: {
         title: "Lisibilité par les logiciels de recrutement (ATS)",
@@ -1118,7 +1139,7 @@ export const copy = {
     },
     cvImport: {
       title: "Import my CV",
-      note: "Drop your CV (PDF) or paste its text: we detect your skills and you choose which to add. The file is never stored.",
+      note: "Drop your CV (PDF) or paste its text: we detect your skills and you choose which to add. The file is not stored — its text, however, is sent to OpenAI, in the United States, for the sole purpose of extracting your career and skills.",
       fileLabel: "CV (PDF)",
       pasteLabel: "…or paste your CV's text",
       pastePlaceholder: "Paste your CV's content here…",
@@ -1188,6 +1209,16 @@ export const copy = {
         tooLarge:
           "This file exceeds 10 MB. Export a lighter version or paste your CV's text.",
         generic: "The analysis did not go through. Try again.",
+        consent:
+          "Tick the box above so we can read your CV. Without it, we do not touch it.",
+      },
+      art9: {
+        label:
+          "I agree that MissionPilot may read my CV, including if I have left sensitive information in it.",
+        detail:
+          "A CV sometimes mentions a career break for health reasons, a union mandate, a nationality, a religious or community involvement. That information is protected, and reading it requires your explicit agreement.",
+        mesure:
+          "On our side, we instruct the model not to extract or rephrase it. We cannot guarantee this: the safest move is still to remove it from your CV before uploading.",
       },
       ats: {
         title: "Readability by recruiting software (ATS)",

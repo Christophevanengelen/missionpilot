@@ -87,6 +87,11 @@ test("@capture le parcours complet, en images", async ({ page }) => {
     .fill(
       "Ingénieur. Stack: TypeScript, React, PostgreSQL, Docker, Kubernetes, Terraform.",
     );
+  /* Le consentement de l'art. 9 est une porte réelle sur le chemin critique :
+     sans lui, le CV n'est pas lu. Les parcours qui déposent un CV doivent donc
+     le franchir comme une personne le ferait — le cocher ici n'est pas un
+     contournement, c'est reproduire le geste. */
+  await page.getByLabel(/j'accepte que missionpilot lise mon cv/i).check();
   await page.getByRole("button", { name: "Analyser mon CV" }).click();
   await expect(
     page.getByText("Compétences détectées dans votre CV"),

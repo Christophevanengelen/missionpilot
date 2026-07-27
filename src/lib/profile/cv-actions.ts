@@ -33,7 +33,57 @@ import {
 } from "./linkedin-mdp";
 import { extractLinkedInFiles, LinkedInExportError } from "./linkedin-zip";
 
+import { ecrireConsentementArt9, lireConsentementArt9 } from "./consentement";
+
 const logger = createLogger({ module: "cv-actions" });
+
+/**
+ * Consigne le consentement de l'art. 9, sans écraser une date existante.
+ *
+ * Un échec d'écriture n'interrompt PAS l'analyse : la personne vient de cocher
+ * la case et d'appuyer sur le bouton, son consentement est réel. Perdre la trace
+ * est un problème de preuve — le nôtre — et le journaliser est la bonne
+ * réponse ; refuser le service au motif qu'on n'a pas su noter serait lui faire
+ * payer notre panne.
+ */
+async function enregistrerConsentementArt9(): Promise<void> {
+  try {
+    const client = await createClient();
+    const own = await profile.getOwnProfile(client);
+    await ecrireConsentementArt9(client, own.id, true);
+  } catch (error) {
+    logger.error("art9 consent not recorded", {
+      reason: error instanceof Error ? error.constructor.name : "unknown",
+    });
+  }
+}
+
+/** L'état du consentement, pour l'écran qui le montre et permet de le retirer. */
+export async function lireMonConsentementArt9(): Promise<string | null> {
+  await verifySession();
+  const client = await createClient();
+  const own = await profile.getOwnProfile(client);
+  const date = await lireConsentementArt9(client, own.id);
+  return date ? date.toISOString() : null;
+}
+
+/** Retirer son consentement — un droit (art. 7(3)), sans justification. */
+export async function retirerConsentementArt9Action(): Promise<{
+  ok: boolean;
+}> {
+  try {
+    await verifySession();
+    const client = await createClient();
+    const own = await profile.getOwnProfile(client);
+    await ecrireConsentementArt9(client, own.id, false);
+    return { ok: true };
+  } catch (error) {
+    logger.error("art9 consent withdrawal failed", {
+      reason: error instanceof Error ? error.constructor.name : "unknown",
+    });
+    return { ok: false };
+  }
+}
 
 export type CvAnalysis =
   | {
@@ -55,7 +105,10 @@ export type CvAnalysis =
     }
   | {
       ok: false;
-      error: "empty" | "pdf" | "linkedin" | "generic";
+      /* `consent` : le consentement de l'art. 9 n'a pas été donné. C'est un
+         REFUS DÉLIBÉRÉ, pas une panne — l'écran doit le dire autrement qu'une
+         erreur, et surtout ne pas suggérer de réessayer. */
+      error: "empty" | "pdf" | "linkedin" | "generic" | "consent";
       /** Carried on the ERROR path too: a scanned-image PDF extracts no text
        *  (⇒ error "empty") but is exactly when the no_extractable_text finding
        *  matters most — it must still reach the user. */
@@ -124,6 +177,18 @@ async function analyzeText(
 export async function analyzeCvAction(formData: FormData): Promise<CvAnalysis> {
   try {
     await verifySession();
+
+    /* LE CONSENTEMENT SE DEMANDE AVANT LE DÉPÔT, ET SE VÉRIFIE ICI.
+       Le vérifier côté client seulement en ferait une politesse : le texte du CV
+       partirait chez le fournisseur d'IA dès qu'on appelle l'action autrement.
+       On enregistre AVANT d'analyser, et on refuse si la case n'est pas cochée —
+       un traitement de l'art. 9 sans exception de l'art. 9(2) est interdit, pas
+       toléré. */
+    if (formData.get("consentArt9") !== "on") {
+      return { ok: false, error: "consent" };
+    }
+    await enregistrerConsentementArt9();
+
     const file = formData.get("file");
     const pasted = formData.get("text");
     let text = "";

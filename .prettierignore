@@ -7,3 +7,12 @@ test-results/
 supabase/.temp/
 public/
 src/components/ui/
+
+# Le gabarit d'e-mail est installé TEL QUEL dans le tableau de bord Supabase :
+# la copie du dépôt doit rester octet pour octet celle qui part réellement, sinon
+# on ne peut plus dire lequel des deux fait foi. Prettier reformaterait aussi les
+# espaces entre balises en ligne, qui comptent dans un client mail.
+supabase/templates/
+
+# Types générés par `supabase gen types` — réécrits à chaque migration.
+src/lib/db/database.types.ts

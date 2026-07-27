@@ -132,7 +132,12 @@ export function OnboardingStart({
         <Carte
           marque="Le plus rapide"
           titre="Mon CV"
-          detail="Un PDF, ou son texte collé. Le fichier n’est jamais conservé — il est lu, puis oublié."
+          /* « lu, puis oublié » était la formulation la plus trompeuse du
+             produit : le FICHIER est bien oublié, mais son texte intégral est
+             transmis à OpenAI, aux États-Unis, sans anonymisation
+             (`cv-ai.ts:88`). C'est ici qu'on décide de déposer son CV ou non —
+             on ne peut pas décider sur une phrase qui rassure à faux. */
+          detail="Un PDF, ou son texte collé. Le fichier n’est pas conservé ; son texte est transmis à OpenAI, aux États-Unis, pour en tirer votre parcours."
           onClick={() => setChoix("cv")}
         />
         <Carte

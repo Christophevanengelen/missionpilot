@@ -17,9 +17,40 @@ import { createLogger } from "@/lib/observability/logger";
  * deterministic detector stands alone — no error, no cost.
  */
 
-const CV_SKILLS_PROMPT_VERSION = "cv-skills-1";
-const CV_PROFILE_PROMPT_VERSION = "cv-profile-1";
+const CV_SKILLS_PROMPT_VERSION = "cv-skills-2";
+const CV_PROFILE_PROMPT_VERSION = "cv-profile-2";
 const MAX_CV_CHARS = 30_000; // cost bound — a CV fits well within this.
+
+/**
+ * L'instruction qui protège les données de l'article 9.
+ *
+ * Un CV mentionne souvent, sans que son auteur y ait pensé, une interruption de
+ * carrière pour raison de santé, un mandat syndical, un engagement confessionnel
+ * ou politique, une nationalité. Ce sont des données que le RGPD interdit de
+ * traiter par principe.
+ *
+ * Cette phrase est LA mesure technique. Une case de consentement sans elle
+ * serait une décharge, pas une protection : on ferait signer quelqu'un pour un
+ * risque qu'on ne réduit pas. Elle voyage du côté SERVEUR de l'instruction, donc
+ * hors de portée du texte du CV — un document ne peut pas la contredire.
+ *
+ * Ce qu'elle ne fait pas : garantir. Un modèle n'obéit pas comme une clause
+ * `where`. Le résumé reste une zone de texte libre, et une mention qui y
+ * survivrait entrerait dans le dossier professionnel, donc dans le tri. C'est
+ * pourquoi la copie de l'écran de dépôt recommande toujours de retirer ces
+ * mentions du CV : la meilleure protection reste celle qui ne dépend pas de
+ * nous. Les deux versions de prompt sont incrémentées pour que les traces
+ * distinguent l'avant de l'après.
+ */
+export const CONSIGNE_ART9 =
+  " N'EXTRAIS ET NE REFORMULE JAMAIS les informations suivantes, même si le CV" +
+  " les mentionne explicitement : état de santé, handicap, grossesse, origine" +
+  " raciale ou ethnique, nationalité, opinions politiques, convictions" +
+  " religieuses ou philosophiques, appartenance syndicale, vie sexuelle ou" +
+  " orientation sexuelle, données biométriques ou génétiques, condamnations" +
+  " pénales. Si une expérience est décrite par l'une de ces informations," +
+  " retiens uniquement sa dimension professionnelle. Si une interruption de" +
+  " carrière est mentionnée, n'en donne jamais le motif.";
 
 const aiSkillsSchema = z
   .object({
@@ -84,7 +115,8 @@ export async function aiAnalyzeCvProfile(
       // Server-authored instruction on the TRUSTED side; the input carries
       // only the untrusted CV text.
       taskInstruction:
-        "Analyse le CV fourni dans inputData.cvText en profondeur comme un expert du recrutement. Déduis: (1) roleTitle — LE rôle professionnel que ce parcours présente le plus crédiblement en priorité (logique des expériences: récence, durée, progression); (2) roleRationale — 1-2 phrases en français justifiant ce choix à partir des expériences; (3) seniorityLevel (ex. Senior, Lead, Directeur) ou null si indécidable; (4) yearsExperience — années d'expérience pertinentes, ou null; (5) summary — résumé professionnel de 2-3 phrases en français, factuel, première personne; (6) coreSkills — UNIQUEMENT les compétences cœur, récurrentes et récentes à travers les expériences, la plus importante d'abord, max 15 — PAS une liste exhaustive de mots-clés; (7) targetRoles — 1 à 3 intitulés de métiers du marché de l'emploi à rechercher pour ce profil, prioritaire d'abord. N'invente RIEN qui ne soit pas dans le CV.",
+        "Analyse le CV fourni dans inputData.cvText en profondeur comme un expert du recrutement. Déduis: (1) roleTitle — LE rôle professionnel que ce parcours présente le plus crédiblement en priorité (logique des expériences: récence, durée, progression); (2) roleRationale — 1-2 phrases en français justifiant ce choix à partir des expériences; (3) seniorityLevel (ex. Senior, Lead, Directeur) ou null si indécidable; (4) yearsExperience — années d'expérience pertinentes, ou null; (5) summary — résumé professionnel de 2-3 phrases en français, factuel, première personne; (6) coreSkills — UNIQUEMENT les compétences cœur, récurrentes et récentes à travers les expériences, la plus importante d'abord, max 15 — PAS une liste exhaustive de mots-clés; (7) targetRoles — 1 à 3 intitulés de métiers du marché de l'emploi à rechercher pour ce profil, prioritaire d'abord. N'invente RIEN qui ne soit pas dans le CV." +
+        CONSIGNE_ART9,
       input: { cvText: text.slice(0, MAX_CV_CHARS) },
       dataSchema: cvProfileSchema,
     });
@@ -114,7 +146,8 @@ export async function aiDetectSkills(text: string): Promise<string[] | null> {
       taskName: "cv-skill-extraction",
       promptVersion: CV_SKILLS_PROMPT_VERSION,
       taskInstruction:
-        "Extract the professional skills, tools and technologies the CV in inputData.cvText explicitly mentions. Return each as a short canonical name (e.g. 'React', 'Product Management'). Only skills present in the text — never infer or invent.",
+        "Extract the professional skills, tools and technologies the CV in inputData.cvText explicitly mentions. Return each as a short canonical name (e.g. 'React', 'Product Management'). Only skills present in the text — never infer or invent." +
+        CONSIGNE_ART9,
       input: { cvText: text.slice(0, MAX_CV_CHARS) },
       dataSchema: aiSkillsSchema,
     });

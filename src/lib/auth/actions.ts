@@ -61,7 +61,17 @@ export async function envoyerLienMagique(
     const plafond = /rate limit|too many/i.test(error.message);
     return {
       error: plafond
-        ? "Trop de liens demandés d’un coup. Réessayez dans quelques minutes."
+        ? // « Réessayez dans quelques minutes » était faux, et coûteux :
+          // le service d'envoi intégré de Supabase plafonne à deux e-mails
+          // PAR HEURE. Quelqu'un qui suit ce conseil recliquera trois minutes
+          // plus tard, se fera refuser à nouveau, et conclura que le produit
+          // est cassé — c'est exactement ce qui s'est produit. Un délai annoncé
+          // trop court est pire que pas de délai du tout : il transforme une
+          // attente en panne apparente.
+          //
+          // À corriger le jour où le SMTP personnalisé est branché : ce plafond
+          // disparaît alors, et cette phrase devient fausse dans l'autre sens.
+          "Trop de liens demandés. Notre service d’envoi est plafonné à deux e-mails par heure — réessayez dans une heure."
         : null,
       envoye: !plafond,
     };
