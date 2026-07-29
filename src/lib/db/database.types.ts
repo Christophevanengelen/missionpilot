@@ -482,6 +482,41 @@ export type Database = {
           },
         ]
       }
+      digest_subscriptions: {
+        Row: {
+          created_at: string
+          last_sent_at: string | null
+          opted_in: boolean
+          profile_id: string
+          unsubscribe_token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          last_sent_at?: string | null
+          opted_in?: boolean
+          profile_id: string
+          unsubscribe_token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          last_sent_at?: string | null
+          opted_in?: boolean
+          profile_id?: string
+          unsubscribe_token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digest_subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evidence_items: {
         Row: {
           created_at: string

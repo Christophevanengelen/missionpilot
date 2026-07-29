@@ -3,8 +3,11 @@ import { createClient } from "@/lib/db/server";
 import { loadAccountFootprint } from "@/lib/account/logic";
 import { lignesEmpreinte, NON_INCLUS } from "@/lib/account/export";
 import { lireMonConsentementArt9 } from "@/lib/profile/cv-actions";
+import { lireAbonnement } from "@/lib/digest/abonnement";
+import { getOwnProfile } from "@/lib/opportunity/logic";
 import { ExportPanel } from "./export-panel";
 import { ConsentPanel } from "./consent-panel";
+import { DigestPanel } from "./digest-panel";
 import { DeleteAccount } from "./delete-account";
 
 export const metadata = { title: "Vos données et votre compte" };
@@ -26,6 +29,10 @@ export default async function ComptePage() {
   const empreinte = await loadAccountFootprint(client);
   const lignes = lignesEmpreinte(empreinte);
   const consentArt9 = await lireMonConsentementArt9();
+  // Absent = jamais touché, ce qui vaut « non » pour l'affichage : personne ne
+  // reçoit d'e-mail parce qu'on a décidé pour lui.
+  const profile = await getOwnProfile(client);
+  const abonnementDigest = await lireAbonnement(client, profile.id);
 
   return (
     <div className="flex max-w-2xl flex-col gap-10">
@@ -45,6 +52,8 @@ export default async function ComptePage() {
       <ExportPanel />
 
       <ConsentPanel donneLe={consentArt9} />
+
+      <DigestPanel actifInitial={abonnementDigest?.optedIn ?? false} />
 
       <section
         aria-labelledby="suppression"
