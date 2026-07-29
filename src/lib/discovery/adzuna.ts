@@ -84,6 +84,34 @@ export function adzunaConfigured(): boolean {
   return Boolean(env.ADZUNA_APP_ID && env.ADZUNA_APP_KEY);
 }
 
+/**
+ * Le recul après un 429.
+ *
+ * Constaté en production le 2026-07-29 : Adzuna répondait 429 à chaque
+ * affichage du tableau de bord, et chaque affichage relançait la même requête.
+ * Un quota épuisé ne se répare pas en réessayant tout de suite — insister
+ * ajoute de la latence à une page déjà lente, et cogne sur une API qui vient
+ * explicitement de nous demander d'arrêter.
+ *
+ * Quinze minutes : assez pour qu'une fenêtre de quota horaire se rouvre d'elle-
+ * même, assez court pour qu'un déblocage soit récupéré sans redéploiement. La
+ * mémoire est celle du processus, donc une instance froide réessaiera une fois —
+ * c'est un plancher acceptable, pas un plafond garanti, exactement comme le
+ * cache de découverte.
+ */
+const RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1000;
+
+let rateLimitedUntil = 0;
+
+/** Exporté pour le test : l'état est un module, pas une classe. */
+export function adzunaRateLimited(now: number = Date.now()): boolean {
+  return rateLimitedUntil > now;
+}
+
+export function resetAdzunaRateLimit(): void {
+  rateLimitedUntil = 0;
+}
+
 function mapEngagement(
   contractType: string | null | undefined,
 ): DiscoveredAd["engagementType"] {
@@ -165,6 +193,10 @@ export async function searchAdzuna(
   if (!adzunaConfigured()) {
     throw new AdzunaError("adzuna credentials are not configured");
   }
+  // Le refus est immédiat et sans appel réseau : c'est tout l'intérêt.
+  if (adzunaRateLimited()) {
+    throw new AdzunaError("adzuna is rate limited (429) — cooling down");
+  }
   const what = keywords
     .map((k) => k.trim())
     .filter(Boolean)
@@ -187,8 +219,16 @@ export async function searchAdzuna(
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!response.ok) {
+      // 429 n'est pas une panne passagère à réessayer : c'est la source qui
+      // nous demande de nous taire. On l'écoute, pour un quart d'heure.
+      if (response.status === 429) {
+        rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+      }
       // Status only — the URL carries the credentials and is never logged.
-      log.warn("adzuna request failed", { httpStatus: response.status });
+      log.warn("adzuna request failed", {
+        httpStatus: response.status,
+        cooldownStarted: response.status === 429,
+      });
       throw new AdzunaError(`adzuna request failed (${response.status})`);
     }
     body = await response.json();

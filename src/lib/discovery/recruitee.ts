@@ -45,22 +45,43 @@ import { offerSchema, toAd } from "./recruitee-normalise";
  * these obligations deliberately instead of inheriting them by existing.
  */
 
-const TIMEOUT_MS = 15_000;
+/**
+ * Five seconds, measured rather than chosen.
+ *
+ * At fifteen, a single unresponsive subdomain held its whole batch for fifteen
+ * seconds, and the dashboard took 25 s to render in production on 2026-07-29 —
+ * long enough that the page reads as broken. A tenant that has not answered in
+ * five seconds is not going to make this page better; it is going to make it
+ * unusable.
+ */
+const TIMEOUT_MS = 5_000;
 /** Their API is documented as "still a work in progress": nothing here may
  *  assume a frozen schema. Unknown keys are ignored, unknown enum values become
  *  null and are logged verbatim rather than mapped by guesswork. */
 const CACHE_TTL_MS = 30 * 60 * 1000;
 /**
+ * A tenant that just failed is very unlikely to succeed thirty seconds later —
+ * the list is curated offline, so the usual cause is a subdomain that no longer
+ * exists. Without this, EVERY visit re-pays the full timeout for every dead
+ * tenant, which is the part that made the slowness feel permanent rather than
+ * occasional.
+ *
+ * Shorter than the success TTL on purpose: a real outage should heal on its own
+ * within the visit after it ends, without a deploy.
+ */
+const FAILURE_TTL_MS = 10 * 60 * 1000;
+/**
  * No rate limit is published, so we set our own and never test theirs.
  *
  * The number is higher than it looks because every request in a batch goes to a
- * DIFFERENT tenant subdomain: a batch of eight is eight hosts served one request
- * each, not eight requests at one host. What this bound really protects is the
- * visitor's latency budget — forty tenants queried three at a time would make
- * the first visit crawl, and a source that makes the product slow is a source
- * that gets switched off.
+ * DIFFERENT tenant subdomain: a batch of twenty-four is twenty-four hosts served
+ * one request each, not twenty-four requests at one host. What this bound really
+ * protects is the visitor's latency budget — and eight was too cautious to be
+ * kind: it turned 49 tenants into seven successive waves, each one waiting on
+ * its slowest member. A source that makes the product slow is a source that gets
+ * switched off.
  */
-const MAX_CONCURRENT_TENANTS = 8;
+const MAX_CONCURRENT_TENANTS = 24;
 
 /**
  * A User-Agent that says who is calling and how to object.
@@ -71,11 +92,25 @@ const MAX_CONCURRENT_TENANTS = 8;
 const USER_AGENT =
   "MissionPilot/1.0 (open-source job search; +https://github.com/Christophevanengelen/missionpilot)";
 
+/**
+ * Les deux bornes qui décident du temps d'attente, exposées pour être
+ * VÉRIFIÉES plutôt que recopiées dans un test. Une valeur dupliquée dans une
+ * assertion cesse d'être un garde-fou dès qu'on la change d'un seul côté.
+ */
+export const LIMITES_LATENCE = {
+  TIMEOUT_MS,
+  MAX_CONCURRENT_TENANTS,
+} as const;
+
 export class RecruiteeError extends Error {}
 
 const log = createLogger({ module: "discovery-recruitee" });
 
 const resultCache = createTtlCache<DiscoveredAd[]>(CACHE_TTL_MS);
+/** Kept separate from `resultCache` so a tenant that legitimately has zero
+ *  openings stays distinguishable from one we could not reach. Conflating them
+ *  would hide a dying subdomain behind "nothing matched you". */
+const failureCache = createTtlCache<true>(FAILURE_TTL_MS);
 
 export function recruiteeConfigured(): boolean {
   return env.RECRUITEE_ENABLED === true && activeTenants().length > 0;
@@ -89,6 +124,9 @@ const responseSchema = z.object({ offers: z.array(offerSchema) });
 async function fetchTenant(tenant: string): Promise<DiscoveredAd[]> {
   const cached = resultCache.get(tenant);
   if (cached) return cached;
+  // A tenant known to be failing costs nothing until its window expires. This
+  // is what stops a handful of dead subdomains from taxing every single visit.
+  if (failureCache.get(tenant)) return [];
 
   const url = `https://${tenant}.recruitee.com/api/offers/`;
   const controller = new AbortController();
@@ -150,6 +188,8 @@ export async function searchRecruitee(): Promise<DiscoveredAd[]> {
         ads.push(...result.value);
         return;
       }
+      // Remembered as failing, so the next visitor does not wait on it again.
+      failureCache.set(batch[index], true);
       log.warn("recruitee tenant failed", {
         tenant: batch[index],
         reason:
