@@ -73,15 +73,21 @@ const FAILURE_TTL_MS = 10 * 60 * 1000;
 /**
  * No rate limit is published, so we set our own and never test theirs.
  *
- * The number is higher than it looks because every request in a batch goes to a
- * DIFFERENT tenant subdomain: a batch of twenty-four is twenty-four hosts served
- * one request each, not twenty-four requests at one host. What this bound really
- * protects is the visitor's latency budget — and eight was too cautious to be
- * kind: it turned 49 tenants into seven successive waves, each one waiting on
- * its slowest member. A source that makes the product slow is a source that gets
- * switched off.
+ * MONTÉ À 24 LE 2026-07-29, REDESCENDU À 6 UNE HEURE PLUS TARD. Le raisonnement
+ * qui a justifié la hausse — « chaque requête d'une vague vise un sous-domaine
+ * DIFFÉRENT, donc c'est un hôte servi une fois, pas un hôte servi vingt-quatre
+ * fois » — était faux. Recruitee sert tous ses tenants depuis la même
+ * infrastructure et compte par appelant : dix-neuf tenants ont répondu HTTP 429
+ * et l'écran ne montrait plus AUCUNE offre.
+ *
+ * La phrase ci-dessus disait « never test theirs ». Je l'ai testée, en
+ * production, et la source nous a fermé la porte.
+ *
+ * Six et non huit : on vient de cogner sur cette API, on lui rend du crédit. Et
+ * la latence ne venait de toute façon pas d'ici — Recruitee traitait ses 219
+ * lignes en 0,8 seconde sur un rendu de 25 secondes.
  */
-const MAX_CONCURRENT_TENANTS = 24;
+const MAX_CONCURRENT_TENANTS = 6;
 
 /**
  * A User-Agent that says who is calling and how to object.
