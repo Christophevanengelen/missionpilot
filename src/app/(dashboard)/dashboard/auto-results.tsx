@@ -4,7 +4,13 @@ import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 import { loadAnswers } from "@/lib/profile/clarifications";
 import { profileSignalsFromClaims } from "@/lib/matching/score";
 import { buildProfileDossier } from "@/lib/matching/insight-logic";
-import { planFromProfile } from "@/lib/search/plan-from-profile";
+import {
+  planDeRepli,
+  type ProfileSearchPlan,
+} from "@/lib/search/plan-from-profile";
+import { lirePlanPrecalcule } from "@/lib/search/plan-store";
+import { demanderRecalculDuPlan } from "@/lib/search/plan-demande";
+import { verifySession } from "@/lib/auth/dal";
 import { TRIAGE_BATCH, aiTriageOffers } from "@/lib/search/ai-triage";
 import { applyTriage } from "@/lib/search/apply-triage";
 import { configuredSources } from "@/lib/discovery/sources";
@@ -33,7 +39,7 @@ const logger = createLogger({ module: "auto-results" });
 export async function AutoResults({ countries }: { countries: string[] }) {
   let initial: MarketSearchResult | null = null;
   let query = "";
-  let plan: Awaited<ReturnType<typeof planFromProfile>> | null = null;
+  let plan: ProfileSearchPlan | null = null;
   /**
    * Pourquoi l'ouverture n'a rien donné, quand c'est le cas.
    *
@@ -45,6 +51,7 @@ export async function AutoResults({ countries }: { countries: string[] }) {
    */
   let issue: "ok" | "no_plan" | "error" = "error";
   try {
+    const session = await verifySession();
     const client = await createClient();
     const profile = await getOwnProfile(client);
     const [living, preferences, clarifications] = await Promise.all([
@@ -64,14 +71,38 @@ export async function AutoResults({ countries }: { countries: string[] }) {
       preferences,
       clarifications,
     );
-    plan = await planFromProfile(
-      profileDossier,
-      preferences.targetRoleFamilies,
-      // Les affirmations du profil : sans elles, l'ouverture ne saurait pas se
-      // rabattre sur le rôle confirmé quand aucun métier cible n'est encore
-      // renseigné — et ne trouverait rien pour un nouvel utilisateur.
-      living.claims,
-    );
+    /**
+     * LE RENDU N'APPELLE PLUS AUCUN MODÈLE. C'est le cœur du correctif.
+     *
+     * Cet écran enchaînait trois appels OpenAI avant même que la recherche ne
+     * commence — 10,1 s sur un affichage, 22,6 s sur le suivant, mesurés en
+     * production le 2026-07-29. Pendant ce temps la page ne montrait que son
+     * en-tête, assez longtemps pour passer pour cassée. Elle l'a fait, sur le
+     * compte du propriétaire.
+     *
+     * Désormais : on lit le plan rangé en base, et s'il n'y en a pas encore
+     * pour ce dossier, on part IMMÉDIATEMENT sur le repli déterministe — les
+     * métiers cibles, à défaut le rôle confirmé, à défaut les compétences —
+     * puis on demande le calcul en fond pour la visite suivante.
+     *
+     * Le compromis est assumé et il est le bon : la toute première visite après
+     * un changement de profil cherche avec des mots un peu moins fins, en deux
+     * secondes, au lieu d'être parfaite en vingt-cinq. Personne n'attend
+     * vingt-cinq secondes.
+     */
+    plan = await lirePlanPrecalcule(client, profile.id, profileDossier);
+    if (!plan) {
+      plan = planDeRepli(
+        preferences.targetRoleFamilies,
+        // Les affirmations du profil : sans elles, l'ouverture ne saurait pas
+        // se rabattre sur le rôle confirmé quand aucun métier cible n'est
+        // encore renseigné — et ne trouverait rien pour un nouvel utilisateur.
+        living.claims,
+      );
+      // Demandé, jamais attendu. Un échec d'envoi ne doit pas coûter la page :
+      // la visite suivante redemandera, et le repli reste servi entre-temps.
+      void demanderRecalculDuPlan(session.userId, profile.id);
+    }
     const plans = plan.plans;
     query = preferences.targetRoleFamilies[0] ?? "";
     const sources = configuredSources(countries);

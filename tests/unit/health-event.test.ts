@@ -40,11 +40,19 @@ describe("system/health.requested payload contract", () => {
     expect(correlationIdFor("abc-123")).toBe("health-abc-123");
   });
 
-  it("registers exactly the system-health function for serving", () => {
-    expect(functions).toHaveLength(1);
+  it("registers every function that must be served, by id", () => {
+    /* Assertion par IDENTITÉ plutôt que par compte. Un `toHaveLength(n)` oblige
+       à corriger un chiffre à chaque ajout — un geste qu'on fait sans réfléchir,
+       et qui ne vérifie rien : il passerait aussi bien si la nouvelle fonction
+       avait remplacé l'ancienne. Ce qui compte est que CHACUNE soit servie ;
+       une fonction absente du registre n'est jamais appelée, et rien ne le
+       signale — l'événement part et disparaît. */
     // InngestFunction is circular — use its id() accessor, not serialization.
-    const fn = functions[0] as unknown as { id: (prefix?: string) => string };
-    expect(typeof fn.id).toBe("function");
-    expect(fn.id()).toContain("system-health");
+    const ids = functions.map((f) =>
+      (f as unknown as { id: (prefix?: string) => string }).id(),
+    );
+    for (const attendu of ["system-health", "profile-search-plan"]) {
+      expect(ids.some((id) => id.includes(attendu))).toBe(true);
+    }
   });
 });

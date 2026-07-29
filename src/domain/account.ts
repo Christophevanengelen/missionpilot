@@ -20,6 +20,12 @@ export const PERSONAL_TABLES = [
   "evidence_items",
   "claim_evidence_links",
   "profile_clarifications",
+  /* Le plan de recherche précalculé. C'est une DÉDUCTION sur la personne — sa
+     trajectoire lue par un modèle, les intitulés qu'on cherche en son nom —
+     donc une donnée personnelle au sens de l'art. 4(1), même si elle n'a
+     jamais été saisie par elle. L'omettre de l'export en ferait un profilage
+     invisible dans le document censé tout montrer. */
+  "profile_search_plans",
   "opportunities",
   "opportunity_snapshots",
   "opportunity_tracking",
