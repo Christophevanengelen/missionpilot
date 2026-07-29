@@ -28,6 +28,9 @@ import { createLogger } from "@/lib/observability/logger";
  */
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+/** Plafond du fournisseur : un appel ne peut JAMAIS attendre plus longtemps,
+ *  quoi qu'un appelant demande. Un travail de fond peut s'en approcher ; un
+ *  rendu de page doit déclarer un budget bien plus court (`timeoutMs`). */
 const TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_TOKENS = 2_000;
 
@@ -138,7 +141,14 @@ export class OpenAiProvider implements AiProvider {
           "Content-Type": "application/json",
           Authorization: `Bearer ${env.OPENAI_API_KEY}`,
         },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        // Le budget de l'appelant, borné par celui du fournisseur : une tâche
+        // peut demander MOINS, jamais plus. Une valeur absurde (0, négative,
+        // NaN) retombe sur le plafond plutôt que d'annuler l'appel aussitôt.
+        signal: AbortSignal.timeout(
+          request.timeoutMs !== undefined && request.timeoutMs > 0
+            ? Math.min(request.timeoutMs, TIMEOUT_MS)
+            : TIMEOUT_MS,
+        ),
         body: JSON.stringify({
           model: this.model,
           temperature: 0,

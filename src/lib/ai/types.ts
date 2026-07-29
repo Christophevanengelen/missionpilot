@@ -35,6 +35,22 @@ export type AiRequest<T> = {
    * stripped from the WIRE schema and enforced only by the local Zod gate.
    */
   dataSchema: z.ZodType<T>;
+  /**
+   * Budget d'attente de CET appel, en millisecondes. Au-delà, l'appel est
+   * abandonné et l'appelant se débrouille sans — jamais une exception qui
+   * remonte à l'écran.
+   *
+   * POURQUOI CE CHAMP EXISTE. Le provider a un plafond unique de 30 s, ce qui
+   * convient à un travail de fond et ne convient à AUCUN rendu de page : il est
+   * plus long que la durée de vie de la fonction serverless elle-même, si bien
+   * qu'un seul appel pouvait empêcher la page d'arriver, sans jamais lever
+   * d'erreur qu'on aurait pu lire. Un appel dans un chemin de rendu doit
+   * déclarer son budget, et il doit être court.
+   *
+   * Ce n'est pas un détail de fournisseur : « combien de temps j'accepte
+   * d'attendre » est une décision de l'appelant, pas d'OpenAI.
+   */
+  timeoutMs?: number;
 };
 
 export type AiUsage = {

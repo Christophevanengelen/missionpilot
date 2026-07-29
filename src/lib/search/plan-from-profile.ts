@@ -72,6 +72,99 @@ function fallbackPlans(
   return buildSearchPlans(claims, targetRoleFamilies);
 }
 
+/**
+ * Combien de recherches un plan a le DROIT de déclencher dans un rendu.
+ *
+ * Le 2026-07-29 à 17h37, le premier plan précalculé a été écrit et le tableau
+ * de bord a cessé d'afficher quoi que ce soit. Mesuré dans les journaux de
+ * production, et non déduit : sur le rendu de 17h55, France Travail — qui est
+ * une entrée de source et UNE SEULE — a enregistré douze recherches. Le plan en
+ * porte donc douze, ce qui est exactement ce que le calcul autorise :
+ * `MAX_TERMS` vaut 6 dans `ai-vocabulary`, et le vocabulaire est demandé deux
+ * fois, au niveau actuel puis au palier du dessus.
+ *
+ * Douze intitulés ne coûtent pas douze recherches : chacun est rejoué sur
+ * CHAQUE entrée de source, et Adzuna comme Himalayas comptent une entrée par
+ * pays. À un pays cela fait 12 × 8 = 96 recherches dans un seul rendu, à trois
+ * pays 12 × 12 = 144 — par lots de six, donc seize à vingt-quatre lots
+ * enchaînés. Le repli déterministe, lui, en produit au plus trois
+ * (`MAX_TARGET_SEARCHES`) : le plan a quadruplé le travail d'un rendu sans que
+ * personne n'ait décidé que le rendu pouvait se le permettre.
+ *
+ * Quatre plutôt que trois : trois est PROUVÉ tenable — le même jour à 16h39, le
+ * repli affichait 688 offres — et la quatrième place est réservée à la marche
+ * du dessus, qui est la raison d'être de l'escalier.
+ *
+ * La borne s'applique à la LECTURE, jamais au calcul : ce que le modèle a
+ * trouvé reste rangé en entier, et c'est l'écran qui décide de ce qu'il peut
+ * s'offrir. Un plan déjà écrit cesse donc de casser la page sans attendre un
+ * recalcul — ce qui compte, puisqu'il y en avait un en production.
+ */
+export const MAX_SEARCH_PLANS = 4;
+
+/** Places réservées au palier supérieur sur les `MAX_SEARCH_PLANS`. Une marche
+ *  cherchée vaut mieux que six annoncées et aucune atteinte. */
+const MAX_STEP_UP_PLANS = 1;
+
+/** Forme de comparaison d'un intitulé : « Head of Design » et « head of
+ *  design » désignent la même recherche. */
+function cle(mot: string): string {
+  return mot.trim().toLowerCase();
+}
+
+/**
+ * Le plan ramené à ce qu'un rendu peut porter.
+ *
+ * Ce qui est écarté l'est VRAIMENT : `searchedTitles` et `stepUpTitles` sont
+ * recalculés sur les seuls plans gardés. L'écran qui explique pourquoi la liste
+ * est ce qu'elle est ne doit annoncer aucun mot qu'on n'a pas envoyé.
+ *
+ * Tolérant à une ligne mal formée : ce plan vient d'une colonne JSON, et une
+ * borne de sécurité qui plante sur ce qu'elle est censée protéger ne protège
+ * rien.
+ */
+export function bornerPlan(plan: ProfileSearchPlan): ProfileSearchPlan {
+  const plans = Array.isArray(plan?.plans) ? plan.plans : [];
+  if (plans.length <= MAX_SEARCH_PLANS) return plan;
+
+  const titresMarche = new Set(
+    (Array.isArray(plan.stepUpTitles) ? plan.stepUpTitles : []).map(cle),
+  );
+  const estMarche = (p: SearchPlan): boolean =>
+    Array.isArray(p.keywords) &&
+    p.keywords.some((k) => titresMarche.has(cle(k)));
+
+  const marches = plans.filter(estMarche);
+  const niveau = plans.filter((p) => !estMarche(p));
+  const reservees = Math.min(MAX_STEP_UP_PLANS, marches.length);
+
+  const gardees = [
+    ...niveau.slice(0, MAX_SEARCH_PLANS - reservees),
+    ...marches.slice(0, reservees),
+  ];
+  // Un dossier peut n'avoir presque aucun intitulé à son niveau : la place
+  // laissée libre revient alors aux marches plutôt que d'être perdue.
+  for (const marche of marches.slice(reservees)) {
+    if (gardees.length >= MAX_SEARCH_PLANS) break;
+    gardees.push(marche);
+  }
+
+  const cherches = new Set(
+    gardees
+      .flatMap((p) => (Array.isArray(p.keywords) ? p.keywords : []))
+      .map(cle),
+  );
+  return {
+    ...plan,
+    plans: gardees,
+    stepUpTitles: (Array.isArray(plan.stepUpTitles)
+      ? plan.stepUpTitles
+      : []
+    ).filter((t) => cherches.has(cle(t))),
+    searchedTitles: motsCherches(gardees),
+  };
+}
+
 /** Les mots réellement envoyés aux plateformes, pour pouvoir les MONTRER. */
 function motsCherches(plans: readonly SearchPlan[]): string[] {
   const vus = new Set<string>();
