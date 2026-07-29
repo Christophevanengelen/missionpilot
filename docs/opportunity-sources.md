@@ -197,17 +197,27 @@ provenance de ce qui est à l'écran.
 | **Himalayas** | Lien retour visible                                      | Fait                                  |
 | **Remotive**  | Attribution + lien retour                                | Fait                                  |
 
+✅ **Le dimensionnement du badge est fait (2026-07-29).** Le crédit Adzuna est
+désormais rendu comme un badge à part, d'au moins **116×23 px**, et la dimension
+vit dans les données (`SourceCredit.badge`) pour que personne ne la rabote en
+ajustant une marge. Les deux moitiés mesurables de la clause — la formulation
+exacte et la taille — sont donc satisfaites.
+
 ⚠️ **Deux points Adzuna restent ouverts, et ils appartiennent au propriétaire :**
 
-1. Leur clause spécifie un **badge IMAGE d'au moins 116×23 px**. Ce qui est
-   rendu aujourd'hui est la formulation et le lien exigés — strictement mieux
-   que le néant précédent, mais ce n'est pas le badge image.
+1. Adzuna publie **sa propre image de badge**, et leurs conditions ne disent pas
+   clairement si une composition typographique équivalente est acceptée. Nous ne
+   redessinons PAS leur marque de notre côté : contrefaire un logo serait un
+   problème plus grave que celui qu'on règle. Si leur fichier est exigé, il
+   suffit de le déposer et d'y pointer le badge.
 2. Le **palier gratuit est non commercial**, et leur clause interdit l'usage
    « in aggregation … to deliver any ongoing work or research » au-delà de
    14 jours sans accord écrit. Un méta-moteur tombe littéralement dedans.
+   **Aucun badge ne règle ça** : c'est une licence à signer ou une source à
+   retirer.
 
-Tant que ces deux points ne sont pas tranchés, Adzuna ne devrait pas être mis en
-avant comme source de production.
+Tant que le point 2 n'est pas tranché, Adzuna ne devrait pas être mis en avant
+comme source de production.
 
 ## Les trous de couverture — sans complaisance
 
