@@ -90,6 +90,32 @@ export const env = createEnv({
       .optional()
       .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
+    /**
+     * Le digest hebdomadaire — et il part DORMANT, comme LinkedIn avant lui.
+     *
+     * Trois variables, trois rôles distincts, et la séparation est ce qui rend
+     * la mise en service sûre :
+     *
+     * - `RESEND_API_KEY` : la clé d'envoi. Le SMTP existant est configuré côté
+     *   Supabase, pour les liens magiques uniquement — l'application, elle,
+     *   n'a jamais su envoyer un e-mail. C'est ce que cette clé ouvre.
+     * - `DIGEST_FROM` : l'expéditeur. Explicite, jamais deviné : une adresse
+     *   fausse fait tomber la délivrabilité du domaine entier, y compris les
+     *   liens de connexion, qui eux fonctionnent aujourd'hui.
+     * - `DIGEST_ENABLED` : l'interrupteur. Tant qu'il est faux, la tâche
+     *   planifiée s'arrête à sa première ligne et n'écrit à personne.
+     *
+     * Pourquoi un interrupteur en plus de la clé : poser une clé est une
+     * action de configuration, allumer un envoi automatique vers de vraies
+     * boîtes aux lettres en est une autre. Les confondre, c'est risquer un
+     * premier envoi le jour où l'on voulait seulement préparer le terrain.
+     */
+    RESEND_API_KEY: z.string().min(1).optional(),
+    DIGEST_FROM: z.string().email().optional(),
+    DIGEST_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

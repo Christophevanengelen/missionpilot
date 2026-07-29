@@ -29,6 +29,12 @@ const PUBLIC_PATHS = new Set([
      accessible sans authentification. */
   "/confidentialite",
   "/conditions",
+  /* Se désabonner ne demande PAS de se connecter, et c'est une règle, pas une
+     facilité. Renvoyer vers la connexion quelqu'un qui veut arrêter de recevoir
+     des e-mails ne le garde pas abonné : ça le pousse vers le bouton « spam »,
+     qui abîme la délivrabilité du domaine entier — liens de connexion compris.
+     La sortie doit toujours être plus facile que le signalement. */
+  "/desabonnement",
 ]);
 
 /**
