@@ -11,8 +11,13 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
-const { AdzunaError, adzunaConfigured, searchAdzuna } =
-  await import("@/lib/discovery/adzuna");
+const {
+  AdzunaError,
+  adzunaConfigured,
+  adzunaRateLimited,
+  resetAdzunaRateLimit,
+  searchAdzuna,
+} = await import("@/lib/discovery/adzuna");
 
 const FIXTURE = {
   results: [
@@ -45,6 +50,10 @@ describe("searchAdzuna", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockReset();
+    /* Le recul après 429 vit dans le module, donc il survit d'un test à
+       l'autre. Sans cette remise à zéro, un seul test de 429 ferait échouer
+       tous les suivants — pour une raison invisible dans leur code. */
+    resetAdzunaRateLimit();
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -177,5 +186,66 @@ describe("searchAdzuna", () => {
 
   it("rejects an empty keyword set", async () => {
     await expect(searchAdzuna(["  ", ""])).rejects.toBeInstanceOf(AdzunaError);
+  });
+
+  /**
+   * Le recul après un 429.
+   *
+   * Constaté en production le 2026-07-29 : Adzuna répondait 429 à chaque
+   * affichage du tableau de bord, et chaque affichage relançait la requête.
+   * Insister n'ouvre aucun quota — ça ajoute de la latence à une page déjà
+   * lente et ça cogne sur une API qui vient de demander l'arrêt.
+   */
+  describe("après un 429", () => {
+    async function declencher429() {
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: async () => ({}),
+      } as Response);
+      await expect(searchAdzuna(["Data Engineer"])).rejects.toBeInstanceOf(
+        AdzunaError,
+      );
+    }
+
+    it("n'appelle PLUS le réseau pendant le refroidissement", async () => {
+      await declencher429();
+      expect(adzunaRateLimited()).toBe(true);
+      const appelsApresLe429 = fetchMock.mock.calls.length;
+
+      // La source répondrait 200 maintenant : peu importe, on ne l'appelle pas.
+      fetchMock.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [] }),
+      } as Response);
+      await expect(searchAdzuna(["Data Engineer"])).rejects.toBeInstanceOf(
+        AdzunaError,
+      );
+      expect(fetchMock.mock.calls.length).toBe(appelsApresLe429);
+    });
+
+    it("ne déclenche PAS de recul sur les autres échecs", async () => {
+      // 401 veut dire « vos identifiants sont faux », 500 « nous avons un
+      // problème ». Ni l'un ni l'autre n'est une demande de silence, et se
+      // taire un quart d'heure sur une panne passagère coûterait des résultats.
+      for (const status of [401, 403, 500, 503]) {
+        resetAdzunaRateLimit();
+        fetchMock.mockResolvedValue({
+          ok: false,
+          status,
+          json: async () => ({}),
+        } as Response);
+        await expect(searchAdzuna(["x"])).rejects.toBeInstanceOf(AdzunaError);
+        expect(adzunaRateLimited()).toBe(false);
+      }
+    });
+
+    it("se rouvre tout seul une fois la fenêtre passée", async () => {
+      // Un déblocage ne doit jamais exiger un redéploiement.
+      await declencher429();
+      const dansSeizeMinutes = Date.now() + 16 * 60 * 1000;
+      expect(adzunaRateLimited(dansSeizeMinutes)).toBe(false);
+    });
   });
 });
