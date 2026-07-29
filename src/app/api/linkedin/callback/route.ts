@@ -10,6 +10,7 @@ import {
   linkedInConfigure,
 } from "@/lib/profile/linkedin-oauth";
 import { importerParcours } from "@/lib/profile/linkedin-import";
+import type { MotifLinkedIn } from "@/lib/profile/linkedin-retour";
 
 /**
  * Le retour de LinkedIn.
@@ -22,9 +23,16 @@ import { importerParcours } from "@/lib/profile/linkedin-import";
 
 const log = createLogger({ module: "linkedin-callback" });
 
-function retour(motif: string) {
+/**
+ * `depots` accompagne le seul motif où un nombre veut dire quelque chose. Il
+ * traverse l'URL parce que la redirection est la seule chose qui survive à
+ * cette requête — et il est purement informatif : la page le réaffiche, ne
+ * s'en sert pour aucune décision, et le rejette s'il est absurde.
+ */
+function retour(motif: MotifLinkedIn, depots?: number) {
   const url = new URL("/profile", env.NEXT_PUBLIC_APP_URL);
   url.searchParams.set("linkedin", motif);
+  if (depots !== undefined) url.searchParams.set("depots", String(depots));
   const reponse = NextResponse.redirect(url);
   // Le témoin d'état a fait son office : il ne doit pas survivre à l'échange.
   reponse.cookies.delete(COOKIE_ETAT);
@@ -61,10 +69,13 @@ export async function GET(requete: NextRequest) {
     const jeton = await echangerCode(code);
     const { records, rapport } = await recupererParcours(jeton);
     const { text, skills } = buildCareerProfileFromRecords(records);
-    await importerParcours({ text, skills });
+    const { deposees } = await importerParcours({ text, skills });
     const lignes = rapport.reduce((somme, r) => somme + r.lignes, 0);
-    log.info("parcours linkedin importé", { lignes });
-    return retour("ok");
+    log.info("parcours linkedin importé", { lignes, deposees });
+    // Une réponse vide n'est pas un échec — LinkedIn a répondu, poliment, sans
+    // rien d'exploitable. La confondre avec une panne enverrait quelqu'un
+    // réessayer indéfiniment un import qui marche déjà.
+    return deposees === 0 ? retour("vide") : retour("ok", deposees);
   } catch (erreur) {
     // Les messages de LinkedInMdpError/LinkedInOAuthError sont rédigés pour être
     // lus et ne contiennent jamais le jeton ni le secret client.
