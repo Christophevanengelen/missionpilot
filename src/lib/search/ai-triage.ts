@@ -39,9 +39,22 @@ export const TRIAGE_PROMPT_VERSION = "offer-triage-1";
 const MAX_DOSSIER_CHARS = 6_000;
 /** Per offer — enough to judge, bounded so a batch stays affordable. */
 const MAX_OFFER_CHARS = 900;
-/** Offers judged in one call. Beyond this the prompt gets long and the model's
- *  attention thins; two calls beat one bloated one. */
-export const TRIAGE_BATCH = 25;
+/**
+ * Offers judged in one call.
+ *
+ * DOUZE, ET LE CHIFFRE VIENT D'UNE MESURE. À vingt-cinq, un tri réussi a été
+ * journalisé en production le 2026-07-29 à 17h38 : `latencyMs: 12287`, pour
+ * 3 161 jetons d'entrée et **704 de sortie**. Ce sont les jetons de SORTIE qui
+ * font le temps — un verdict par annonce, généré un jeton après l'autre — donc
+ * diviser le lot par deux divise l'attente par deux, là où raccourcir le
+ * prompt n'aurait presque rien changé.
+ *
+ * Ce qu'on perd est petit et borné : seules les offres au-delà de la douzième
+ * gardent leur classement déterministe au lieu d'être relues. Ce qu'on gagne
+ * est que le tri ABOUTIT, au lieu d'expirer à chaque fois et de ne servir à
+ * personne.
+ */
+export const TRIAGE_BATCH = 12;
 /**
  * Le temps que le TABLEAU DE BORD accepte d'attendre ce tri, et pas une
  * seconde de plus.
@@ -56,11 +69,22 @@ export const TRIAGE_BATCH = 25;
  * l'écran : il l'empêchait d'exister, sans erreur applicative, la frontière
  * `Suspense` ne se résolvant jamais.
  *
- * Huit secondes, et au-delà la page part avec le classement déterministe —
- * exactement ce qu'elle fait déjà quand aucun fournisseur n'est configuré. Une
- * liste ordonnée par des règles vaut infiniment mieux qu'une page blanche.
+ * Au-delà, la page part avec le classement déterministe — exactement ce qu'elle
+ * fait déjà quand aucun fournisseur n'est configuré. Une liste ordonnée par des
+ * règles vaut infiniment mieux qu'une page blanche.
+ *
+ * DOUZE SECONDES, ET NON HUIT. Le premier chiffre était posé au jugé, et la
+ * production l'a démenti : le tri échouait à CHAQUE rendu. La mesure — un tri
+ * réussi à 12,3 s sur vingt-cinq annonces — dit deux choses. Que huit secondes
+ * ne suffisaient pas, et que le vrai levier était la taille du lot, pas le
+ * chronomètre. Le lot est donc passé à douze (~6 s attendues) et le budget à
+ * douze secondes : de la marge pour un jour lent, sans jamais approcher la
+ * durée de vie de la fonction.
+ *
+ * La leçon vaut plus que le chiffre : un budget choisi sans mesurer ce qu'il
+ * borne ne protège rien — il transforme une fonctionnalité en panne silencieuse.
  */
-export const TRIAGE_TIMEOUT_MS = 8_000;
+export const TRIAGE_TIMEOUT_MS = 12_000;
 
 const verdictSchema = z
   .object({

@@ -64,7 +64,7 @@ describe("le seul appel de modèle qui reste dans le rendu déclare son budget",
     // de vie de la fonction qui rend la page. Un tri lent n'y dégradait donc
     // pas l'écran — il l'empêchait d'exister, sans erreur applicative, la
     // frontière `Suspense` ne se résolvant jamais.
-    expect(TRIAGE_TIMEOUT_MS).toBeLessThanOrEqual(10_000);
+    expect(TRIAGE_TIMEOUT_MS).toBeLessThanOrEqual(15_000);
     expect(aiTriage).toMatch(/timeoutMs:\s*TRIAGE_TIMEOUT_MS/);
   });
 
