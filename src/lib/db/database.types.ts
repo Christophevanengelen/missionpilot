@@ -842,6 +842,38 @@ export type Database = {
           },
         ]
       }
+      profile_search_plans: {
+        Row: {
+          computed_at: string
+          dossier_hash: string
+          plan: Json
+          profile_id: string
+          prompt_versions: string
+        }
+        Insert: {
+          computed_at?: string
+          dossier_hash: string
+          plan: Json
+          profile_id: string
+          prompt_versions: string
+        }
+        Update: {
+          computed_at?: string
+          dossier_hash?: string
+          plan?: Json
+          profile_id?: string
+          prompt_versions?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_search_plans_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_versions: {
         Row: {
           change_summary: string
