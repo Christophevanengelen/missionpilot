@@ -138,56 +138,6 @@ function toHit(
   };
 }
 
-/**
- * Assemble un résultat de marché à partir de sources DÉJÀ lancées.
- *
- * Le pendant de `lancerParSource` : celui-ci découpe, celui-là recolle. La
- * séparation existe pour que l'écran puisse afficher chaque plateforme dès
- * qu'elle répond, sans que l'ordre final en dépende.
- *
- * LA DÉDUPLICATION SE FAIT ICI, en parcourant les sources dans l'ordre où
- * l'appelant les a déclarées — jamais dans l'ordre où leurs réponses sont
- * arrivées. C'est ce qui garantit que deux recherches identiques rendent la
- * même liste : sans ça, le gagnant d'un doublon dépendrait de la latence
- * réseau du moment, et la liste se réordonnerait toute seule d'une visite à
- * l'autre.
- */
-export function assemblerMarche(
-  resultats: readonly {
-    nom: string;
-    ads: DiscoveredAd[];
-    echecs: number;
-    tentatives: number;
-  }[],
-  plans: readonly SearchPlan[],
-  preferences: ProfilePreferences,
-  signals: ProfileSignals,
-): MarketSearchResult {
-  const vus = new Set<string>();
-  const hits: MarketHit[] = [];
-  const phrases = plans.map((p) => p.keywords.join(" "));
-
-  for (const resultat of resultats) {
-    for (const ad of resultat.ads) {
-      const cle = ad.sourceUrl ?? ad.rawText;
-      if (vus.has(cle)) continue;
-      vus.add(cle);
-      const hit = toHit(ad, resultat.nom, preferences, signals, phrases);
-      if (hit !== null) hits.push(hit);
-    }
-  }
-
-  return {
-    // Rattrape ce que la clé de provenance ne peut pas voir : LA MÊME annonce
-    // publiée par deux plateformes sous deux URL différentes.
-    hits: mergeDuplicates(hits),
-    failedSources: resultats
-      .filter((r) => r.echecs > 0)
-      .map((r) => ({ name: r.nom, failed: r.echecs, total: r.tentatives })),
-    searchedSources: resultats.map((r) => r.nom),
-  };
-}
-
 export async function searchMarket(
   plans: readonly SearchPlan[],
   sources: readonly DiscoverySource<DiscoveredAd>[],
