@@ -42,6 +42,25 @@ const MAX_OFFER_CHARS = 900;
 /** Offers judged in one call. Beyond this the prompt gets long and the model's
  *  attention thins; two calls beat one bloated one. */
 export const TRIAGE_BATCH = 25;
+/**
+ * Le temps que le TABLEAU DE BORD accepte d'attendre ce tri, et pas une
+ * seconde de plus.
+ *
+ * C'est le seul appel de modèle qui reste dans le chemin de rendu — les trois
+ * autres sont partis en fond le 2026-07-29 (plan précalculé). Celui-ci ne peut
+ * pas les suivre : il juge les offres du moment, et rien n'est stocké, donc il
+ * n'y a rien à précalculer.
+ *
+ * Il héritait alors du plafond du fournisseur, 30 s, soit PLUS que la durée de
+ * vie de la fonction qui rend la page. Un tri lent ne dégradait donc pas
+ * l'écran : il l'empêchait d'exister, sans erreur applicative, la frontière
+ * `Suspense` ne se résolvant jamais.
+ *
+ * Huit secondes, et au-delà la page part avec le classement déterministe —
+ * exactement ce qu'elle fait déjà quand aucun fournisseur n'est configuré. Une
+ * liste ordonnée par des règles vaut infiniment mieux qu'une page blanche.
+ */
+export const TRIAGE_TIMEOUT_MS = 8_000;
 
 const verdictSchema = z
   .object({
@@ -135,10 +154,14 @@ export async function aiTriageOffers(
         })),
       },
       dataSchema: triageSchema,
+      timeoutMs: TRIAGE_TIMEOUT_MS,
     });
     if (response.envelope.status === "failed") return null;
     return response.envelope.data.verdicts;
   } catch (error) {
+    // Le dépassement de budget passe par ici comme le reste : `AbortSignal`
+    // fait échouer le `fetch`, on garde toutes les offres et le classement
+    // déterministe s'affiche. C'est une dégradation, jamais une panne.
     log.warn("offer triage unavailable", {
       errorType: error instanceof Error ? error.constructor.name : "unknown",
     });

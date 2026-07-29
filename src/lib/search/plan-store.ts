@@ -6,7 +6,7 @@ import type { Database } from "@/lib/db/database.types";
 import { createLogger } from "@/lib/observability/logger";
 import { TRAJECTORY_PROMPT_VERSION } from "@/lib/career/ai-trajectory";
 import { VOCABULARY_PROMPT_VERSION } from "@/lib/search/ai-vocabulary";
-import type { ProfileSearchPlan } from "./plan-from-profile";
+import { bornerPlan, type ProfileSearchPlan } from "./plan-from-profile";
 
 /**
  * Le plan de recherche, rangé quelque part qui survit à la requête.
@@ -75,7 +75,11 @@ export async function lirePlanPrecalcule(
   // « a-t-il été produit par le raisonnement qu'on emploie aujourd'hui ».
   if (data.dossier_hash !== empreinteDossier(dossier)) return null;
   if (data.prompt_versions !== versionsPrompt()) return null;
-  return data.plan as unknown as ProfileSearchPlan;
+  // Borné ICI, à la lecture, et non au calcul : la ligne écrite le 2026-07-29 à
+  // 17h37 portait douze recherches et a fait taire le tableau de bord jusqu'à
+  // ce soir-là. Borner à la lecture désarme les lignes DÉJÀ écrites, sans
+  // attendre qu'un travail de fond veuille bien les recalculer.
+  return bornerPlan(data.plan as unknown as ProfileSearchPlan);
 }
 
 /**

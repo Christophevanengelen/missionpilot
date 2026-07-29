@@ -65,27 +65,65 @@ function Ligne({
   );
 }
 
+/**
+ * Une PLATEFORME, et non une entrée de source.
+ *
+ * Les deux ne sont pas la même chose et l'écran ne doit connaître que la
+ * première : Adzuna partitionne son index par pays et Himalayas accepte un seul
+ * pays par requête, si bien qu'une recherche sur trois pays produit trois
+ * entrées « Adzuna » et quatre « Himalayas ». Les rendre telles quelles donnait
+ * deux défauts d'un coup — trois lignes portant le même nom, ce qui est de la
+ * plomberie affichée à quelqu'un qui n'a pas à la connaître, et des clés React
+ * dupliquées, donc un rendu que React n'est plus en mesure de réconcilier.
+ *
+ * Le regroupement attend les entrées d'une même plateforme ; une plateforme
+ * reste indépendante des autres, ce qui est la propriété qui compte.
+ */
+type Groupe = {
+  nom: string;
+  promesses: Promise<ResultatSource<DiscoveredAd>>[];
+};
+
+function grouperParPlateforme(lancements: readonly Lancement[]): Groupe[] {
+  const groupes: Groupe[] = [];
+  const parNom = new Map<string, Groupe>();
+  for (const l of lancements) {
+    const existant = parNom.get(l.nom);
+    if (existant) {
+      existant.promesses.push(l.promesse);
+      continue;
+    }
+    const groupe: Groupe = { nom: l.nom, promesses: [l.promesse] };
+    parNom.set(l.nom, groupe);
+    groupes.push(groupe);
+  }
+  return groupes;
+}
+
 /** Résolue : la ligne dit ce que la plateforme a réellement rendu. */
-async function LigneResolue({ lancement }: { lancement: Lancement }) {
-  const r = await lancement.promesse;
+async function LigneResolue({ groupe }: { groupe: Groupe }) {
+  const parts = await Promise.all(groupe.promesses);
+  const ads = parts.reduce((n, r) => n + r.ads.length, 0);
+  const echecs = parts.reduce((n, r) => n + r.echecs, 0);
+  const tentatives = parts.reduce((n, r) => n + r.tentatives, 0);
 
   // Tout a échoué : c'est une panne, et elle se dit. La confondre avec « aucun
   // résultat » ferait croire à quelqu'un que le marché n'a rien pour lui,
   // alors qu'on n'a simplement pas pu demander.
-  if (r.echecs === r.tentatives && r.tentatives > 0) {
-    return <Ligne nom={r.nom} etat="panne" detail="indisponible" />;
+  if (echecs === tentatives && tentatives > 0) {
+    return <Ligne nom={groupe.nom} etat="panne" detail="indisponible" />;
   }
-  if (r.ads.length === 0) {
+  if (ads === 0) {
     return (
-      <Ligne nom={r.nom} etat="vide" detail="rien pour vous aujourd'hui" />
+      <Ligne nom={groupe.nom} etat="vide" detail="rien pour vous aujourd'hui" />
     );
   }
-  const partiel = r.echecs > 0 ? ` · ${r.echecs}/${r.tentatives} en échec` : "";
+  const partiel = echecs > 0 ? ` · ${echecs}/${tentatives} en échec` : "";
   return (
     <Ligne
-      nom={r.nom}
+      nom={groupe.nom}
       etat="ok"
-      detail={`${r.ads.length} offre${r.ads.length > 1 ? "s" : ""}${partiel}`}
+      detail={`${ads} offre${ads > 1 ? "s" : ""}${partiel}`}
     />
   );
 }
@@ -101,6 +139,7 @@ export function ProgressionSources({
   lancements: readonly Lancement[];
 }) {
   if (lancements.length === 0) return null;
+  const groupes = grouperParPlateforme(lancements);
   return (
     <section
       role="status"
@@ -111,12 +150,12 @@ export function ProgressionSources({
         Les plateformes que nous interrogeons pour vous, en direct.
       </p>
       <ol className="grid gap-1.5 sm:grid-cols-2">
-        {lancements.map((l) => (
+        {groupes.map((g) => (
           <Suspense
-            key={l.nom}
-            fallback={<Ligne nom={l.nom} etat="attente" detail="interroge…" />}
+            key={g.nom}
+            fallback={<Ligne nom={g.nom} etat="attente" detail="interroge…" />}
           >
-            <LigneResolue lancement={l} />
+            <LigneResolue groupe={g} />
           </Suspense>
         ))}
       </ol>

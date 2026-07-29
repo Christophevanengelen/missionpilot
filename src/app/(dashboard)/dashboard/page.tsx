@@ -28,6 +28,25 @@ import { AutoResults } from "./auto-results";
 export const metadata: Metadata = { title: "Mes opportunités" };
 
 /**
+ * Un filet, pas un permis.
+ *
+ * Cette route n'en déclarait aucun, et héritait donc d'un plafond de plateforme
+ * que rien ici ne documentait — celui contre lequel le rendu du 2026-07-29 est
+ * mort en cours de stream, vers 19 s, sans la moindre erreur applicative : un
+ * dépassement de durée ne passe pas par le logger, il coupe la fonction.
+ *
+ * Ce n'est PAS la correction. La correction est que le rendu tienne : le plan
+ * précalculé est borné à quatre recherches (`MAX_SEARCH_PLANS`), les sources
+ * sans mots-clés ne sont plus interrogées qu'une fois, et le seul appel de
+ * modèle restant a huit secondes (`TRIAGE_TIMEOUT_MS`). Le chiffre ci-dessous
+ * ne sert qu'à ce qu'un imprévu dégrade la page au lieu de la supprimer.
+ *
+ * Soixante et pas davantage : c'est ce que le palier gratuit autorise, et une
+ * page qui mettrait une minute serait de toute façon à corriger, pas à tolérer.
+ */
+export const maxDuration = 60;
+
+/**
  * The product, in one screen.
  *
  * Three states, and the order between them is the whole design:

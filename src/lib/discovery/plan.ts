@@ -69,6 +69,21 @@ export type DiscoverySource<
 > = {
   name: string;
   search: (keywords: string[], mode: SearchPlan["mode"]) => Promise<Ad[]>;
+  /**
+   * La source rend le MÊME tableau quels que soient les mots-clés.
+   *
+   * Certaines plateformes n'exposent aucun filtre : leur flux est le tableau
+   * d'affichage entier, et c'est notre propre gate qui trie ensuite, là où on
+   * peut l'expliquer à la personne. Les interroger une fois PAR PLAN revient à
+   * télécharger douze fois la même chose et à la reparser douze fois.
+   *
+   * Ce n'est pas une hypothèse : sur le rendu de production du 2026-07-29 à
+   * 17h55, Remote OK a été appelé six fois de suite (six plans concurrents, six
+   * défauts de cache simultanés) et les mêmes locataires Recruitee ont été
+   * reparsés autant de fois. C'est aussi ce qui transforme une visite en rafale
+   * sur des hôtes qui ne nous ont rien demandé.
+   */
+  ignoresKeywords?: boolean;
 };
 
 /**
@@ -82,6 +97,25 @@ export type DiscoverySource<
  * came up short: with several sources configured, "3 searches failed" leaves
  * the owner unable to tell a broken credential from a source-side outage.
  */
+/**
+ * Les plans qu'une source va RÉELLEMENT interroger.
+ *
+ * Exporté, et c'est délibéré : deux lanceurs traversent ce fan-out — celui-ci
+ * et `lancerParSource`, qui rend une promesse par plateforme pour la barre de
+ * progression. La règle « une source sans mots-clés ne répond qu'une fois » ne
+ * doit pas exister en deux exemplaires, sinon elle sera corrigée d'un côté et
+ * oubliée de l'autre. C'est précisément ce qui vient d'arriver : le premier
+ * correctif n'avait pas vu le second chemin.
+ */
+export function plansPourSource<
+  Ad extends { sourceUrl: string | null; rawText: string },
+>(
+  source: DiscoverySource<Ad>,
+  plans: readonly SearchPlan[],
+): readonly SearchPlan[] {
+  return source.ignoresKeywords === true ? plans.slice(0, 1) : plans;
+}
+
 export async function runMultiSourceDiscovery<
   Ad extends { sourceUrl: string | null; rawText: string },
 >(
@@ -110,13 +144,14 @@ export async function runMultiSourceDiscovery<
   for (const source of sources) {
     attemptsByName.set(
       source.name,
-      (attemptsByName.get(source.name) ?? 0) + plans.length,
+      (attemptsByName.get(source.name) ?? 0) +
+        plansPourSource(source, plans).length,
     );
   }
   // Every (source, plan) pair, enumerated up front in the stable order the
   // results must keep.
   const searches = sources.flatMap((source) =>
-    plans.map((plan) => ({ source, plan })),
+    plansPourSource(source, plans).map((plan) => ({ source, plan })),
   );
   const outcomes: ({ ads: Ad[]; sourceName: string } | null)[] = searches.map(
     () => null,
@@ -181,12 +216,14 @@ export async function runMultiSourceDiscovery<
     failedSearches,
     totalSearches,
     // Map iteration order is insertion order, which follows the stable source
-    // order of the outer loop. Every source runs the same plan list, so
-    // `plans.length` is each one's denominator.
+    // order of the outer loop. Le dénominateur vient de `attemptsByName` et de
+    // lui seul : une source qui ignore les mots-clés ne tente qu'UNE recherche,
+    // et lui compter `plans.length` échecs possibles annoncerait « 1 sur 4 » là
+    // où elle n'a essayé qu'une fois.
     failedSources: [...failedBySource].map(([name, failed]) => ({
       name,
       failed,
-      total: attemptsByName.get(name) ?? plans.length,
+      total: attemptsByName.get(name) ?? 1,
     })),
   };
 }

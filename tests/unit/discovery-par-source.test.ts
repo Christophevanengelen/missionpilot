@@ -203,3 +203,60 @@ describe("le travail démarre pour tout le monde en même temps", () => {
     await Promise.all(lancements.map((l) => l.promesse));
   });
 });
+
+describe("une source sans filtre n'est interrogée qu'une fois", () => {
+  it("ne rejoue pas le même téléchargement une fois par plan", async () => {
+    // LE PIÈGE QUE CE TEST FERME. Le correctif de la panne du 2026-07-29 avait
+    // posé cette règle dans `runMultiSourceDiscovery`… qui n'est PAS le chemin
+    // emprunté par cet écran. Restaurer la barre de progression réintroduisait
+    // donc à elle seule les téléchargements répétés qu'on venait de supprimer :
+    // six appels Remote OK et les mêmes locataires Recruitee reparsés six fois,
+    // exactement ce que montraient les journaux de production.
+    let appels = 0;
+    const flux = {
+      name: "Flux",
+      search: async () => {
+        appels += 1;
+        return [{ sourceUrl: "https://flux/1", rawText: "1" }] as Ad[];
+      },
+      ignoresKeywords: true,
+    };
+
+    const [lancement] = lancerParSource<Ad>(
+      [plan("a"), plan("b"), plan("c"), plan("d")],
+      [flux],
+      () => {},
+    );
+    const r = await lancement.promesse;
+
+    expect(appels).toBe(1);
+    // Et le dénominateur suit : annoncer « 0 sur 4 » à une source interrogée
+    // une seule fois laisserait croire que trois recherches ont abouti.
+    expect(r.tentatives).toBe(1);
+    expect(r.ads).toHaveLength(1);
+  });
+
+  it("laisse les sources filtrantes rejouer tous les plans", async () => {
+    const parMot = {
+      name: "ParMot",
+      search: async (keywords: string[]) =>
+        [
+          { sourceUrl: `https://x/${keywords[0]}`, rawText: keywords[0] },
+        ] as Ad[],
+    };
+
+    const [lancement] = lancerParSource<Ad>(
+      [plan("a"), plan("b"), plan("c")],
+      [parMot],
+      () => {},
+    );
+    const r = await lancement.promesse;
+
+    expect(r.tentatives).toBe(3);
+    expect(r.ads.map((a) => a.sourceUrl)).toEqual([
+      "https://x/a",
+      "https://x/b",
+      "https://x/c",
+    ]);
+  });
+});

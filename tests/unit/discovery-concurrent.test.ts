@@ -84,6 +84,60 @@ describe("discovery runs searches concurrently", () => {
     );
   });
 
+  it("n'interroge QU'UNE FOIS une source qui ignore les mots-clés", async () => {
+    // Remote OK et Recruitee n'exposent aucun filtre : leur réponse est la même
+    // pour les douze intitulés d'un plan. Les rejouer par plan, c'est
+    // télécharger douze fois le même tableau d'affichage — ce que les journaux
+    // de production du 2026-07-29 montrent noir sur blanc : six appels Remote
+    // OK et les mêmes locataires Recruitee reparsés six fois sur UN rendu.
+    let appels = 0;
+    const flux: DiscoverySource<Ad> = {
+      name: "Flux",
+      search: async () => {
+        appels += 1;
+        return [ad("https://flux/1")];
+      },
+      ignoresKeywords: true,
+    };
+    const parMot: DiscoverySource<Ad> = {
+      name: "ParMot",
+      search: async (keywords) => [ad(`https://parmot/${keywords[0]}`)],
+    };
+
+    const run = await runMultiSourceDiscovery(
+      [plan("a"), plan("b"), plan("c"), plan("d")],
+      [flux, parMot],
+      () => {},
+    );
+
+    expect(appels).toBe(1);
+    // Quatre plans : une recherche pour le flux, quatre pour l'autre.
+    expect(run.totalSearches).toBe(5);
+    expect(run.items).toHaveLength(5);
+  });
+
+  it("compte les échecs sur ce qu'une source a VRAIMENT tenté", async () => {
+    // Sinon une source qui ignore les mots-clés et tombe une fois s'annonce
+    // « 1 échec sur 4 » — un dénominateur inventé, qui donne à croire que trois
+    // recherches ont abouti alors qu'aucune n'a eu lieu.
+    const casse: DiscoverySource<Ad> = {
+      name: "Cassé",
+      search: async () => {
+        throw new Error("503");
+      },
+      ignoresKeywords: true,
+    };
+
+    const run = await runMultiSourceDiscovery(
+      [plan("a"), plan("b"), plan("c")],
+      [casse],
+      () => {},
+    );
+
+    expect(run.failedSources).toEqual([{ name: "Cassé", failed: 1, total: 1 }]);
+    expect(run.totalSearches).toBe(1);
+  });
+
   it("lets one failing search cost only its own results", async () => {
     const broken: DiscoverySource<Ad> = {
       name: "Broken",

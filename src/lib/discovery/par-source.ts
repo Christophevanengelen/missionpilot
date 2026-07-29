@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { DiscoverySource, SearchPlan } from "./plan";
+import { plansPourSource, type DiscoverySource, type SearchPlan } from "./plan";
 
 /**
  * Une promesse PAR SOURCE, sans desserrer la borne de fan-out.
@@ -97,10 +97,16 @@ export function lancerParSource<
   return sources.map((source) => ({
     nom: source.name,
     promesse: (async () => {
+      // La MÊME règle que l'autre lanceur, et importée de lui : une source qui
+      // n'expose aucun filtre rend le même tableau pour tous les plans, donc on
+      // ne le lui demande qu'une fois. Sans cette ligne, la barre de
+      // progression réintroduisait à elle seule les téléchargements répétés que
+      // le correctif venait de supprimer.
+      const plansDeLaSource = plansPourSource(source, plans);
       // `allSettled` sur les plans de CETTE source : l'ordre du tableau suit
       // l'ordre des plans, jamais l'ordre d'arrivée.
       const parPlan = await Promise.all(
-        plans.map(async (plan) => {
+        plansDeLaSource.map(async (plan) => {
           try {
             const ads = await limiter(() =>
               source.search(plan.keywords, plan.mode),
@@ -119,7 +125,10 @@ export function lancerParSource<
         nom: source.name,
         ads: parPlan.flatMap((r) => r.ads),
         echecs: parPlan.filter((r) => r.echec).length,
-        tentatives: plans.length,
+        // Ce qui a VRAIMENT été tenté, et non le nombre de plans : afficher
+        // « 0 sur 4 » à une source interrogée une seule fois donnerait à croire
+        // que trois recherches ont abouti là où aucune n'a eu lieu.
+        tentatives: plansDeLaSource.length,
       };
     })(),
   }));

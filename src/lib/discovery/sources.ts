@@ -69,13 +69,25 @@ export function configuredSources(
   if (remoteOkConfigured()) {
     // No keyword parameter exists: the feed is the whole current board, and
     // the engine filters it where the person can see and undo the filtering.
-    sources.push({ name: "Remote OK", search: () => searchRemoteOk() });
+    // D'où `ignoresKeywords` : sans lui, le moteur redemande ce même tableau
+    // une fois par intitulé cherché.
+    sources.push({
+      name: "Remote OK",
+      search: () => searchRemoteOk(),
+      ignoresKeywords: true,
+    });
   }
   if (recruiteeConfigured()) {
     // Recruitee exposes no keyword filter, so the search callback ignores the
     // plan and returns the tenants' current openings; the engine's own gate
     // does the filtering, where it can be explained to the user.
-    sources.push({ name: "Recruitee", search: () => searchRecruitee() });
+    // `ignoresKeywords` compte double ici : chaque appel parcourt TOUS les
+    // locataires, et c'est cette source qu'on a fait tomber en 429 le 29/07.
+    sources.push({
+      name: "Recruitee",
+      search: () => searchRecruitee(),
+      ignoresKeywords: true,
+    });
   }
   return sources;
 }
