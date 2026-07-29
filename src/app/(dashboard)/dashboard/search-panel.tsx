@@ -451,24 +451,51 @@ export function SearchPanel({
               shown.flatMap((hit) => hit.sources.map((s) => s.name)),
             );
             if (credits.length === 0) return null;
+            // Deux formes, parce que les clauses ne demandent pas la même
+            // chose : un BADGE dimensionné pour Adzuna, une mention en ligne
+            // pour les autres. Traiter les deux pareil, c'est soit sous-servir
+            // l'une, soit encombrer les autres.
+            const enBadge = credits.filter((c) => c.badge !== undefined);
+            const enLigne = credits.filter((c) => c.badge === undefined);
             return (
-              <p className="text-muted-foreground border-border border-t pt-3 text-xs">
-                {credits.map((credit, index) => (
-                  <span key={credit.source}>
-                    {index > 0 ? " · " : ""}
+              <div className="border-border flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-3">
+                {enBadge.map((credit) => (
+                  <a
+                    key={credit.source}
+                    href={credit.href}
+                    target="_blank"
+                    rel="noopener"
+                    className="border-border text-muted-foreground hover:text-foreground inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs whitespace-nowrap"
+                    style={{
+                      minWidth: credit.badge?.minWidth,
+                      minHeight: credit.badge?.minHeight,
+                    }}
+                  >
                     {credit.prefix}
-                    <a
-                      href={credit.href}
-                      target="_blank"
-                      rel="noopener"
-                      className="underline underline-offset-2"
-                    >
-                      {credit.linkText}
-                    </a>
+                    {credit.linkText}
                     {credit.suffix}
-                  </span>
+                  </a>
                 ))}
-              </p>
+                {enLigne.length > 0 ? (
+                  <p className="text-muted-foreground text-xs">
+                    {enLigne.map((credit, index) => (
+                      <span key={credit.source}>
+                        {index > 0 ? " · " : ""}
+                        {credit.prefix}
+                        <a
+                          href={credit.href}
+                          target="_blank"
+                          rel="noopener"
+                          className="underline underline-offset-2"
+                        >
+                          {credit.linkText}
+                        </a>
+                        {credit.suffix}
+                      </span>
+                    ))}
+                  </p>
+                ) : null}
+              </div>
             );
           })()}
         </>

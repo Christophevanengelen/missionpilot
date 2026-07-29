@@ -15,6 +15,26 @@ describe("creditsFor", () => {
     expect(credit.href).toContain("adzuna");
   });
 
+  it("porte les dimensions minimales EXIGÉES par la clause Adzuna", () => {
+    // « at least 116 × 23 px ». Le chiffre est contractuel, pas esthétique :
+    // il vit dans les données pour que personne ne le rabote en ajustant une
+    // marge. Le libellé seul, noyé dans une ligne de bas de page, ne satisfait
+    // que la moitié de la clause.
+    const [credit] = creditsFor(["Adzuna"]);
+    expect(credit.badge).toEqual({ minWidth: 116, minHeight: 23 });
+  });
+
+  it("n'impose un badge à AUCUNE autre source", () => {
+    // Les autres clauses auditées demandent une mention et un lien, pas une
+    // surface. Leur imposer un badge encombrerait l'écran au nom d'une
+    // obligation qu'elles n'ont jamais formulée — inventer une contrainte est
+    // une faute symétrique de celle d'en oublier une.
+    for (const nom of ["Jobicy", "Himalayas", "Remotive", "Remote OK"]) {
+      const [credit] = creditsFor([nom]);
+      expect(credit.badge).toBeUndefined();
+    }
+  });
+
   it("de-duplicates a source that produced many results", () => {
     expect(creditsFor(["Jobicy", "Jobicy", "Jobicy"])).toHaveLength(1);
   });

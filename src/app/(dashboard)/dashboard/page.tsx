@@ -207,7 +207,7 @@ export default async function HomePage() {
           opportunities are what this page is for. */}
       {step ? (
         <p className="text-muted-foreground text-xs">
-          {copy.nudge(readiness.score, step.ask)}{" "}
+          {copy.nudge(step.dimension, step.ask)}{" "}
           <Link href="/profile" className="underline underline-offset-2">
             {copy.nudgeLink}
           </Link>

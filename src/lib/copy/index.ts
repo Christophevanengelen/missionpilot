@@ -74,8 +74,39 @@ export const copy = {
       resultsLead:
         "Les plateformes que nous couvrons, interrogées en direct. Chaque résultat mène à l'annonce d'origine.",
       searching: "Nous interrogeons les plateformes…",
-      nudge: (score: number, ask: string) =>
-        `Profil à ${score} %. En nous donnant ${ask}, on cherche mieux pour vous.`,
+      /**
+       * Ce que la réponse OUVRE, jamais un pourcentage.
+       *
+       * « Profil à 62 % » est exactement le palier décoratif que les règles
+       * produit interdisent : un nombre nu ne dit pas ce qu'on y gagne, et il
+       * transforme le profil en formulaire à remplir — alors que cet écran
+       * existe pour montrer le marché, pas pour réclamer.
+       *
+       * Chaque phrase ci-dessous est adossée à une PORTE RÉELLE du code, et
+       * c'est la condition pour qu'elle soit dite :
+       * - `identity` ouvre la recherche automatique (`readiness.canSearch`) et
+       *   décide des intitulés cherchés (`planDeRepli`) ;
+       * - `skills` alimente la composante la plus lourde du score et les
+       *   preuves citées sur chaque offre (`matchedSkills`) ;
+       * - `scope` et `trajectory` sont ce que lit l'analyse de carrière pour
+       *   décider si la marche du dessus est méritée (`shouldReachHigher`) ;
+       * - `proof` accompagne les offres où elle compte.
+       */
+      nudge: (dimension: string, ask: string) => {
+        switch (dimension) {
+          case "identity":
+            return `Dites-moi ${ask} : je cherche alors sur les bons intitulés, au lieu de mots approchants.`;
+          case "skills":
+            return `Ajoutez ${ask} : les correspondances citeront vos compétences au lieu de s'arrêter au titre.`;
+          case "scope":
+          case "trajectory":
+            return `Donnez-moi ${ask} : c'est ce qui permet de dire si la marche du dessus est déjà à vous.`;
+          case "proof":
+            return `Ajoutez ${ask} : vos preuves accompagneront les offres où elles pèsent.`;
+          default:
+            return `En nous donnant ${ask}, on cherche mieux pour vous.`;
+        }
+      },
       nudgeLink: "Compléter",
       unconfigured:
         "Aucune source n'est encore activée. Il n'y a rien à chercher pour l'instant.",
@@ -1025,8 +1056,23 @@ export const copy = {
       resultsLead:
         "The platforms we cover, queried live. Every result leads to the original posting.",
       searching: "Querying the platforms…",
-      nudge: (score: number, ask: string) =>
-        `Profile at ${score}%. Give us ${ask} and we search better for you.`,
+      /** What the answer OPENS, never a percentage — see the French entry for
+       *  the door each sentence is backed by. */
+      nudge: (dimension: string, ask: string) => {
+        switch (dimension) {
+          case "identity":
+            return `Tell us ${ask} and we search the right job titles, not words that merely look close.`;
+          case "skills":
+            return `Add ${ask} and matches will quote your skills instead of stopping at the title.`;
+          case "scope":
+          case "trajectory":
+            return `Give us ${ask} — it is what lets us say whether the step up is already yours.`;
+          case "proof":
+            return `Add ${ask} and your evidence will travel with the offers where it counts.`;
+          default:
+            return `Give us ${ask} and we search better for you.`;
+        }
+      },
       nudgeLink: "Complete it",
       unconfigured: "No source is enabled yet. There is nothing to search.",
     },

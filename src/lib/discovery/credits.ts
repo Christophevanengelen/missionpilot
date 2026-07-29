@@ -19,12 +19,23 @@
  *    invented obligation is noise, and a missing one is caught by the registry
  *    review rather than guessed at here.
  *
- * NOT SETTLED, and deliberately not papered over: Adzuna's clause specifies an
- * IMAGE badge of at least 116×23px, and their free tier is non-commercial.
- * This renders the required wording and link, which is strictly better than
- * the nothing that was there before — but the image badge and the tier
- * question are the owner's calls, and they are recorded as open in
- * docs/opportunity-sources.md.
+ * CE QUI EST COUVERT, ET CE QUI NE L'EST PAS. La clause Adzuna a deux moitiés
+ * mesurables : la formulation exacte (« Jobs by Adzuna », « Jobs » en lien) et
+ * une taille minimale de 116 × 23 px. Les deux sont désormais rendues — la
+ * seconde par `badge`, qui donne au crédit la surface exigée au lieu de le
+ * laisser se fondre dans une ligne de bas de page.
+ *
+ * CE QUI RESTE OUVERT, et qu'aucun code ne referme : Adzuna publie sa propre
+ * image de badge, et rien dans leurs conditions ne dit clairement si une
+ * composition typographique équivalente est acceptée ou si leur fichier est
+ * obligatoire. Nous ne reproduisons PAS leur marque de notre côté — dessiner
+ * un logo Adzuna nous-mêmes serait un problème plus grave que celui qu'on
+ * cherche à régler. Si leur fichier est exigé, il suffit de le déposer et de
+ * pointer le badge dessus.
+ *
+ * Et surtout : leur palier gratuit est NON COMMERCIAL. Aucun badge ne règle
+ * ça. C'est une licence à signer ou une source à retirer, et c'est la décision
+ * du propriétaire — voir docs/opportunity-sources.md.
  */
 
 export type SourceCredit = {
@@ -36,6 +47,19 @@ export type SourceCredit = {
   href: string;
   /** Text after the link. */
   suffix: string;
+  /**
+   * Dimensions minimales, en pixels, quand la clause impose un BADGE et pas
+   * seulement une mention.
+   *
+   * Le chiffre vit ici parce que c'en est un de contrat, pas de maquette :
+   * Adzuna écrit « at least 116 × 23 px ». Le cacher derrière une classe
+   * utilitaire le rendrait modifiable par quelqu'un qui ajuste une marge, sans
+   * savoir qu'il touche à une obligation.
+   *
+   * Absent = une mention en ligne suffit, ce qui est le cas de toutes les
+   * autres sources auditées.
+   */
+  badge?: { minWidth: number; minHeight: number };
 };
 
 const CREDITS: Record<string, Omit<SourceCredit, "source">> = {
@@ -44,6 +68,7 @@ const CREDITS: Record<string, Omit<SourceCredit, "source">> = {
     linkText: "Jobs",
     href: "https://www.adzuna.co.uk",
     suffix: " by Adzuna",
+    badge: { minWidth: 116, minHeight: 23 },
   },
   "Remote OK": {
     prefix: "Offres à distance par ",
