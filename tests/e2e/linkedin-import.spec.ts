@@ -121,3 +121,79 @@ test("sans configuration LinkedIn : pas de bouton, pas de champ jeton, et l'arch
   // Le chemin qui marche pour tout le monde, lui, doit toujours être là.
   await expect(page.getByText("importez votre export LinkedIn")).toBeVisible();
 });
+
+/**
+ * Le RETOUR de LinkedIn.
+ *
+ * Le flux emmène la personne hors du produit et la ramène sur `/profile` avec
+ * un motif en paramètre. Ces tests couvrent le trajet complet côté page, sans
+ * dépendre d'un accès à l'API LinkedIn : ils prouvent que le motif écrit par le
+ * gestionnaire de retour est bien lu, et surtout qu'une valeur inconnue reste
+ * silencieuse.
+ */
+test("retour LinkedIn : le succès annonce le compte ET que rien n'est confirmé", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/profile?linkedin=ok&depots=12");
+
+  await expect(
+    page.getByText("Votre parcours LinkedIn est arrivé : 12 affirmations"),
+  ).toBeVisible();
+  // La seconde phrase est la plus importante des deux : sans elle, on annonce
+  // un import réussi devant un écran où rien n'a visiblement bougé.
+  await expect(page.getByText(/Aucune n'est confirmée/)).toBeVisible();
+});
+
+test("retour LinkedIn : un succès sans compte lisible garde une phrase juste", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/profile?linkedin=ok&depots=nimporte-quoi");
+
+  await expect(
+    page.getByText("Votre parcours LinkedIn est arrivé."),
+  ).toBeVisible();
+  // Surtout pas « 0 affirmations vous attendent », qui contredirait le succès.
+  await expect(page.getByText(/0 affirmation/)).toHaveCount(0);
+});
+
+/* Les assertions portent sur LA bannière, pas sur la page : « aucune alerte
+   nulle part » rattacherait ce test à des composants qui n'ont rien à voir
+   avec LinkedIn, et le ferait tomber au premier message d'erreur ajouté
+   ailleurs sur l'écran. */
+const banniere = (page: Page) => page.getByTestId("retour-linkedin");
+
+test("retour LinkedIn : un refus n'est pas une alerte", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/profile?linkedin=annule");
+
+  await expect(banniere(page)).toContainText(
+    "Vous n'avez pas autorisé le partage",
+  );
+  // Le point du test : refuser était une des deux réponses proposées. Annoncé
+  // en `alert`, ce serait un reproche adressé à quelqu'un qui a choisi.
+  await expect(banniere(page)).toHaveAttribute("role", "status");
+});
+
+test("retour LinkedIn : un échec est annoncé comme tel", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/profile?linkedin=echec");
+
+  await expect(banniere(page)).toContainText("L'import n'a pas abouti");
+  await expect(banniere(page)).toHaveAttribute("role", "alert");
+});
+
+test("retour LinkedIn : une valeur inventée n'affiche rien", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/profile?linkedin=succes-total&depots=999");
+
+  // Le défaut à empêcher : une URL bricolée à la main qui fait dire au produit
+  // qu'un import a eu lieu.
+  await expect(banniere(page)).toHaveCount(0);
+  await expect(page.getByText(/parcours LinkedIn est arrivé/)).toHaveCount(0);
+  // Et la page reste parfaitement utilisable.
+  await expect(page.getByText("importez votre export LinkedIn")).toBeVisible();
+});

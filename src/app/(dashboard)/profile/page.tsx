@@ -17,8 +17,15 @@ import {
 } from "@/lib/profile/clarifications";
 import { linkedinAdvice } from "@/lib/profile/linkedin-advice";
 import type { ClaimKind, ClaimState } from "@/domain/profile";
+import { t } from "@/lib/copy";
 import { CvImport } from "./cv-import";
 import { linkedInConfigure } from "@/lib/profile/linkedin-oauth";
+import {
+  estAlerte,
+  lireDepots,
+  lireMotif,
+  TON,
+} from "@/lib/profile/linkedin-retour";
 import { ProgressPanel } from "./progress-panel";
 import { ProfileInterview } from "./profile-interview";
 
@@ -32,8 +39,18 @@ export const metadata: Metadata = { title: "Mon profil" };
  * underneath for anyone who wants to go deeper, but nobody has to pass through
  * a form to learn where they stand.
  */
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  /* Optionnel : la page se rend parfaitement sans, et c'est ce qui arrive dans
+     l'immense majorité des visites. Le paramètre n'existe qu'au retour de
+     LinkedIn. */
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+} = {}) {
   await verifySession();
+  const params = searchParams ? await searchParams : {};
+  const motifLinkedIn = lireMotif(params.linkedin);
+  const depotsLinkedIn = lireDepots(params.depots);
   const client = await createClient();
   const profile = await getOwnProfile(client);
   const [living, versions, preferences, settledKeys, careerQuestions] =
@@ -65,8 +82,42 @@ export default async function ProfilePage() {
   });
   const understood = summariseUnderstanding(confirmed);
 
+  const retours = t().cvImport.linkedinApi.retours;
+  const messageLinkedIn =
+    motifLinkedIn === null
+      ? null
+      : motifLinkedIn === "ok"
+        ? depotsLinkedIn === null
+          ? retours.okSansCompte
+          : retours.ok(depotsLinkedIn)
+        : retours[motifLinkedIn];
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      {/* Le retour de LinkedIn passe AVANT tout le reste : c'est la réponse à
+          la question avec laquelle on revient. Le placer plus bas reviendrait
+          à la cacher derrière l'écran qu'on vient déjà de voir. */}
+      {motifLinkedIn !== null && messageLinkedIn !== null ? (
+        <div
+          role={estAlerte(motifLinkedIn) ? "alert" : "status"}
+          data-testid="retour-linkedin"
+          className={`rounded-xl border px-4 py-3 ${
+            TON[motifLinkedIn] === "succes"
+              ? "border-success/40 bg-success/10"
+              : TON[motifLinkedIn] === "alerte"
+                ? "border-destructive/40 bg-destructive/10"
+                : "border-border bg-card"
+          }`}
+        >
+          <p className="text-sm font-medium text-pretty">{messageLinkedIn}</p>
+          {motifLinkedIn === "ok" ? (
+            <p className="text-muted-foreground mt-1 text-xs text-pretty">
+              {retours.okNote}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <ProgressPanel
         progress={progression(readiness, {
           hasRole: understood.lines.some(

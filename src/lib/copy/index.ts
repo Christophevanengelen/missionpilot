@@ -274,25 +274,44 @@ export const copy = {
         detectedTitle: "Compétences détectées dans votre export LinkedIn",
       },
       /**
-       * L'import automatique par l'API LinkedIn. Les mots comptent ici :
-       * « connecter » promettrait un bouton OAuth qui n'existe pas pour ce
-       * produit, et « jeton » dit la vérité sur ce qui est demandé. La phrase
-       * sur la non-conservation n'est pas rassurante par politesse : c'est la
-       * règle appliquée dans le code, où le jeton n'est ni stocké ni journalisé.
+       * L'import automatique par l'API LinkedIn.
+       *
+       * La phrase sur la non-conservation n'est pas rassurante par politesse :
+       * c'est la règle appliquée dans le code, où le jeton n'est ni stocké ni
+       * journalisé (`linkedin-oauth.ts`, `linkedin-callback`).
+       *
+       * `retours` est le pendant obligatoire du bouton : le flux emmène la
+       * personne hors du produit, et ce qu'elle lit en revenant est la SEULE
+       * chose qui lui dise si son parcours est arrivé. Voir `linkedin-retour.ts`.
        */
       linkedinApi: {
         title: "…ou remplissez avec LinkedIn",
         note: "LinkedIn vous demandera votre accord, puis nous enverra vos postes, formations et compétences. Rien n'est confirmé automatiquement : vous relisez et vous validez, comme pour un CV. Réservé aux membres de l'UE et de Suisse.",
-        tokenLabel: "Jeton d'accès LinkedIn",
-        tokenHelp:
-          "L'autorisation n'est pas conservée : elle sert à cet import, puis elle disparaît.",
-        portail: "Ouvrir le portail développeur LinkedIn",
         analyze: "Remplir avec LinkedIn",
-        needToken: "Collez le jeton généré dans le portail LinkedIn.",
-        rapportTitle: "Ce que LinkedIn a renvoyé",
-        rapportVide: "aucune donnée",
-        rapportLignes: (n: number) =>
-          n === 1 ? "1 enregistrement" : `${n} enregistrements`,
+        retours: {
+          ok: (n: number) =>
+            n === 1
+              ? "Votre parcours LinkedIn est arrivé : 1 affirmation vous attend."
+              : `Votre parcours LinkedIn est arrivé : ${n} affirmations vous attendent.`,
+          okSansCompte: "Votre parcours LinkedIn est arrivé.",
+          /* La suite du message compte autant que le message : sans elle, on
+             annonce un import réussi et on laisse la personne devant un écran
+             où rien n'a visiblement changé — puisque justement, rien n'est
+             confirmé tant qu'elle n'a pas tranché. */
+          okNote:
+            "Aucune n'est confirmée. Ouvrez « Reprendre l'entretien détaillé », plus bas, pour valider ou écarter chacune.",
+          vide: "LinkedIn a répondu, mais sans parcours exploitable. Cela arrive quand le profil est peu rempli, ou quand l'autorisation n'a couvert aucun domaine utile.",
+          /* Ni « réessayez » ni ton d'échec : refuser était une des deux
+             réponses proposées, pas une erreur de manipulation. */
+          annule:
+            "Vous n'avez pas autorisé le partage. Rien n'a été importé, et rien n'a été demandé à LinkedIn.",
+          echec:
+            "L'import n'a pas abouti. Vous pouvez relancer, ou déposer votre CV — les deux mènent au même écran de validation.",
+          indisponible:
+            "L'import automatique n'est pas actif sur cette installation. Passez par votre export LinkedIn, plus bas.",
+          "etat-invalide":
+            "Le retour de LinkedIn n'a pas pu être rattaché à votre session : le lien a peut-être trop attendu, ou il a été ouvert dans un autre navigateur. Par sécurité, rien n'a été importé. Relancez depuis cette page.",
+        },
       },
       errors: {
         empty: "Le document semble vide.",
@@ -1185,21 +1204,32 @@ export const copy = {
         needFile: "Drop your LinkedIn export archive (.zip).",
         detectedTitle: "Skills detected in your LinkedIn export",
       },
-      /** Wording matters: "connect" would promise an OAuth button that does not
-       *  exist for this product, "token" states what is actually being asked.
-       *  The not-stored sentence is the rule the code enforces, not a courtesy. */
+      /** The not-stored sentence is the rule the code enforces, not a courtesy.
+       *  `retours` is the button's mandatory other half: the flow takes people
+       *  out of the product, and what they read on the way back is the only
+       *  thing telling them whether their career history made it. */
       linkedinApi: {
         title: "…or fill it with LinkedIn",
         note: "LinkedIn will ask for your consent, then send us your positions, education and skills. Nothing is confirmed automatically: you review and validate, just like a CV. Available to EU and Swiss members only.",
-        tokenLabel: "LinkedIn access token",
-        tokenHelp:
-          "The authorization is not kept: it serves this import, then it is gone.",
-        portail: "Open the LinkedIn developer portal",
         analyze: "Fill with LinkedIn",
-        needToken: "Paste the token generated in the LinkedIn portal.",
-        rapportTitle: "What LinkedIn returned",
-        rapportVide: "no data",
-        rapportLignes: (n: number) => (n === 1 ? "1 record" : `${n} records`),
+        retours: {
+          ok: (n: number) =>
+            n === 1
+              ? "Your LinkedIn history has arrived: 1 statement is waiting for you."
+              : `Your LinkedIn history has arrived: ${n} statements are waiting for you.`,
+          okSansCompte: "Your LinkedIn history has arrived.",
+          okNote:
+            "None of them are confirmed. Open “Reprendre l’entretien détaillé” below to validate or dismiss each one.",
+          vide: "LinkedIn answered, but with no usable history. That happens when the profile is sparse, or when the authorization covered no useful domain.",
+          annule:
+            "You did not authorize the sharing. Nothing was imported, and nothing was requested from LinkedIn.",
+          echec:
+            "The import did not complete. You can start it again, or upload your CV — both lead to the same review screen.",
+          indisponible:
+            "Automatic import is not enabled on this installation. Use your LinkedIn export below instead.",
+          "etat-invalide":
+            "LinkedIn’s response could not be tied to your session: the link may have waited too long, or it was opened in another browser. Nothing was imported, as a precaution. Start again from this page.",
+        },
       },
       errors: {
         empty: "The document looks empty.",
