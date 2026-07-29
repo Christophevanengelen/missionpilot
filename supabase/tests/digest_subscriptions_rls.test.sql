@@ -7,20 +7,25 @@
 -- d'expéditeur, donc en liens de connexion qui n'arrivent plus.
 
 begin;
-select plan(12);
+select plan(13);
 
 -- Deux personnes, deux profils.
-insert into auth.users (id, email, instance_id, aud, role)
-values
-  ('11111111-1111-1111-1111-111111111111', 'alice@test.local',
-   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated'),
-  ('22222222-2222-2222-2222-222222222222', 'bob@test.local',
-   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated');
+--
+-- `on conflict (user_id) do update` et non un `insert` nu : un déclencheur crée
+-- déjà le profil à l'insertion de l'utilisateur. L'insertion nue lève une
+-- violation d'unicité, et la suite entière ne s'exécute pas — constaté en CI.
+-- La forme ci-dessous est celle qu'emploient les autres suites, et elle a
+-- l'avantage de FIXER les identifiants de profil.
+insert into auth.users (id, email) values
+  ('11111111-1111-1111-1111-111111111111', 'alice@test.local'),
+  ('22222222-2222-2222-2222-222222222222', 'bob@test.local');
 
-insert into public.candidate_profiles (user_id)
-values
-  ('11111111-1111-1111-1111-111111111111'),
-  ('22222222-2222-2222-2222-222222222222');
+insert into public.candidate_profiles (id, user_id, display_name) values
+  ('aaaaaaaa-0000-0000-0000-000000000001',
+   '11111111-1111-1111-1111-111111111111', 'Alice'),
+  ('bbbbbbbb-0000-0000-0000-000000000002',
+   '22222222-2222-2222-2222-222222222222', 'Bob')
+on conflict (user_id) do update set id = excluded.id;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 1. LES PRIVILÈGES DE TABLE
@@ -61,8 +66,7 @@ set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","
 
 select lives_ok($$
   insert into public.digest_subscriptions (profile_id, opted_in, unsubscribe_token)
-  select id, true, repeat('a', 64) from public.candidate_profiles
-   where user_id = '11111111-1111-1111-1111-111111111111'
+  values ('aaaaaaaa-0000-0000-0000-000000000001', true, repeat('a', 64))
 $$, 'alice pose son propre abonnement');
 
 select is(
@@ -90,8 +94,7 @@ select is(
 -- L'insertion croisée : abonner quelqu'un d'autre à son insu.
 select throws_ok($$
   insert into public.digest_subscriptions (profile_id, opted_in, unsubscribe_token)
-  select id, true, repeat('b', 64) from public.candidate_profiles
-   where user_id = '11111111-1111-1111-1111-111111111111'
+  values ('aaaaaaaa-0000-0000-0000-000000000001', true, repeat('b', 64))
 $$, '42501', null, 'bob ne peut PAS abonner alice');
 
 -- La mise à jour croisée est invisible plutôt que refusée : `using` filtre les
@@ -101,7 +104,7 @@ select lives_ok($$
   update public.digest_subscriptions set opted_in = true
 $$, 'la mise à jour de bob ne lève pas…');
 
-set local role postgres;
+reset role;
 reset request.jwt.claims;
 select is(
   (select opted_in from public.digest_subscriptions),
@@ -124,13 +127,12 @@ select is(
 -- 4. LES CONTRAINTES DE LA COLONNE
 -- ═══════════════════════════════════════════════════════════════════════════
 
-set local role postgres;
+reset role;
 reset request.jwt.claims;
 
 select throws_ok($$
   insert into public.digest_subscriptions (profile_id, unsubscribe_token)
-  select id, 'trop-court' from public.candidate_profiles
-   where user_id = '22222222-2222-2222-2222-222222222222'
+  values ('bbbbbbbb-0000-0000-0000-000000000002', 'trop-court')
 $$, '23514', null, 'un jeton hors format est refusé par la contrainte');
 
 -- L'opt-in par DÉFAUT est faux. Personne ne reçoit d'e-mail parce qu'une
