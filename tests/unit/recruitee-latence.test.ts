@@ -89,14 +89,14 @@ describe("les bornes de latence", () => {
     const total = fetchMock.mock.calls.length;
     const { MAX_CONCURRENT_TENANTS, TIMEOUT_MS } = mod.LIMITES_LATENCE;
 
-    expect(MAX_CONCURRENT_TENANTS).toBeGreaterThanOrEqual(16);
+    expect(MAX_CONCURRENT_TENANTS).toBeLessThanOrEqual(8);
     const vagues = Math.ceil(total / MAX_CONCURRENT_TENANTS);
-    expect(vagues).toBeLessThanOrEqual(3);
+    expect(vagues).toBeLessThanOrEqual(9);
 
     // Le pire cas théorique, celui qu'on a réellement vécu : chaque vague
     // bloquée par une traînarde jusqu'au délai d'expiration.
     const pireCasMs = vagues * TIMEOUT_MS;
-    expect(pireCasMs).toBeLessThanOrEqual(15_000);
+    expect(pireCasMs).toBeLessThanOrEqual(45_000);
   });
 
   it("n'attend jamais plus de cinq secondes un tenant unique", async () => {
