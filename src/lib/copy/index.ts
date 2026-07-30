@@ -108,6 +108,15 @@ export const copy = {
         }
       },
       nudgeLink: "Compléter",
+      /* Le digest existait, armé, et personne ne pouvait le
+         découvrir sans fouiller l'écran des données. Même défaut que
+         les recommandations : une fonctionnalité invisible n'existe
+         pas. La ligne est SOUS les offres — quelqu'un qui vient de
+         voir ce que le marché a pour lui est le seul à qui la
+         proposition veut dire quelque chose. */
+      digestOffer:
+        "Vous préférez que je regarde à votre place ? Une fois par semaine, je cherche et je vous écris — seulement si j'ai trouvé.",
+      digestOfferLink: "Recevoir le récapitulatif",
       unconfigured:
         "Aucune source n'est encore activée. Il n'y a rien à chercher pour l'instant.",
     },
@@ -1078,6 +1087,9 @@ export const copy = {
         }
       },
       nudgeLink: "Complete it",
+      digestOffer:
+        "Rather have us look for you? Once a week we search and write — only if we found something.",
+      digestOfferLink: "Get the weekly recap",
       unconfigured: "No source is enabled yet. There is nothing to search.",
     },
     search: {

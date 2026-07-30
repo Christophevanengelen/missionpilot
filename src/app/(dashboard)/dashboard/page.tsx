@@ -11,6 +11,8 @@ import {
   type ReadinessInput,
 } from "@/lib/profile/readiness";
 import { discoveryConfigured } from "@/lib/discovery/sources";
+import { lireAbonnement } from "@/lib/digest/abonnement";
+import { mailConfigure } from "@/lib/mail/resend";
 import { t } from "@/lib/copy";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 import { summariseUnderstanding } from "@/lib/profile/understood";
@@ -114,6 +116,13 @@ export default async function HomePage() {
     )
     .filter((c) => c !== undefined)
     .slice(0, MAX_COUNTRIES_PER_SEARCH);
+
+  /* Proposé UNE SEULE FOIS, et seulement si l'envoi est réellement possible :
+     offrir un service qu'on ne peut pas rendre est pire que de se taire. */
+  const digestPossible = mailConfigure();
+  const dejaAbonne = digestPossible
+    ? ((await lireAbonnement(client, profile.id))?.optedIn ?? false)
+    : true;
 
   const understood = summariseUnderstanding(confirmed);
   const question = nextQuestion({
@@ -233,6 +242,19 @@ export default async function HomePage() {
       ) : (
         <p className="text-muted-foreground text-sm">{copy.unconfigured}</p>
       )}
+
+      {/* SOUS les offres, jamais au-dessus. Quelqu'un qui vient de voir ce que
+          le marché a pour lui est le seul à qui cette proposition veut dire
+          quelque chose — et cet écran existe pour montrer des opportunités,
+          pas pour vendre une option. Une ligne, puis plus jamais. */}
+      {digestPossible && !dejaAbonne ? (
+        <p className="text-muted-foreground border-border border-t pt-4 text-xs">
+          {copy.digestOffer}{" "}
+          <Link href="/compte" className="underline underline-offset-2">
+            {copy.digestOfferLink}
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }
