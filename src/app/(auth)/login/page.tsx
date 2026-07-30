@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { getSessionClaims } from "@/lib/auth/dal";
 import { env } from "@/lib/env";
+import { t } from "@/lib/copy";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -31,11 +32,25 @@ export const metadata: Metadata = {
  * offers, apply on someone's behalf — is as much of the pitch as what we will,
  * because everyone arriving here has been burned by a product that did both.
  */
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lien?: string }>;
+}) {
   const session = await getSessionClaims();
   if (session) {
     redirect("/dashboard");
   }
+
+  /* Pourquoi le retour a échoué, s'il a échoué. `/auth/confirm` écrivait déjà
+     ce motif — et rien ne le lisait : on revenait sur un écran muet. Un
+     produit qui échoue sans le dire enseigne qu'il est cassé. */
+  const { lien } = await searchParams;
+  const messages = t().home.retourEchoue;
+  const echecRetour =
+    lien === "expire" || lien === "invalide" || lien === "fournisseur"
+      ? messages[lien]
+      : null;
 
   // Lus ICI, côté serveur : le formulaire est un composant client et ne doit
   // jamais recevoir l'environnement — seulement deux booléens.
@@ -92,6 +107,15 @@ export default async function LoginPage() {
             </li>
           </ul>
         </section>
+
+        {echecRetour ? (
+          <p
+            role="alert"
+            className="border-destructive/40 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm md:col-start-2"
+          >
+            {echecRetour}
+          </p>
+        ) : null}
 
         <Card className="border-border/70 shadow-floating w-full md:w-sm">
           <CardHeader>

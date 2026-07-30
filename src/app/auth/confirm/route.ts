@@ -36,6 +36,32 @@ export async function GET(requete: NextRequest) {
     return NextResponse.redirect(url);
   };
 
+  /**
+   * L'ERREUR DU FOURNISSEUR, LUE AVANT TOUT LE RESTE.
+   *
+   * Quand Google ou Supabase refuse, le retour arrive ici SANS `code` — mais
+   * avec `error` et `error_description` dans l'URL. La route les ignorait :
+   * elle constatait l'absence de code et renvoyait « lien invalide », le
+   * message du lien magique. Quelqu'un qui venait de cliquer « Continuer avec
+   * Google » lisait donc une phrase qui ne parlait pas de son problème, et le
+   * vrai motif — le seul qui aurait permis de corriger — était jeté.
+   *
+   * Constaté en production le 2026-07-30 : trois retours à 307, aucun journal,
+   * aucune piste. Un échec qu'on n'enregistre pas est un échec qu'on ne
+   * corrige pas.
+   */
+  const erreurFournisseur = params.get("error");
+  if (erreurFournisseur !== null) {
+    log.warn("retour OAuth refusé par le fournisseur", {
+      // Le code d'erreur et sa description sont des messages de protocole, pas
+      // des données personnelles. Bornés, parce qu'un fournisseur peut y
+      // mettre une page entière.
+      erreur: erreurFournisseur.slice(0, 80),
+      description: (params.get("error_description") ?? "").slice(0, 200),
+    });
+    return echec("fournisseur");
+  }
+
   const code = params.get("code");
   const supabase = await createClient();
 
