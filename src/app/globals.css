@@ -80,8 +80,12 @@
   --card-foreground: oklch(0.185 0.008 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.185 0.008 260);
-  --primary: oklch(0.84 0.13 82);
-  --primary-foreground: oklch(0.155 0.025 265);
+  /* L'or de la marque, assombri pour le FOND CLAIR : `text-primary` sert de
+     couleur de texte (liens, badges), et l'or de la landing — pensé pour un
+     fond d'encre — tombe à 1,64:1 sur blanc, constaté par axe en CI. Même
+     teinte, lisibilité d'abord : ~5:1 sur blanc. */
+  --primary: oklch(0.5 0.11 78);
+  --primary-foreground: oklch(0.985 0.005 85);
   --secondary: oklch(0.965 0.004 85);
   --secondary-foreground: oklch(0.26 0.02 262);
   --muted: oklch(0.962 0.004 85);
@@ -91,7 +95,7 @@
   --destructive: oklch(0.55 0.2 27);
   --border: oklch(0.912 0.005 85);
   --input: oklch(0.912 0.005 85);
-  --ring: oklch(0.74 0.12 82);
+  --ring: oklch(0.5 0.11 78);
   /* Studio-calme surfaces & feedback */
   --surface-raised: oklch(0.985 0.003 85);
   --success: oklch(0.55 0.12 150);
@@ -131,6 +135,8 @@
   --card-foreground: oklch(0.955 0.004 85);
   --popover: oklch(0.205 0.01 260);
   --popover-foreground: oklch(0.955 0.004 85);
+  /* Sur fond d'encre, l'or de la landing tient le contraste (~9:1) :
+     c'est son terrain d'origine. */
   --primary: oklch(0.84 0.13 82);
   --primary-foreground: oklch(0.155 0.025 265);
   --secondary: oklch(0.25 0.01 260);
