@@ -91,6 +91,26 @@ export const env = createEnv({
       .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
     /**
+     * La connexion en un clic — Google et LinkedIn, chacune derrière son
+     * interrupteur, DORMANTES par défaut. Même motif que LinkedIn (import) et
+     * que le digest : le code part en production éteint, et l'allumage est un
+     * geste distinct, réversible, qui ne demande pas de déploiement de code.
+     *
+     * Ces booléens ne remplacent pas la configuration côté Supabase (client
+     * OAuth + secret, saisis dans SON tableau de bord, jamais ici) : ils
+     * décident seulement si le BOUTON existe. Un bouton visible avant que le
+     * fournisseur soit configuré mènerait à une erreur au premier écran — le
+     * même piège que le bouton LinkedIn avant l'accord.
+     */
+    AUTH_GOOGLE_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
+    AUTH_LINKEDIN_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
+    /**
      * Le digest hebdomadaire — et il part DORMANT, comme LinkedIn avant lui.
      *
      * Trois variables, trois rôles distincts, et la séparation est ce qui rend

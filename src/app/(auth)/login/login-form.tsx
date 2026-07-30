@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import {
+  connexionGoogle,
+  connexionLinkedIn,
   envoyerLienMagique,
   signIn,
   type SignInState,
@@ -25,7 +27,16 @@ const initialState: SignInState = { error: null };
  * e-mails par heure. Sans cette porte de secours, une panne d'e-mail
  * enfermerait dehors ceux qui ont déjà un compte.
  */
-export function LoginForm() {
+export function LoginForm({
+  google = false,
+  linkedin = false,
+}: {
+  /** Interrupteurs serveur (`AUTH_*_ENABLED`) : un bouton vers un fournisseur
+   *  non configuré mènerait à une erreur au premier écran — le même piège que
+   *  le bouton LinkedIn avant l'accord. */
+  google?: boolean;
+  linkedin?: boolean;
+}) {
   const [lien, actionLien, lienEnCours] = useActionState(
     envoyerLienMagique,
     initialState,
@@ -76,62 +87,101 @@ export function LoginForm() {
   const erreur = passeVisible ? motDePasse.error : lien.error;
 
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Votre e-mail</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          aria-describedby={erreur ? "login-error" : undefined}
-        />
-      </div>
+    <div className="flex flex-col gap-4">
+      {/* Les fournisseurs d'abord : pour qui vit avec une session Google
+          ouverte, c'est UN clic contre un aller-retour par la boîte mail.
+          Chaque bouton est son propre <form> — un formulaire ne s'imbrique
+          pas dans celui de l'e-mail, et chacun mène à une action distincte.
+          Texte sans logo : les chartes de Google et LinkedIn encadrent
+          strictement l'usage de leurs marques ; un bouton texte est lisible,
+          conforme, et se passe de leur permission. */}
+      {google || linkedin ? (
+        <>
+          <div className="flex flex-col gap-2">
+            {google ? (
+              <form action={connexionGoogle}>
+                <Button type="submit" variant="outline" className="w-full">
+                  Continuer avec Google
+                </Button>
+              </form>
+            ) : null}
+            {linkedin ? (
+              <form action={connexionLinkedIn}>
+                <Button type="submit" variant="outline" className="w-full">
+                  Continuer avec LinkedIn
+                </Button>
+              </form>
+            ) : null}
+          </div>
+          {/* Décoratif : le champ e-mail porte déjà son propre label. */}
+          <div
+            aria-hidden="true"
+            className="text-muted-foreground flex items-center gap-3 text-xs"
+          >
+            <span className="bg-border h-px flex-1" />
+            ou par e-mail
+            <span className="bg-border h-px flex-1" />
+          </div>
+        </>
+      ) : null}
 
-      {passeVisible ? (
+      <form action={action} className="flex flex-col gap-4" noValidate>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password">Mot de passe</Label>
+          <Label htmlFor="email">Votre e-mail</Label>
           <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
             required
             aria-describedby={erreur ? "login-error" : undefined}
           />
         </div>
-      ) : null}
 
-      {erreur ? (
-        <p
-          id="login-error"
-          role="alert"
-          className="text-destructive text-sm font-medium"
-        >
-          {erreur}
-        </p>
-      ) : null}
+        {passeVisible ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="password">Mot de passe</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              aria-describedby={erreur ? "login-error" : undefined}
+            />
+          </div>
+        ) : null}
 
-      <Button ref={boutonRef} type="submit" disabled={enCours}>
-        {enCours
-          ? passeVisible
-            ? "Connexion…"
-            : "Envoi…"
-          : passeVisible
-            ? "Entrer"
-            : "Recevoir mon lien de connexion"}
-      </Button>
+        {erreur ? (
+          <p
+            id="login-error"
+            role="alert"
+            className="text-destructive text-sm font-medium"
+          >
+            {erreur}
+          </p>
+        ) : null}
 
-      {passeVisible ? null : (
-        <button
-          type="button"
-          onClick={() => setPasseVisible(true)}
-          className="text-muted-foreground self-start text-xs underline underline-offset-2"
-        >
-          J’ai déjà un mot de passe
-        </button>
-      )}
-    </form>
+        <Button ref={boutonRef} type="submit" disabled={enCours}>
+          {enCours
+            ? passeVisible
+              ? "Connexion…"
+              : "Envoi…"
+            : passeVisible
+              ? "Entrer"
+              : "Recevoir mon lien de connexion"}
+        </Button>
+
+        {passeVisible ? null : (
+          <button
+            type="button"
+            onClick={() => setPasseVisible(true)}
+            className="text-muted-foreground self-start text-xs underline underline-offset-2"
+          >
+            J’ai déjà un mot de passe
+          </button>
+        )}
+      </form>
+    </div>
   );
 }
