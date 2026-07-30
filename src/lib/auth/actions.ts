@@ -116,3 +116,53 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+/**
+ * Connexion par un fournisseur d'identité — Google ou LinkedIn, en un clic.
+ *
+ * CE QUE ÇA CHANGE, ET CE QUE ÇA NE CHANGE PAS. Le lien magique demande un
+ * aller-retour par la boîte mail ; pour qui vit dans son navigateur avec une
+ * session Google ouverte, c'est une friction au seul endroit où elle coûte des
+ * gens. Le fournisseur ne remplace rien : il est un troisième chemin vers la
+ * même session Supabase, et tout le reste — profil, RLS, effacement — est
+ * strictement identique quel que soit le chemin d'entrée.
+ *
+ * L'ACTION EST CÔTÉ SERVEUR, et ce n'est pas un détail : avec `@supabase/ssr`,
+ * `signInWithOAuth` pose ici le cookie du vérificateur PKCE que le retour
+ * (`/auth/confirm`, déjà public, déjà capable d'échanger un `code`) viendra
+ * comparer. Lancer le flux depuis le navigateur casserait cet appariement.
+ *
+ * CHAQUE FOURNISSEUR EST GARDÉ DEUX FOIS : le bouton n'existe pas sans
+ * l'interrupteur, et l'action revérifie l'interrupteur — un POST forgé sur une
+ * action désactivée doit être un non-événement, pas un départ vers un écran
+ * d'erreur Google.
+ */
+async function connexionParFournisseur(
+  fournisseur: "google" | "linkedin_oidc",
+): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: fournisseur,
+    options: {
+      redirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/confirm`,
+      // `consent` n'est PAS demandé : re-forcer l'écran d'autorisation à
+      // chaque connexion punirait précisément les gens qui reviennent.
+    },
+  });
+  if (error || !data?.url) {
+    // Fournisseur configuré à moitié (interrupteur allumé, Supabase pas
+    // prêt) : on revient à l'écran de connexion, où le lien magique marche.
+    redirect("/login");
+  }
+  redirect(data.url);
+}
+
+export async function connexionGoogle(): Promise<void> {
+  if (env.AUTH_GOOGLE_ENABLED !== true) redirect("/login");
+  await connexionParFournisseur("google");
+}
+
+export async function connexionLinkedIn(): Promise<void> {
+  if (env.AUTH_LINKEDIN_ENABLED !== true) redirect("/login");
+  await connexionParFournisseur("linkedin_oidc");
+}

@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSessionClaims } from "@/lib/auth/dal";
+import { env } from "@/lib/env";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -35,6 +36,11 @@ export default async function LoginPage() {
   if (session) {
     redirect("/dashboard");
   }
+
+  // Lus ICI, côté serveur : le formulaire est un composant client et ne doit
+  // jamais recevoir l'environnement — seulement deux booléens.
+  const google = env.AUTH_GOOGLE_ENABLED === true;
+  const linkedin = env.AUTH_LINKEDIN_ENABLED === true;
 
   return (
     <main
@@ -96,12 +102,13 @@ export default async function LoginPage() {
                 deux sont le même geste. Faire choisir entre deux portes qui
                 mènent au même endroit ne sert qu'à faire hésiter. */}
             <CardDescription>
-              Donnez votre e-mail, recevez un lien. Aucun mot de passe à
-              inventer ni à retenir.
+              {google || linkedin
+                ? "Un clic avec votre compte existant, ou un lien par e-mail. Aucun mot de passe à inventer ni à retenir."
+                : "Donnez votre e-mail, recevez un lien. Aucun mot de passe à inventer ni à retenir."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginForm />
+            <LoginForm google={google} linkedin={linkedin} />
           </CardContent>
         </Card>
       </div>
