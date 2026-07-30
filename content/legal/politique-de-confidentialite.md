@@ -269,9 +269,14 @@ Les données que vous importez depuis LinkedIn nous parviennent à votre demande
 
 Supabase, Vercel, Inngest et Resend sont des sociétés américaines.
 
-**Ce que nous avons vérifié.** La base de données qui contient votre profil est hébergée dans la région **West EU (Irlande)** — constaté dans la console Supabase le 27 juillet 2026. Vos données de profil sont donc stockées dans l'Union européenne.
+**Ce que nous avons vérifié.** Deux régions, constatées dans les consoles des prestataires et non déduites :
 
-**Ce que nous n'avons pas encore établi**, et que nous ne comblerons pas par une formule : la région d'exécution des fonctions applicatives chez Vercel, la région d'Inngest, la région de Resend, l'entité juridique figurant sur chacun de ces contrats, et le mécanisme de transfert souscrit avec chacune. Tant que ces points ne sont pas documentés ici, considérez qu'un accès depuis les États-Unis par le personnel de ces sociétés est possible.
+- la base de données qui contient votre profil est hébergée en **West EU (Irlande)** — console Supabase, 27 juillet 2026 ;
+- l'acheminement de nos e-mails est traité en **Irlande (`eu-west-1`)** — console Resend, 30 juillet 2026, domaine d'envoi `send.hi-def.be` vérifié dans cette région.
+
+Vos données de profil et vos adresses e-mail sont donc traitées dans l'Union européenne.
+
+**Ce que nous n'avons pas encore établi**, et que nous ne comblerons pas par une formule : la région d'exécution des fonctions applicatives chez Vercel, la région d'Inngest, l'entité juridique figurant sur chacun de ces contrats, et le mécanisme de transfert souscrit avec chacune. Tant que ces points ne sont pas documentés ici, considérez qu'un accès depuis les États-Unis par le personnel de ces sociétés est possible.
 
 ---
 
