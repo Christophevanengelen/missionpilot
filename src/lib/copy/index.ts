@@ -65,6 +65,19 @@ export const copy = {
       mirrorAsk: (ask: string) =>
         `Donnez-moi ${ask}, et je lance la recherche à chaque connexion.`,
       mirrorAskLink: "Compléter mon profil",
+      /* Pourquoi le retour n'a pas abouti. La route `/auth/confirm` écrivait
+         déjà ces motifs dans l'URL — et PERSONNE ne les lisait : on revenait
+         sur un écran de connexion muet, sans un mot pour dire ce qui venait
+         d'échouer. C'est ce qui rendait un échec OAuth indistinguable d'un
+         clic sans effet. */
+      retourEchoue: {
+        expire:
+          "Ce lien a expiré ou a déjà servi. Demandez-en un nouveau, il arrive en quelques secondes.",
+        invalide:
+          "Ce lien n'était pas lisible — la plupart du temps, un logiciel de messagerie l'a coupé en deux. Demandez-en un nouveau.",
+        fournisseur:
+          "La connexion avec votre compte externe n'a pas abouti. Réessayez, ou entrez par e-mail : les deux mènent au même endroit.",
+      },
       answerSubmit: "Valider",
       answerDontKnow: "Je ne sais pas",
       answerUnreadable:
@@ -1060,6 +1073,13 @@ export const copy = {
       mirrorAsk: (ask: string) =>
         `Give me ${ask}, and I will run the search on every visit.`,
       mirrorAskLink: "Complete my profile",
+      retourEchoue: {
+        expire: "This link has expired or was already used. Ask for a new one.",
+        invalide:
+          "This link could not be read — usually an email client split it in two. Ask for a new one.",
+        fournisseur:
+          "Signing in with your external account did not complete. Try again, or use email — both lead to the same place.",
+      },
       answerSubmit: "Confirm",
       answerDontKnow: "I don't know",
       answerUnreadable:

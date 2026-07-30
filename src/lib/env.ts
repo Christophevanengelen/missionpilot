@@ -91,6 +91,22 @@ export const env = createEnv({
       .transform((v) => v === "true" || v === "1"),
     CRON_SECRET: z.string().min(1).optional(),
     /**
+     * Qui voit le tableau de pilotage — une LISTE D'ADRESSES, pas un rôle en
+     * base.
+     *
+     * Un rôle stocké se modifie par une requête SQL ; une variable
+     * d'environnement se modifie par un déploiement, tracé et réversible.
+     * Pour un produit qui compte aujourd'hui une poignée de comptes, la
+     * variable est à la fois plus simple et plus auditable — et elle évite
+     * d'ajouter une colonne « admin » dont l'existence même invite à
+     * l'élévation de privilège.
+     *
+     * Vide = personne. L'écran n'existe alors pour aucun compte, y compris le
+     * vôtre : un panneau d'administration qui s'ouvre par défaut est une
+     * porte, pas une fonctionnalité.
+     */
+    ADMIN_EMAILS: z.string().optional(),
+    /**
      * La connexion en un clic — Google et LinkedIn, chacune derrière son
      * interrupteur, DORMANTES par défaut. Même motif que LinkedIn (import) et
      * que le digest : le code part en production éteint, et l'allumage est un
