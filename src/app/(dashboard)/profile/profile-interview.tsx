@@ -547,6 +547,16 @@ export function ProfileInterview({
         >
           {copy.panel.preferences}
         </Link>
+        {/* Les recommandations reçues — le pilier « preuves » de la promesse.
+            La page était construite et testée, mais AUCUN lien n'y menait :
+            personne ne pouvait la trouver. Une fonctionnalité invisible n'existe
+            pas, quel que soit le soin qu'on a mis à la bâtir. */}
+        <Link
+          href="/profile/recommendations"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+        >
+          {copy.panel.recommendations}
+        </Link>
       </section>
     </div>
   );

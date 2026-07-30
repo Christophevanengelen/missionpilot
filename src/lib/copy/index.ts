@@ -536,6 +536,10 @@ export const copy = {
         empty: "Votre profil se construira ici au fil de l'entretien.",
         history: "Historique",
         preferences: "Préférences & contraintes",
+        /* Le pilier « preuves » de la promesse. La page existait,
+           testée de bout en bout, et AUCUN lien n'y menait : une
+           fonctionnalité complète que personne ne pouvait trouver. */
+        recommendations: "Recommandations reçues",
         versions: {
           title: "Versions",
           current: (n: number) => `Version actuelle : ${n}`,
@@ -1455,6 +1459,7 @@ export const copy = {
         empty: "Your profile will build here as the interview goes.",
         history: "History",
         preferences: "Preferences & constraints",
+        recommendations: "Recommendations received",
         versions: {
           title: "Versions",
           current: (n: number) => `Current version: ${n}`,
