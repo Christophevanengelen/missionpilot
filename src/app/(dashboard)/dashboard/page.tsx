@@ -14,6 +14,8 @@ import { discoveryConfigured } from "@/lib/discovery/sources";
 import { lireAbonnement } from "@/lib/digest/abonnement";
 import { mailConfigure } from "@/lib/mail/resend";
 import { t } from "@/lib/copy";
+import { env } from "@/lib/env";
+import { Partager } from "@/components/partage/partager";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 import { summariseUnderstanding } from "@/lib/profile/understood";
 import { nextQuestion } from "@/lib/profile/next-question";
@@ -255,6 +257,18 @@ export default async function HomePage() {
           </Link>
         </p>
       ) : null}
+
+      {/* LE PARTAGE PORTE SUR L'OUTIL, PAS SUR LA RECHERCHE — et sur cet écran
+          précisément, la distinction n'est pas de la prudence, c'est la seule
+          version acceptable. On cherche presque toujours un emploi en poste,
+          et sans que l'employeur actuel le sache. Un bouton qui laisserait
+          partager « ce que je regarde » depuis un tableau de bord d'offres
+          mettrait un licenciement à un clic. Voir `lib/partage/liens.ts` : le
+          module n'accepte aucune donnée de la personne, ce qui vaut mieux
+          qu'une consigne. */}
+      <div className="border-border border-t pt-4">
+        <Partager url={env.NEXT_PUBLIC_APP_URL} />
+      </div>
     </div>
   );
 }

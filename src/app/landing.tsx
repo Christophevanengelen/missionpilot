@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Partager } from "@/components/partage/partager";
+import { env } from "@/lib/env";
 
 /**
  * La page publique — la seule chose qu'on voit avant d'avoir un compte.
@@ -722,7 +724,15 @@ export function Landing() {
             Le projet est open source : vous pouvez lire le code, vérifier ce
             qu’il fait de vos données, et l’héberger vous-même.
           </p>
-          <p className={`${INK_MUTED} ${LABEL} border-t pt-6 ${INK_RULE} mt-4`}>
+          {/* Le partage vit ICI, sous la promesse et au-dessus du pied de
+              page — pas en surimpression, pas dans une barre latérale
+              collante. Quelqu'un recommande un outil APRÈS avoir compris ce
+              qu'il fait ; un bouton de partage placé avant demande de vanter
+              ce qu'on n'a pas encore lu. */}
+          <div className={`border-t pt-6 ${INK_RULE} mt-4`}>
+            <Partager url={env.NEXT_PUBLIC_APP_URL} ton="encre" />
+          </div>
+          <p className={`${INK_MUTED} ${LABEL}`}>
             Des annonces vivantes · aucune candidature envoyée en votre nom
           </p>
           {/* Les documents juridiques dans le pied, pas dans le corps : ils ne

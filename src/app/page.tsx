@@ -6,6 +6,12 @@ import { Landing } from "./landing";
 
 export const metadata: Metadata = {
   title: "MissionPilot — on vous fait monter d'une marche",
+  /* L'adresse canonique, maintenant que la page est partageable : un lien
+     recopié revient souvent avec la traînée de paramètres du réseau qui l'a
+     servi (`?utm_source=…`, `?fbclid=…`). Sans cette ligne, un moteur y voit
+     autant de pages distinctes que de variantes, et dilue entre elles le
+     crédit qui devrait revenir à une seule. */
+  alternates: { canonical: "/" },
   description:
     "Déposez votre CV. L'IA lit votre parcours comme une trajectoire et, à chaque connexion, vous montre ce que le marché a pour vous — y compris le poste d'un cran au-dessus. Aucune offre stockée, aucune candidature envoyée en votre nom.",
 };
