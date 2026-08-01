@@ -14,8 +14,6 @@ import { discoveryConfigured } from "@/lib/discovery/sources";
 import { lireAbonnement } from "@/lib/digest/abonnement";
 import { mailConfigure } from "@/lib/mail/resend";
 import { t } from "@/lib/copy";
-import { env } from "@/lib/env";
-import { Partager } from "@/components/partage/partager";
 import { MAX_COUNTRIES_PER_SEARCH, SEARCH_COUNTRIES } from "@/domain/countries";
 import { summariseUnderstanding } from "@/lib/profile/understood";
 import { nextQuestion } from "@/lib/profile/next-question";
@@ -258,17 +256,14 @@ export default async function HomePage() {
         </p>
       ) : null}
 
-      {/* LE PARTAGE PORTE SUR L'OUTIL, PAS SUR LA RECHERCHE — et sur cet écran
-          précisément, la distinction n'est pas de la prudence, c'est la seule
-          version acceptable. On cherche presque toujours un emploi en poste,
-          et sans que l'employeur actuel le sache. Un bouton qui laisserait
-          partager « ce que je regarde » depuis un tableau de bord d'offres
-          mettrait un licenciement à un clic. Voir `lib/partage/liens.ts` : le
-          module n'accepte aucune donnée de la personne, ce qui vaut mieux
-          qu'une consigne. */}
-      <div className="border-border border-t pt-4">
-        <Partager url={env.NEXT_PUBLIC_APP_URL} />
-      </div>
+      {/* PAS DE PARTAGE ICI, et c'est un retrait délibéré : il y en avait un,
+          il n'y est plus. Cet écran est celui de quelqu'un qui cherche un
+          emploi — le plus souvent en poste, et sans que son employeur le
+          sache. Même en ne partageant que l'outil, poser le geste AU MILIEU
+          des offres met un doute à un clic : « est-ce que ça publie ce que je
+          regarde ? ». La question suffit à abîmer l'écran, et sa réponse
+          rassurante ne se lit qu'après.
+          Le partage vit sur la page publique, où l'on ne cherche pas encore. */}
     </div>
   );
 }
