@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { t } from "@/lib/copy";
 import { searchMarketAction } from "@/lib/search/actions";
+import { PasPourMoi } from "./pas-pour-moi";
 import {
   AGE_WINDOWS,
   DEFAULT_FILTERS,
@@ -733,6 +734,10 @@ function ResultRow({ hit }: { hit: MarketHit }) {
           {copy.unknownFields(hit.unknowns.length)}
         </p>
       ) : null}
+      {/* EN DERNIER, et discret. C'est le seul geste de retour du produit, mais
+          l'écran existe pour montrer des opportunités — placer « pas pour moi »
+          avant le lien vers l'annonce inviterait à refuser avant de lire. */}
+      <PasPourMoi />
     </li>
   );
 }

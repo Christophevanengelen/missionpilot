@@ -24,7 +24,14 @@ function tablesDuSchema(): string[] {
   for (const fichier of readdirSync(dossier)) {
     if (!fichier.endsWith(".sql")) continue;
     const sql = readFileSync(join(dossier, fichier), "utf8");
-    for (const m of sql.matchAll(/^create table public\.(\w+)/gm)) {
+    // `if not exists` est toléré ici, et ce n'est pas de la complaisance :
+    // le 2026-08-01, `offer_dismissals` a été créée sous cette forme et le
+    // compte est passé sous le radar — la politique annonçait un chiffre de
+    // plus que ce que ce test savait voir. Un test dont l'angle mort dépend
+    // d'une variante de syntaxe ne protège rien.
+    for (const m of sql.matchAll(
+      /^create table (?:if not exists )?public\.(\w+)/gm,
+    )) {
       noms.add(m[1]);
     }
   }

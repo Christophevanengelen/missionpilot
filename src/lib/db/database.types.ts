@@ -585,6 +585,32 @@ export type Database = {
           },
         ]
       }
+      offer_dismissals: {
+        Row: {
+          count: number
+          profile_id: string
+          reason: string
+        }
+        Insert: {
+          count?: number
+          profile_id: string
+          reason: string
+        }
+        Update: {
+          count?: number
+          profile_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_dismissals_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities: {
         Row: {
           canonical_fingerprint: string
@@ -1004,6 +1030,10 @@ export type Database = {
     }
     Functions: {
       build_profile_snapshot: { Args: { p_profile_id: string }; Returns: Json }
+      ecarter_offre: {
+        Args: { p_profile_id: string; p_reason: string }
+        Returns: number
+      }
       import_opportunity: {
         Args: {
           p_canonical_fingerprint: string
