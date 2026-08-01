@@ -18,11 +18,17 @@ import { CvImport } from "../profile/cv-import";
  *
  * LE CHEMIN LINKEDIN A DEUX VISAGES, et c'est délibéré. Quand le flux OAuth est
  * branché, la personne clique et LinkedIn envoie son parcours. Sinon, elle
- * dépose son archive officielle — et l'écran la GUIDE jusqu'à elle au lieu de
- * la lâcher dans les réglages de LinkedIn. Le mot employé suit ce qui est
+ * exporte elle-même — et l'écran la GUIDE jusqu'au fichier au lieu de la
+ * lâcher dans les réglages de LinkedIn. Le mot employé suit ce qui est
  * réellement possible : « Remplir avec LinkedIn » quand le bouton existe,
- * « Mon export LinkedIn » sinon. Promettre une connexion qui n'existe pas se
+ * « Mon profil LinkedIn » sinon. Promettre une connexion qui n'existe pas se
  * paie à la première utilisation.
+ *
+ * DEPUIS LE 2026-08-01, LE SECOND VISAGE EST LE SEUL. LinkedIn a refusé
+ * l'accès aux données de parcours (« Identity vetting failed » : la page
+ * associée à l'app n'appartient pas à une entité déposée). Le flux OAuth reste
+ * en place derrière son interrupteur, mais il est éteint et personne n'attend
+ * qu'il revienne — c'est l'export manuel qui porte le produit.
  */
 
 /** L'adresse directe de la page d'export de LinkedIn. Elle vaut mieux qu'un
@@ -30,6 +36,10 @@ import { CvImport } from "../profile/cv-import";
  *  données → Obtenir une copie » et un lien, il y a tous ceux qui abandonnent. */
 const EXPORT_LINKEDIN =
   "https://www.linkedin.com/mypreferences/d/download-my-data";
+
+/** `/in/me` redirige vers le profil de la personne connectée — on n'a donc
+ *  besoin de connaître ni son identifiant public ni son nom. */
+const PROFIL_LINKEDIN = "https://www.linkedin.com/in/me/";
 
 type Choix = "cv" | "linkedin";
 
@@ -73,36 +83,87 @@ export function OnboardingStart({
             quand le bouton n'existe pas : superposer trois étapes à un bouton
             d'un clic ferait douter de ce qu'on vient de cliquer. */}
         {choix === "linkedin" && !linkedInPret ? (
-          <ol className="border-border bg-card text-muted-foreground flex flex-col gap-2 rounded-xl border p-5 text-sm">
-            <li>
-              <strong className="text-foreground font-medium">1.</strong>{" "}
-              <a
-                href={EXPORT_LINKEDIN}
-                target="_blank"
-                rel="noopener"
-                className="text-foreground underline underline-offset-2"
-              >
-                Ouvrez la page d’export de LinkedIn
-              </a>{" "}
-              et demandez une copie de vos données.
-            </li>
-            <li>
-              <strong className="text-foreground font-medium">2.</strong> Cochez
-              au minimum{" "}
-              <span className="text-foreground">
-                Profil, Postes, Compétences, Formation
-              </span>{" "}
-              et surtout{" "}
-              <span className="text-foreground">Recommandations</span> — c’est
-              la seule pièce écrite par d’autres que vous, et celle qui dit
-              l’ampleur réelle de vos missions.
-            </li>
-            <li>
-              <strong className="text-foreground font-medium">3.</strong>{" "}
-              LinkedIn vous envoie l’archive par e-mail, souvent en quelques
-              minutes. Déposez-la ci-dessous.
-            </li>
-          </ol>
+          <div className="flex flex-col gap-3">
+            {/* DEUX CHEMINS, ET LE RAPIDE D'ABORD. L'archive officielle arrive
+                « en quelques minutes » par e-mail : elle sort la personne du
+                produit au moment exact où elle venait de décider d'y entrer, et
+                rien ne garantit qu'elle revienne. Le PDF se télécharge sans
+                quitter la page. On garde l'archive dessous, parce qu'elle porte
+                les recommandations — mais on ne la met plus sur le chemin
+                critique. */}
+            <ol className="border-border bg-card text-muted-foreground flex flex-col gap-2 rounded-xl border p-5 text-sm">
+              <li className="text-foreground mb-1 flex items-baseline gap-2 font-medium">
+                <span>Le plus rapide — le PDF de votre profil</span>
+                <span className="text-muted-foreground text-xs font-normal">
+                  environ 30 secondes
+                </span>
+              </li>
+              <li>
+                <strong className="text-foreground font-medium">1.</strong>{" "}
+                <a
+                  href={PROFIL_LINKEDIN}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-foreground underline underline-offset-2"
+                >
+                  Ouvrez votre profil LinkedIn
+                </a>
+                .
+              </li>
+              <li>
+                <strong className="text-foreground font-medium">2.</strong> Sous
+                votre photo, cliquez{" "}
+                <span className="text-foreground">Plus</span>, puis{" "}
+                <span className="text-foreground">
+                  Enregistrer au format PDF
+                </span>
+                .
+              </li>
+              <li>
+                <strong className="text-foreground font-medium">3.</strong> Le
+                fichier se télécharge immédiatement. Déposez-le ci-dessous.
+              </li>
+            </ol>
+
+            <details className="border-border bg-card text-muted-foreground rounded-xl border p-5 text-sm">
+              <summary className="text-foreground cursor-pointer font-medium">
+                Le plus complet — l’archive officielle{" "}
+                <span className="text-muted-foreground text-xs font-normal">
+                  quelques minutes, par e-mail
+                </span>
+              </summary>
+              <ol className="mt-3 flex flex-col gap-2">
+                <li>
+                  <strong className="text-foreground font-medium">1.</strong>{" "}
+                  <a
+                    href={EXPORT_LINKEDIN}
+                    target="_blank"
+                    rel="noopener"
+                    className="text-foreground underline underline-offset-2"
+                  >
+                    Ouvrez la page d’export de LinkedIn
+                  </a>{" "}
+                  et demandez une copie de vos données.
+                </li>
+                <li>
+                  <strong className="text-foreground font-medium">2.</strong>{" "}
+                  Cochez au minimum{" "}
+                  <span className="text-foreground">
+                    Profil, Postes, Compétences, Formation
+                  </span>{" "}
+                  et surtout{" "}
+                  <span className="text-foreground">Recommandations</span> —
+                  c’est la seule pièce écrite par d’autres que vous, et celle
+                  qui dit l’ampleur réelle de vos missions.
+                </li>
+                <li>
+                  <strong className="text-foreground font-medium">3.</strong>{" "}
+                  LinkedIn vous envoie l’archive par e-mail, souvent en quelques
+                  minutes. Déposez-la dans le second champ ci-dessous.
+                </li>
+              </ol>
+            </details>
+          </div>
         ) : null}
 
         <CvImport only={choix} linkedInPret={linkedInPret} />
@@ -141,12 +202,16 @@ export function OnboardingStart({
           onClick={() => setChoix("cv")}
         />
         <Carte
-          marque="Le plus complet"
-          titre={linkedInPret ? "Remplir avec LinkedIn" : "Mon export LinkedIn"}
+          /* « Le plus complet » décrivait l'archive officielle, qui n'est plus
+             le chemin proposé en premier. La marque dit maintenant l'avantage
+             réel de ce chemin : il ne suppose pas qu'on sache où est son CV,
+             ni qu'il soit à jour. */
+          marque="Sans chercher son CV"
+          titre={linkedInPret ? "Remplir avec LinkedIn" : "Mon profil LinkedIn"}
           detail={
             linkedInPret
               ? "LinkedIn vous demande votre accord, puis nous envoie vos postes, formations et compétences. Vous relisez avant que quoi que ce soit soit retenu."
-              : "Votre archive officielle. Elle contient vos recommandations — ce que d’autres ont écrit sur vous, et que votre CV n’a pas."
+              : "Le PDF de votre profil, en trois clics — on vous montre où le prendre. Votre profil est souvent plus à jour que votre CV."
           }
           onClick={() => setChoix("linkedin")}
         />

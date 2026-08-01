@@ -68,7 +68,9 @@ test("import export LinkedIn : archive → narratif → compétences déclarées
 }) => {
   await signIn(page);
   await page.goto("/profile");
-  await expect(page.getByText("importez votre export LinkedIn")).toBeVisible();
+  await expect(
+    page.getByLabel("Archive d'export LinkedIn (.zip)"),
+  ).toBeVisible();
 
   await page.locator("#linkedin-file").setInputFiles({
     name: "linkedin-export.zip",
@@ -119,7 +121,9 @@ test("sans configuration LinkedIn : pas de bouton, pas de champ jeton, et l'arch
   ).toHaveCount(0);
 
   // Le chemin qui marche pour tout le monde, lui, doit toujours être là.
-  await expect(page.getByText("importez votre export LinkedIn")).toBeVisible();
+  await expect(
+    page.getByLabel("Archive d'export LinkedIn (.zip)"),
+  ).toBeVisible();
 });
 
 /**
@@ -195,5 +199,7 @@ test("retour LinkedIn : une valeur inventée n'affiche rien", async ({
   await expect(banniere(page)).toHaveCount(0);
   await expect(page.getByText(/parcours LinkedIn est arrivé/)).toHaveCount(0);
   // Et la page reste parfaitement utilisable.
-  await expect(page.getByText("importez votre export LinkedIn")).toBeVisible();
+  await expect(
+    page.getByLabel("Archive d'export LinkedIn (.zip)"),
+  ).toBeVisible();
 });

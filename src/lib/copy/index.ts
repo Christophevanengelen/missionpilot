@@ -318,9 +318,32 @@ export const copy = {
         unsureNote:
           "L'assistant n'était pas certain de sa lecture — vérifiez attentivement avant de valider.",
       },
+      /**
+       * Le PDF du profil LinkedIn — le chemin instantané.
+       *
+       * POURQUOI IL EXISTE. L'import automatique par l'API est mort :
+       * LinkedIn a refusé l'accès aux données de parcours (« Identity vetting
+       * failed », 2026-08-01) et ce refus ne dépend pas du produit. Restait
+       * l'archive officielle, qui arrive par e-mail « en quelques minutes » —
+       * autrement dit, elle sort la personne du produit et ne la ramène
+       * peut-être jamais. Le PDF, lui, se télécharge en trois clics sans
+       * quitter la page.
+       *
+       * CE N'EST PAS UN FORMAT À PART. Un PDF de profil LinkedIn est un CV :
+       * il passe par le même analyseur, avec le même consentement. Ces libellés
+       * ne changent que les MOTS, parce qu'une personne qui vient de cliquer
+       * « Mon profil LinkedIn » ne doit pas se retrouver devant un champ qui
+       * lui réclame « votre CV ».
+       */
+      linkedinPdf: {
+        title: "Le PDF de votre profil",
+        note: "Déposez le PDF que LinkedIn vient de générer. Il est lu comme un CV : le fichier n'est pas conservé, son texte est transmis à OpenAI, aux États-Unis, à seule fin d'en extraire votre parcours.",
+        fileLabel: "PDF de votre profil LinkedIn",
+        analyze: "Analyser mon profil LinkedIn",
+      },
       linkedin: {
-        title: "…ou importez votre export LinkedIn",
-        note: "Déposez ici l'archive que LinkedIn vous a envoyée par e-mail.",
+        title: "…ou l'archive complète",
+        note: "Déposez ici l'archive que LinkedIn vous a envoyée par e-mail. Elle contient vos recommandations — ce que d'autres ont écrit sur vous, et que le PDF n'a pas.",
         fileLabel: "Archive d'export LinkedIn (.zip)",
         analyze: "Analyser mon export LinkedIn",
         needFile: "Déposez votre archive d'export LinkedIn (.zip).",
@@ -1278,9 +1301,18 @@ export const copy = {
         unsureNote:
           "The assistant was not fully sure of its reading — check carefully before validating.",
       },
+      /** A LinkedIn profile PDF is a CV: same analyser, same consent. These
+       *  labels change only the WORDS, so that someone who just clicked "My
+       *  LinkedIn profile" isn't asked for "your CV". */
+      linkedinPdf: {
+        title: "Your profile PDF",
+        note: "Drop the PDF LinkedIn just generated. It is read as a CV: the file is not stored, its text is sent to OpenAI, in the United States, for the sole purpose of extracting your career.",
+        fileLabel: "Your LinkedIn profile PDF",
+        analyze: "Analyze my LinkedIn profile",
+      },
       linkedin: {
-        title: "…or import your LinkedIn export",
-        note: "Drop the archive LinkedIn emailed you.",
+        title: "…or the full archive",
+        note: "Drop the archive LinkedIn emailed you. It carries your recommendations — what others wrote about you, which the PDF doesn't have.",
         fileLabel: "LinkedIn export archive (.zip)",
         analyze: "Analyze my LinkedIn export",
         needFile: "Drop your LinkedIn export archive (.zip).",

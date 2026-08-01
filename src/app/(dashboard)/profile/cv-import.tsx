@@ -509,29 +509,63 @@ export function CvImport({
     );
   }
 
+  /**
+   * Le chemin LinkedIn dépose un PDF, exactement comme le chemin CV.
+   *
+   * CE FORMULAIRE ÉTAIT MASQUÉ SUR CE CHEMIN, et c'était le défaut : depuis que
+   * l'import automatique est mort (LinkedIn a refusé l'accès aux données de
+   * parcours), « Mon profil LinkedIn » ne proposait plus QUE l'archive .zip —
+   * celle qui arrive par e-mail « en quelques minutes ». On envoyait donc les
+   * gens attendre un courrier au lieu de leur faire télécharger un PDF en trois
+   * clics.
+   *
+   * Un PDF de profil LinkedIn EST un CV : même analyseur, même consentement,
+   * même écran de relecture. Seuls les mots changent — réclamer « votre CV » à
+   * quelqu'un qui vient de cliquer « Mon profil LinkedIn » lui ferait croire
+   * qu'il s'est trompé de bouton.
+   */
+  const viaLinkedIn = only === "linkedin";
+  const depot = viaLinkedIn
+    ? {
+        title: copy.linkedinPdf.title,
+        note: copy.linkedinPdf.note,
+        fileLabel: copy.linkedinPdf.fileLabel,
+        analyze: copy.linkedinPdf.analyze,
+      }
+    : {
+        title: copy.title,
+        note: copy.note,
+        fileLabel: copy.fileLabel,
+        analyze: copy.analyze,
+      };
+
   return (
     <div className="flex flex-col gap-3">
-      {only === "linkedin" ? null : (
-        <form
-          className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void analyze();
-          }}
-        >
-          <p className="text-sm font-medium">{copy.title}</p>
-          <p className="text-muted-foreground text-xs">{copy.note}</p>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="cv-file">{copy.fileLabel}</Label>
-            <input
-              id="cv-file"
-              ref={fileRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              disabled={busy}
-              className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
-            />
-          </div>
+      <form
+        className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void analyze();
+        }}
+      >
+        <p className="text-sm font-medium">{depot.title}</p>
+        <p className="text-muted-foreground text-xs">{depot.note}</p>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="cv-file">{depot.fileLabel}</Label>
+          <input
+            id="cv-file"
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={busy}
+            className="border-input bg-background file:bg-muted file:text-foreground w-full min-w-0 rounded-lg border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1"
+          />
+        </div>
+        {/* Le champ « collez le texte » ne suit pas sur le chemin LinkedIn :
+            on vient d'y guider quelqu'un vers un fichier précis, et lui offrir
+            au même endroit de coller autre chose ne fait qu'ajouter une
+            décision à un écran qui n'en demandait plus. */}
+        {viaLinkedIn ? null : (
           <div className="flex flex-col gap-1">
             <Label htmlFor="cv-text">{copy.pasteLabel}</Label>
             <textarea
@@ -545,38 +579,38 @@ export function CvImport({
               className="border-input bg-background w-full min-w-0 rounded-lg border p-3 text-sm"
             />
           </div>
-          {/* Le consentement de l'art. 9, juste avant le bouton : c'est le
+        )}
+        {/* Le consentement de l'art. 9, juste avant le bouton : c'est le
               moment de la décision, pas une case perdue en bas de page. */}
-          <div className="border-border flex flex-col gap-2 border-t pt-3">
-            <div className="flex items-start gap-2">
-              <input
-                id="cv-consent-art9"
-                ref={consentRef}
-                type="checkbox"
-                checked={consentArt9}
-                onChange={(e) => setConsentArt9(e.target.checked)}
-                disabled={busy}
-                className="border-input mt-1 size-4 shrink-0 rounded"
-              />
-              <Label htmlFor="cv-consent-art9" className="text-sm font-normal">
-                {copy.art9.label}
-              </Label>
-            </div>
-            <p className="text-muted-foreground pl-6 text-xs text-pretty">
-              {copy.art9.detail}
-            </p>
-            <p className="text-muted-foreground pl-6 text-xs text-pretty">
-              {copy.art9.mesure}
-            </p>
+        <div className="border-border flex flex-col gap-2 border-t pt-3">
+          <div className="flex items-start gap-2">
+            <input
+              id="cv-consent-art9"
+              ref={consentRef}
+              type="checkbox"
+              checked={consentArt9}
+              onChange={(e) => setConsentArt9(e.target.checked)}
+              disabled={busy}
+              className="border-input mt-1 size-4 shrink-0 rounded"
+            />
+            <Label htmlFor="cv-consent-art9" className="text-sm font-normal">
+              {copy.art9.label}
+            </Label>
           </div>
+          <p className="text-muted-foreground pl-6 text-xs text-pretty">
+            {copy.art9.detail}
+          </p>
+          <p className="text-muted-foreground pl-6 text-xs text-pretty">
+            {copy.art9.mesure}
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" size="sm" {...busyProps}>
-              {copy.analyze}
-            </Button>
-          </div>
-        </form>
-      )}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" size="sm" {...busyProps}>
+            {depot.analyze}
+          </Button>
+        </div>
+      </form>
 
       {only === "cv" ? null : (
         <form
