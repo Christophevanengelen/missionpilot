@@ -39,6 +39,29 @@ export const metadata: Metadata = {
    * moteurs qui ignorent la première respectent souvent la seconde.
    */
   robots: { index: true, follow: true },
+  /**
+   * La preuve de propriété du domaine pour la Search Console.
+   *
+   * CE N'EST PAS QUE DU RÉFÉRENCEMENT. Google refusait d'afficher le nom
+   * « MissionPilot » sur son propre écran de consentement — il montrait
+   * `etnshuiduinewpcrrskb.supabase.co` — et le motif était celui-ci :
+   * « Le site correspondant à l'URL de votre page d'accueil n'est pas
+   * enregistré à votre nom ». Tant que ce jeton n'est pas servi, la validation
+   * du branding échoue, et la première chose que voit quelqu'un qui clique
+   * « Continuer avec Google » est un identifiant de base de données.
+   *
+   * LA BALISE PLUTÔT QUE LE FICHIER, et c'est un choix, pas une préférence :
+   * Google propose aussi de déposer un `.html` à la racine, mais le filtre de
+   * `proxy.ts` n'exclut pas cette extension — le fichier serait renvoyé en 307
+   * vers `/login`, exactement comme `robots.txt` l'était. La page d'accueil,
+   * elle, est déjà publique.
+   *
+   * Ce jeton n'est pas un secret : Google le publie dans le HTML de la page.
+   * Ne pas le retirer après validation — la propriété serait perdue.
+   */
+  verification: {
+    google: "sXLETICj8Gfezxsw5PtpFjQj0tlkzEaRETrYPZTCi4M",
+  },
   openGraph: {
     type: "website",
     locale: "fr_BE",

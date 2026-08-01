@@ -42,7 +42,14 @@ export default async function AdminPage() {
   const maxSemaine = Math.max(1, ...semaines.map((s) => s.compte));
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 py-4">
+    /* Le repère existe pour UNE assertion : vérifier qu'aucune adresse ne
+       s'affiche ici. Sans lui, le test ne peut viser que `body`, qui contient
+       l'en-tête de l'application — et l'en-tête affiche l'adresse de la
+       personne connectée, ce qui ferait échouer une garantie pourtant tenue. */
+    <div
+      data-testid="pilotage"
+      className="mx-auto flex w-full max-w-3xl flex-col gap-10 py-4"
+    >
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Pilotage</h1>
         <p className="text-muted-foreground text-sm text-pretty">

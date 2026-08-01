@@ -61,7 +61,7 @@ test("premier login : dépôt du CV → l'écran RESTITUE ce qu'il a compris, il
     page.getByRole("heading", { name: "Par quoi commence-t-on ?" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Mon export LinkedIn" }),
+    page.getByRole("button", { name: "Mon profil LinkedIn" }),
   ).toBeVisible();
 
   const axe = await new AxeBuilder({ page }).analyze();

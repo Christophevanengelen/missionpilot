@@ -102,6 +102,13 @@ jobs:
             echo "AI_DEFAULT_MODEL=mock-v1"
             echo "DEV_USER_EMAIL=dev@missionpilot.local"
             echo "DEV_USER_PASSWORD=ci-$(uuidgen)"
+            # Sans cette ligne, `verifyAdmin()` rend un 404 à l'utilisateur de
+            # développement et les tests du pilotage échouent — non pas parce
+            # que la garde est cassée, mais parce qu'elle marche. La liste doit
+            # donc contenir CETTE adresse, et elle seule : le test qui vérifie
+            # qu'un anonyme est refoulé n'en dépend pas, et aucune adresse
+            # réelle n'a à traîner dans un fichier de CI.
+            echo "ADMIN_EMAILS=dev@missionpilot.local"
           } >> "$GITHUB_ENV"
 
       - name: Provision the synthetic development user
