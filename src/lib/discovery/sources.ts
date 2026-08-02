@@ -5,6 +5,7 @@ import { adzunaConfigured, searchAdzuna } from "./adzuna";
 import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
 import { ashbyConfigured, searchAshby } from "./ashby";
 import { greenhouseConfigured, searchGreenhouse } from "./greenhouse";
+import { leverConfigured, searchLever } from "./lever";
 import { himalayasConfigured, searchHimalayas } from "./himalayas";
 import { jobicyConfigured, searchJobicy } from "./jobicy";
 import { recruiteeConfigured, searchRecruitee } from "./recruitee";
@@ -109,6 +110,13 @@ export function configuredSources(
     sources.push({
       name: "Ashby",
       search: () => searchAshby(),
+      ignoresKeywords: true,
+    });
+  }
+  if (leverConfigured()) {
+    sources.push({
+      name: "Lever",
+      search: () => searchLever(),
       ignoresKeywords: true,
     });
   }
