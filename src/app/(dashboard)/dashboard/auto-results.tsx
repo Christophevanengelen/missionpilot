@@ -10,6 +10,8 @@ import {
   type ProfileSearchPlan,
 } from "@/lib/search/plan-from-profile";
 import { lirePlanPrecalcule } from "@/lib/search/plan-store";
+import { signatureEcartements } from "@/lib/search/correction";
+import { estMotif, type Comptes } from "@/lib/ecartement/motifs";
 import { demanderRecalculDuPlan } from "@/lib/search/plan-demande";
 import { verifySession } from "@/lib/auth/dal";
 import { TRIAGE_BATCH, aiTriageOffers } from "@/lib/search/ai-triage";
@@ -199,7 +201,25 @@ async function preparer(countries: string[]): Promise<Preparation> {
      * rangé en base ; à défaut, repli déterministe immédiat et calcul demandé
      * en fond pour la visite suivante.
      */
-    let plan = await lirePlanPrecalcule(client, profile.id, profileDossier);
+    // Les motifs d'écartement entrent dans l'empreinte du plan : un plan
+    // calculé AVANT le dernier « pas pour moi » ne correspond plus, et doit
+    // être traité comme périmé — sinon la personne clique et rien ne change.
+    // Lu avec le client de session : la RLS borne à ses propres compteurs.
+    const { data: ecartes } = await client
+      .from("offer_dismissals")
+      .select("reason, count")
+      .eq("profile_id", profile.id);
+    const comptes: Comptes = {};
+    for (const e of ecartes ?? []) {
+      if (estMotif(e.reason)) comptes[e.reason] = e.count;
+    }
+
+    let plan = await lirePlanPrecalcule(
+      client,
+      profile.id,
+      profileDossier,
+      signatureEcartements(comptes),
+    );
     if (!plan) {
       plan = planDeRepli(preferences.targetRoleFamilies, living.claims);
       // Demandé, jamais attendu.

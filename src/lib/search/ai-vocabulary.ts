@@ -34,7 +34,10 @@ import { createLogger } from "@/lib/observability/logger";
  *   searches exactly as before. No error, no cost, no silent degradation.
  */
 
-export const VOCABULARY_PROMPT_VERSION = "market-vocabulary-1";
+/* Passée à `-2` avec l'ajout de l'addendum d'écartement : sans ce changement
+   de version, tous les plans déjà calculés resteraient sur l'ancien prompt
+   pour toujours — le dossier n'ayant pas bougé, rien ne les invaliderait. */
+export const VOCABULARY_PROMPT_VERSION = "market-vocabulary-2";
 const MAX_DOSSIER_CHARS = 8_000;
 /** Enough to cover how a market words one profile, bounded so a run stays
  *  cheap: every extra term is one more query to every source. */
@@ -78,6 +81,27 @@ const STEP_UP_ADDENDUM = [
   "une marche.",
 ].join("\n");
 
+/**
+ * Ce qu'on ajoute quand la personne a dit trois fois « pas le bon métier ».
+ *
+ * ON DONNE LES MOTS QUI ONT ÉCHOUÉ, PAS UN JUGEMENT SUR LA PERSONNE. La
+ * consigne parle d'intitulés d'annonces, jamais du candidat : « ces libellés
+ * n'ont pas convenu » est une observation sur des offres. « Cette personne
+ * n'est pas un X » serait une affirmation sur elle, et le produit n'en fait
+ * aucune.
+ *
+ * ÉVITER N'EST PAS INTERDIRE : le modèle est invité à chercher d'AUTRES
+ * façons de nommer le même parcours, pas à bannir un mot. Un intitulé juste
+ * qui reviendrait par une autre voie reste légitime — c'est la formulation
+ * qu'on cherche à élargir, pas le métier qu'on cherche à exclure.
+ */
+const ECARTEMENT_ADDENDUM = [
+  "Les intitulés suivants ont déjà été cherchés pour ce parcours et la",
+  "personne a indiqué qu'ils ne correspondaient PAS à son métier.",
+  "Propose d'autres formulations, dans d'autres familles de rôles si besoin.",
+  "Ne te contente pas de variantes de ces mêmes mots.",
+].join(" ");
+
 const TASK_INSTRUCTION = [
   "Tu reçois le dossier professionnel d'une personne (CV, export LinkedIn).",
   "Ta tâche : lister les INTITULÉS DE POSTE tels que les plateformes d'emploi",
@@ -112,6 +136,12 @@ export async function aiMarketVocabulary(
    * question.
    */
   targetLevel?: string,
+  /**
+   * Les intitulés déjà cherchés que la personne a écartés comme « pas le bon
+   * métier ». Vide dans le cas normal — voir `search/correction.ts` pour le
+   * seuil qui décide de les transmettre.
+   */
+  intitulesEnEchec: readonly string[] = [],
 ): Promise<MarketVocabulary | null> {
   if (!aiVocabularyConfigured()) return null;
   const trimmed = dossier.trim();
@@ -124,15 +154,22 @@ export async function aiMarketVocabulary(
       promptVersion: VOCABULARY_PROMPT_VERSION,
       // Server-authored instruction on the TRUSTED side; the dossier travels
       // as untrusted data and can never redefine the task.
-      taskInstruction:
-        targetLevel === undefined
-          ? TASK_INSTRUCTION
-          : TASK_INSTRUCTION + "\n\n" + STEP_UP_ADDENDUM,
+      taskInstruction: [
+        TASK_INSTRUCTION,
+        ...(targetLevel === undefined ? [] : [STEP_UP_ADDENDUM]),
+        ...(intitulesEnEchec.length === 0 ? [] : [ECARTEMENT_ADDENDUM]),
+      ].join("\n\n"),
       input: {
         dossier: trimmed.slice(0, MAX_DOSSIER_CHARS),
         ...(targetLevel === undefined
           ? {}
           : { niveauVise: targetLevel.slice(0, 80) }),
+        // Côté DONNÉE, pas côté consigne : ces intitulés viennent d'un calcul
+        // sur des clics, donc de l'utilisateur. Ils ne doivent jamais pouvoir
+        // redéfinir la tâche.
+        ...(intitulesEnEchec.length === 0
+          ? {}
+          : { intitulesEcartes: intitulesEnEchec.map((t) => t.slice(0, 80)) }),
       },
       dataSchema: vocabularySchema,
     });

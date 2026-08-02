@@ -8,6 +8,11 @@ import { loadAnswers } from "@/lib/profile/clarifications";
 import { loadLivingProfile, loadPreferences } from "@/lib/profile/logic";
 import { calculerPlan } from "@/lib/search/plan-from-profile";
 import {
+  correctionDepuisEcartements,
+  signatureEcartements,
+} from "@/lib/search/correction";
+import { estMotif, type Comptes } from "@/lib/ecartement/motifs";
+import {
   ecrirePlanPrecalcule,
   empreinteDossier,
   lirePlanPrecalcule,
@@ -88,15 +93,44 @@ export async function recalculerPlan(event: PlanEvent): Promise<PlanOutcome> {
 
   if (dossier.trim() === "") return { status: "empty-dossier" };
 
-  const dejaLa = await lirePlanPrecalcule(admin, profil.id, dossier);
+  // Les motifs d'écartement : ils ne sont pas dans le dossier, et ils changent
+  // pourtant le plan. Ils entrent donc dans l'empreinte (le « sel ») ET dans
+  // le calcul.
+  const { data: ecartes } = await admin
+    .from("offer_dismissals")
+    .select("reason, count")
+    .eq("profile_id", profil.id);
+  const comptes: Comptes = {};
+  for (const e of ecartes ?? []) {
+    if (estMotif(e.reason)) comptes[e.reason] = e.count;
+  }
+  const sel = signatureEcartements(comptes);
+
+  const dejaLa = await lirePlanPrecalcule(admin, profil.id, dossier, sel);
   if (dejaLa) return { status: "already-fresh" };
+
+  // LES INTITULÉS QUI ONT ÉCHOUÉ VIENNENT DU PLAN PRÉCÉDENT, pas d'un journal
+  // d'offres : `searchedTitles` dit ce qu'on a réellement cherché. C'est ce
+  // qui permet de dire au modèle « ces mots-là n'ont pas marché » sans avoir
+  // conservé la moindre annonce.
+  const { data: ancien } = await admin
+    .from("profile_search_plans")
+    .select("plan")
+    .eq("profile_id", profil.id)
+    .maybeSingle();
+  const titresPrecedents = Array.isArray(
+    (ancien?.plan as { searchedTitles?: unknown } | null)?.searchedTitles,
+  )
+    ? ((ancien?.plan as { searchedTitles: string[] }).searchedTitles ?? [])
+    : [];
 
   const plan = await calculerPlan(
     dossier,
     preferences.targetRoleFamilies,
     living.claims,
+    correctionDepuisEcartements(comptes, titresPrecedents),
   );
-  await ecrirePlanPrecalcule(admin, profil.id, dossier, plan);
+  await ecrirePlanPrecalcule(admin, profil.id, dossier, plan, sel);
 
   log.info("plan recalculé", {
     profileId: profil.id,
