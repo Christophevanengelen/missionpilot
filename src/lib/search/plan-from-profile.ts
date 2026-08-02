@@ -7,6 +7,7 @@ import { createTtlCache } from "@/lib/discovery/cache";
  *  la même que celle attendue par `buildSearchPlans`. */
 type ProfileClaim = { kind: string; state: string; value: unknown };
 import { aiMarketVocabulary } from "./ai-vocabulary";
+import { AUCUNE_CORRECTION, type Correction } from "./correction";
 import {
   aiReadTrajectory,
   shouldReachHigher,
@@ -217,13 +218,23 @@ export async function calculerPlan(
   dossier: string,
   targetRoleFamilies: readonly string[],
   claims: readonly ProfileClaim[] = [],
+  /**
+   * Ce que les « pas pour moi » de la personne corrigent.
+   *
+   * Par défaut : rien. La correction est une SURCOUCHE sur la lecture de
+   * trajectoire, jamais un remplacement — quelqu'un qui n'a jamais écarté
+   * d'offre obtient exactement le plan d'avant. Voir `search/correction.ts`
+   * pour la répartition entre ce qui est décidé par arithmétique et ce qui
+   * est confié au modèle.
+   */
+  correction: Correction = AUCUNE_CORRECTION,
 ): Promise<ProfileSearchPlan> {
   const fallback = planDeRepli(targetRoleFamilies, claims);
   if (dossier.trim() === "") return fallback;
 
   const [trajectory, vocabulary] = await Promise.all([
     aiReadTrajectory(dossier),
-    aiMarketVocabulary(dossier),
+    aiMarketVocabulary(dossier, undefined, correction.intitulesEnEchec),
   ]);
 
   const levelTitles = vocabulary?.titles ?? [];
@@ -231,8 +242,33 @@ export async function calculerPlan(
   // earned. An unanswered question is not a green light: filling someone's
   // results with roles they cannot yet defend is the same disservice as hiding
   // roles they could.
-  const stepUp = shouldReachHigher(trajectory)
-    ? await aiMarketVocabulary(dossier, trajectory.nextLevel)
+  // LA CORRECTION PEUT OUVRIR LA MARCHE, ET ELLE PEUT LA FERMER.
+  //
+  // Ouvrir : quelqu'un qui a dit trois fois « trop junior » a donné une preuve
+  // que la lecture de trajectoire n'avait pas — il refuse ce qu'on lui montre
+  // parce que c'est en dessous de lui. C'est un signal plus fort qu'une
+  // hésitation de modèle, parce qu'il vient de la personne concernée.
+  //
+  // Fermer : « trop senior » trois fois veut dire que la marche d'après ne
+  // tient pas encore. Continuer à la proposer, c'est remplir un écran de
+  // postes qu'on ne peut pas défendre — le même mauvais service, en miroir.
+  //
+  // ET ELLE NE PEUT RIEN OUVRIR SUR DU VIDE. `viserPlusHaut` ne suffit pas :
+  // il faut que la lecture ait su NOMMER le niveau au-dessus. Sans nom, il n'y
+  // a rien à demander au modèle — « le cran d'après » n'est pas une question,
+  // c'est un vœu. Le typage l'a signalé avant qu'on ne s'en aperçoive à
+  // l'usage, et la réponse est de ne pas inventer ce niveau.
+  const niveauSuivant = trajectory?.nextLevel ?? null;
+  const viserLaMarche =
+    !correction.viserPlusBas &&
+    niveauSuivant !== null &&
+    (shouldReachHigher(trajectory) || correction.viserPlusHaut);
+  const stepUp = viserLaMarche
+    ? await aiMarketVocabulary(
+        dossier,
+        niveauSuivant,
+        correction.intitulesEnEchec,
+      )
     : null;
   const stepUpTitles = stepUp?.titles ?? [];
 

@@ -113,7 +113,8 @@ describe("on respecte ce que l'employeur a retiré", () => {
   });
 
   it("garde une annonce quand le champ est absent — l'absence n'est pas un retrait", async () => {
-    const { isListed: _, ...sansChamp } = JOB;
+    const sansChamp: Record<string, unknown> = { ...JOB };
+    delete sansChamp.isListed;
     fetchMock.mockResolvedValue(ok([sansChamp]));
     expect(await mod.searchAshby()).toHaveLength(1);
   });

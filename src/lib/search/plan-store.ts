@@ -37,9 +37,16 @@ const log = createLogger({ module: "plan-store" });
  * pas ce qu'on a compris de quelqu'un, et le faire recalculer trois appels de
  * modèle serait absurde.
  */
-export function empreinteDossier(dossier: string): string {
+export function empreinteDossier(dossier: string, sel = ""): string {
   const normalise = dossier.replace(/[ \t]+$/gm, "").trim();
-  return createHash("sha256").update(normalise, "utf8").digest("hex");
+  // LE SEL PORTE CE QUI N'EST PAS DANS LE DOSSIER mais change le plan : à ce
+  // jour, les motifs d'écartement. Sans lui, cliquer « pas pour moi » ne
+  // recalculerait jamais rien — le dossier n'ayant pas bougé, l'empreinte non
+  // plus — et la personne verrait éternellement le plan d'avant son retour.
+  // Vide par défaut : une empreinte sans écartement est exactement celle
+  // d'avant cette ligne, donc aucun plan existant n'est invalidé pour rien.
+  const grain = sel.trim() === "" ? normalise : `${normalise}\n${sel.trim()}`;
+  return createHash("sha256").update(grain, "utf8").digest("hex");
 }
 
 /**
@@ -62,6 +69,7 @@ export async function lirePlanPrecalcule(
   client: Client,
   profileId: string,
   dossier: string,
+  sel = "",
 ): Promise<ProfileSearchPlan | null> {
   const { data, error } = await client
     .from("profile_search_plans")
@@ -73,7 +81,7 @@ export async function lirePlanPrecalcule(
   // Les deux conditions comptent autant l'une que l'autre : le dossier dit
   // « ce plan parle-t-il encore de cette personne », les versions disent
   // « a-t-il été produit par le raisonnement qu'on emploie aujourd'hui ».
-  if (data.dossier_hash !== empreinteDossier(dossier)) return null;
+  if (data.dossier_hash !== empreinteDossier(dossier, sel)) return null;
   if (data.prompt_versions !== versionsPrompt()) return null;
   // Borné ICI, à la lecture, et non au calcul : la ligne écrite le 2026-07-29 à
   // 17h37 portait douze recherches et a fait taire le tableau de bord jusqu'à
@@ -93,11 +101,12 @@ export async function ecrirePlanPrecalcule(
   profileId: string,
   dossier: string,
   plan: ProfileSearchPlan,
+  sel = "",
 ): Promise<void> {
   const { error } = await admin.from("profile_search_plans").upsert(
     {
       profile_id: profileId,
-      dossier_hash: empreinteDossier(dossier),
+      dossier_hash: empreinteDossier(dossier, sel),
       prompt_versions: versionsPrompt(),
       plan: plan as unknown as Database["public"]["Tables"]["profile_search_plans"]["Insert"]["plan"],
       computed_at: new Date().toISOString(),
