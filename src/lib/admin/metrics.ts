@@ -186,6 +186,66 @@ export function acquisitionParSemaine(
     .map(([semaine, compte]) => ({ semaine, compte }));
 }
 
+/**
+ * LA QUALITÉ — la seule mesure qui dise si le produit TIENT SA PROMESSE.
+ *
+ * Tout le reste de ce module mesure l'entonnoir : combien s'inscrivent,
+ * combien reviennent. C'est utile et c'est insuffisant. Quelqu'un à qui le
+ * moteur sert douze offres à côté de la plaque part, et l'entonnoir affiche
+ * « jamais revenu » — un chiffre qui signale qu'un problème existe sans jamais
+ * dire lequel. Le motif d'écartement, lui, le dit.
+ *
+ * ET IL EST DÉCLARÉ, PAS OBSERVÉ. C'est la personne qui a cliqué « pas le bon
+ * métier ». Aucun traceur n'a regardé ce qu'elle faisait. C'est ce qui permet
+ * d'avoir ce signal sans changer la nature du produit.
+ */
+export type Qualite = {
+  /** Nombre total d'offres écartées, tous motifs et toutes personnes. */
+  total: number;
+  /** Le décompte par motif, du plus cité au moins cité. */
+  parMotif: { motif: string; compte: number }[];
+  /** Le réglage le plus souvent mis en cause, `null` tant que rien ne
+   *  ressort — voir `reglageEnCause` côté produit, même prudence ici. */
+  reglageEnCause: string | null;
+};
+
+/** Quel réglage du moteur chaque motif accuse. Dupliqué du produit à dessein :
+ *  le pilotage ne doit pas dépendre d'un module `server-only`. */
+const REGLAGE: Record<string, string> = {
+  wrong_role: "le métier cherché",
+  too_junior: "le niveau visé",
+  too_senior: "le niveau visé",
+  wrong_place: "la zone géographique",
+  wrong_contract: "le type de contrat",
+};
+
+export function qualite(
+  ecartements: readonly { motif: string; compte: number }[],
+): Qualite {
+  const parMotif = [...ecartements]
+    .filter((e) => e.compte > 0)
+    .sort((a, b) => b.compte - a.compte);
+  const total = parMotif.reduce((n, e) => n + e.compte, 0);
+
+  // Regroupé par RÉGLAGE, pas par libellé : « trop junior » et « trop senior »
+  // sont deux erreurs opposées qui accusent la même chose — le niveau visé.
+  // Les compter séparément laisserait le vrai coupable invisible.
+  const parReglage = new Map<string, number>();
+  for (const e of parMotif) {
+    const r = REGLAGE[e.motif];
+    if (!r) continue;
+    parReglage.set(r, (parReglage.get(r) ?? 0) + e.compte);
+  }
+  const classe = [...parReglage].sort((a, b) => b[1] - a[1]);
+  // Une égalité ne désigne rien, et désigner quand même serait inventer.
+  const reglageEnCause =
+    classe.length === 0 || (classe.length > 1 && classe[0][1] === classe[1][1])
+      ? null
+      : classe[0][0];
+
+  return { total, parMotif, reglageEnCause };
+}
+
 export type Recommandation = {
   abonnesDigest: number;
   /** Aucune mécanique de parrainage n'existe. On le DIT, plutôt que d'afficher

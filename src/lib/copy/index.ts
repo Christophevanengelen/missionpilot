@@ -240,6 +240,37 @@ export const copy = {
       payConverted: (amount: string, annual: string) =>
         `${amount} · ≈ ${annual}/an (base 218 jours facturables)`,
       openOnSource: "Voir l'annonce d'origine",
+      /**
+       * « Pas pour moi ».
+       *
+       * CHAQUE MOTIF DÉSIGNE UN RÉGLAGE, pas un ressenti. « Pas intéressant »
+       * n'est volontairement pas proposé : c'est un jugement, il ne corrige
+       * rien. Les cinq ci-dessous disent OÙ le moteur se trompe, ce qui est la
+       * seule chose qu'on puisse réparer.
+       *
+       * La confirmation nomme la conséquence plutôt que de remercier. « Merci
+       * pour votre retour » est la formule qui apprend aux gens que leur clic
+       * n'a servi à rien.
+       */
+      pasPourMoi: {
+        ouvrir: "Pas pour moi",
+        question: "Qu'est-ce qui ne va pas ?",
+        motifs: {
+          wrong_role: "Pas le bon métier",
+          too_junior: "Trop junior",
+          too_senior: "Trop senior",
+          wrong_place: "Mauvais endroit",
+          wrong_contract: "Mauvais type de contrat",
+        } as const,
+        confirme: {
+          wrong_role: "Écartée — c'est le métier cherché qui est à revoir.",
+          too_junior: "Écartée — visée trop basse.",
+          too_senior: "Écartée — visée trop haute.",
+          wrong_place: "Écartée — c'est la zone qui est à revoir.",
+          wrong_contract:
+            "Écartée — c'est le type de contrat qui est à revoir.",
+        } as const,
+      },
       unknownFields: (n: number) =>
         `${n} ${n > 1 ? "champs non précisés" : "champ non précisé"} par la source.`,
       partial: (
@@ -1231,6 +1262,29 @@ export const copy = {
       payConverted: (amount: string, annual: string) =>
         `${amount} · ≈ ${annual}/yr (218 billable days)`,
       openOnSource: "View the original posting",
+      /** Every reason names a SETTING, never a feeling. "Not interesting"
+       *  is deliberately absent: it is a judgement, and it corrects nothing.
+       *  The confirmation names the consequence rather than thanking — "thanks
+       *  for your feedback" is the phrase that teaches people their click did
+       *  nothing. */
+      pasPourMoi: {
+        ouvrir: "Not for me",
+        question: "What's wrong with it?",
+        motifs: {
+          wrong_role: "Wrong role",
+          too_junior: "Too junior",
+          too_senior: "Too senior",
+          wrong_place: "Wrong place",
+          wrong_contract: "Wrong contract type",
+        } as const,
+        confirme: {
+          wrong_role: "Dismissed — the role we search for needs revising.",
+          too_junior: "Dismissed — aimed too low.",
+          too_senior: "Dismissed — aimed too high.",
+          wrong_place: "Dismissed — the area needs revising.",
+          wrong_contract: "Dismissed — the contract type needs revising.",
+        } as const,
+      },
       unknownFields: (n: number) =>
         `${n} field${n > 1 ? "s" : ""} not stated by the source.`,
       partial: (

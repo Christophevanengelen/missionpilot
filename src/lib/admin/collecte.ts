@@ -30,6 +30,10 @@ export type Instantane = {
   pris: number;
   comptes: CompteAnonyme[];
   profils: ProfilAnonyme[];
+  /** Les motifs d'écartement, SOMMÉS sur tout le monde. Jamais par personne :
+   *  « qui a écarté quoi » ne regarde pas le pilotage, et de toute façon la
+   *  table ne contient aucune offre à rattacher. */
+  ecartements: { motif: string; compte: number }[];
   /** `false` quand une lecture a échoué : l'écran doit alors dire qu'il ne
    *  sait pas, jamais afficher un zéro qui se lirait comme une mesure. */
   complet: boolean;
@@ -41,6 +45,7 @@ export async function lireInstantane(): Promise<Instantane> {
     pris: Date.now(),
     comptes: [],
     profils: [],
+    ecartements: [],
     complet: false,
   };
 
@@ -90,6 +95,18 @@ export async function lireInstantane(): Promise<Instantane> {
       .select("profile_id")
       .eq("opted_in", true);
 
+    // Les motifs d'écartement, additionnés en mémoire. Une vue SQL serait plus
+    // élégante ; elle serait aussi une chose de plus à migrer pour agréger
+    // trois cents lignes au maximum. Le commentaire est le signal du jour où
+    // ce ne sera plus vrai.
+    const { data: ecartes } = await admin
+      .from("offer_dismissals")
+      .select("reason, count");
+    const parMotif = new Map<string, number>();
+    for (const e of ecartes ?? []) {
+      parMotif.set(e.reason, (parMotif.get(e.reason) ?? 0) + e.count);
+    }
+
     const parProfil = new Map<string, number>();
     for (const a of affirmations ?? []) {
       parProfil.set(a.profile_id, (parProfil.get(a.profile_id) ?? 0) + 1);
@@ -99,6 +116,7 @@ export async function lireInstantane(): Promise<Instantane> {
 
     return {
       pris: Date.now(),
+      ecartements: [...parMotif].map(([motif, compte]) => ({ motif, compte })),
       comptes,
       profils: profils.map((p) => ({
         creeLe: p.created_at,
