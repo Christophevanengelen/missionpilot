@@ -64,6 +64,16 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    // Greenhouse — l'API de tableau d'offres que Greenhouse publie POUR que
+    // les employeurs affichent leurs postes ailleurs que sur leur site : sans
+    // clé, parce qu'elle est faite pour être lue par des tiers. Opt-in pour la
+    // même raison que Recruitee : c'est NOUS qui choisissons quels employeurs
+    // sont interrogés, depuis une liste versionnée dans le dépôt. Un
+    // déploiement doit prendre cette décision exprès.
+    GREENHOUSE_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     // Remote OK — public, key-less feed. Opt-in like the others, and here for
     // one specific obligation: their terms make a FOLLOWED link back and a
     // named mention a condition of continued access.

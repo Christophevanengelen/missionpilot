@@ -3,6 +3,7 @@ import "server-only";
 import type { DiscoveredAd } from "./adzuna";
 import { adzunaConfigured, searchAdzuna } from "./adzuna";
 import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
+import { greenhouseConfigured, searchGreenhouse } from "./greenhouse";
 import { himalayasConfigured, searchHimalayas } from "./himalayas";
 import { jobicyConfigured, searchJobicy } from "./jobicy";
 import { recruiteeConfigured, searchRecruitee } from "./recruitee";
@@ -86,6 +87,17 @@ export function configuredSources(
     sources.push({
       name: "Recruitee",
       search: () => searchRecruitee(),
+      ignoresKeywords: true,
+    });
+  }
+  if (greenhouseConfigured()) {
+    // `ignoresKeywords` pour la même raison que Recruitee, en pire : l'API de
+    // tableau Greenhouse n'expose AUCUN filtre — ni recherche, ni lieu, ni
+    // date. Interroger une fois par intitulé de métier ferait N appels
+    // identiques sur vingt-quatre tableaux, pour le même résultat.
+    sources.push({
+      name: "Greenhouse",
+      search: () => searchGreenhouse(),
       ignoresKeywords: true,
     });
   }
