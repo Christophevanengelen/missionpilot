@@ -44,6 +44,12 @@ export const ASHBY_BOARDS: readonly AshbyBoard[] = [
   { jeton: "ledger", nom: "Ledger" }, // 9 · 8 — dont des contrats
   { jeton: "sorare", nom: "Sorare" }, // 4 · 4
   { jeton: "posthog", nom: "PostHog" }, // 9 · 2
+  // ── Deuxième passe de curation, 2026-08-02 ──────────────────────────────
+  { jeton: "n8n", nom: "n8n" }, // 37 · 27
+  { jeton: "langchain", nom: "LangChain" }, // 93 · 19
+  { jeton: "modal", nom: "Modal" }, // 31 · 11
+  { jeton: "docker", nom: "Docker" }, // 58 · 10 — dont des contrats
+  { jeton: "weaviate", nom: "Weaviate" }, // 2 · 2
 ];
 
 /** Les tableaux réellement interrogés : la liste curée moins les retraits. */

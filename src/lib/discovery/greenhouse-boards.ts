@@ -71,6 +71,20 @@ export const GREENHOUSE_BOARDS: readonly string[] = [
   "dataiku", // 20 · 6
   "airtable", // 40 · 4
   "showpad", // 30 · 3
+  // ── Deuxième passe de curation, 2026-08-02 ──────────────────────────────
+  // Cherchée délibérément du côté des sociétés EUROPÉENNES : la première passe
+  // avait ramené surtout des grandes sociétés américaines, dont la part
+  // européenne des offres est faible. Ici le rapport s'inverse — `sumup` rend
+  // 285 offres européennes sur 372, `bitpanda` 43 sur 44.
+  "sumup", // 372 · 285
+  "getyourguide", // 56 · 47
+  "bitpanda", // 44 · 43
+  "raisin", // 31 · 28
+  "solarisbank", // 34 · 28
+  "contentful", // 27 · 16
+  "moonfare", // 10 · 10
+  "typeform", // 12 · 10
+  "konux", // 4 · 4
 ];
 
 /** Les tableaux réellement interrogés : la liste curée moins les retraits. */
