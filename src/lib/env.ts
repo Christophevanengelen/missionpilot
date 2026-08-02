@@ -74,6 +74,14 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    // Ashby — même régime que Greenhouse : l'API de tableau d'offres publiée
+    // pour être lue par des tiers. Elle mérite son propre interrupteur parce
+    // qu'elle interroge sa PROPRE liste d'employeurs, et qu'allumer une source
+    // c'est décider qui l'on interroge.
+    ASHBY_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     // Remote OK — public, key-less feed. Opt-in like the others, and here for
     // one specific obligation: their terms make a FOLLOWED link back and a
     // named mention a condition of continued access.

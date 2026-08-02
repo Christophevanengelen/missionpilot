@@ -3,6 +3,7 @@ import "server-only";
 import type { DiscoveredAd } from "./adzuna";
 import { adzunaConfigured, searchAdzuna } from "./adzuna";
 import { franceTravailConfigured, searchFranceTravail } from "./france-travail";
+import { ashbyConfigured, searchAshby } from "./ashby";
 import { greenhouseConfigured, searchGreenhouse } from "./greenhouse";
 import { himalayasConfigured, searchHimalayas } from "./himalayas";
 import { jobicyConfigured, searchJobicy } from "./jobicy";
@@ -98,6 +99,16 @@ export function configuredSources(
     sources.push({
       name: "Greenhouse",
       search: () => searchGreenhouse(),
+      ignoresKeywords: true,
+    });
+  }
+  if (ashbyConfigured()) {
+    // `ignoresKeywords` pour la même raison que Greenhouse : l'API n'expose
+    // aucun filtre, et interroger une fois par intitulé ferait N appels
+    // identiques sur seize tableaux.
+    sources.push({
+      name: "Ashby",
+      search: () => searchAshby(),
       ignoresKeywords: true,
     });
   }
