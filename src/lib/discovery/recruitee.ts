@@ -118,6 +118,17 @@ const resultCache = createTtlCache<DiscoveredAd[]>(CACHE_TTL_MS);
  *  would hide a dying subdomain behind "nothing matched you". */
 const failureCache = createTtlCache<true>(FAILURE_TTL_MS);
 
+/**
+ * UNE LIGNE PAR CODE INCONNU, PAS PAR OFFRE.
+ *
+ * Mesuré en production le 2026-08-02 : `bauhausnederlandcv` a écrit vingt-cinq
+ * fois « contract » et `60secondstonapoli` une trentaine de fois
+ * « parttime_permanent », sur un seul rendu. Un journal qui se répète ne se lit
+ * plus, et sur Vercel il se paie. Ce que la ligne doit apprendre tient dans une
+ * occurrence.
+ */
+const dejaSignale = new Set<string>();
+
 export function recruiteeConfigured(): boolean {
   return env.RECRUITEE_ENABLED === true && activeTenants().length > 0;
 }
@@ -154,11 +165,16 @@ async function fetchTenant(tenant: string): Promise<DiscoveredAd[]> {
       const { ad, unknownEngagement } = toAd(offer);
       if (unknownEngagement !== null) {
         // Logged verbatim so a new contract type is noticed and mapped
-        // deliberately, instead of being guessed at here.
-        log.info("unmapped recruitee employment type", {
-          tenant,
-          code: unknownEngagement,
-        });
+        // deliberately, instead of being guessed at here — but ONCE per code
+        // and tenant, not once per offer.
+        const cle = `${tenant}:${unknownEngagement}`;
+        if (!dejaSignale.has(cle)) {
+          dejaSignale.add(cle);
+          log.info("unmapped recruitee employment type", {
+            tenant,
+            code: unknownEngagement,
+          });
+        }
       }
       // An ad with no title and no link cannot be shown honestly.
       if (ad.title === null && ad.sourceUrl === null) continue;

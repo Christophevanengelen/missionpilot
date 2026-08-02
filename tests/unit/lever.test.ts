@@ -5,6 +5,18 @@ const { envState } = vi.hoisted(() => ({
   envState: { LEVER_ENABLED: true, LOG_LEVEL: "error", APP_ENV: "local" },
 }));
 vi.mock("@/lib/env", () => ({ env: envState }));
+// Le journal est espionné pour de vrai : la déduplication des lignes est le
+// sujet du correctif du 2026-08-02, et un test qui ne regarderait que les
+// offres ne la verrait pas.
+const { infoMock } = vi.hoisted(() => ({ infoMock: vi.fn() }));
+vi.mock("@/lib/observability/logger", () => ({
+  createLogger: () => ({
+    info: infoMock,
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
 vi.mock("@/lib/discovery/lever-boards", async (orig) => ({
   ...(await orig<typeof import("@/lib/discovery/lever-boards")>()),
   activeLeverBoards: () => [{ jeton: "swile", nom: "Swile" }],
@@ -20,6 +32,7 @@ beforeEach(async () => {
   mod = await import("@/lib/discovery/lever");
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
+  infoMock.mockReset();
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -66,6 +79,16 @@ describe("l'engagement n'est traduit que sur un mot explicite", () => {
     fetchMock.mockResolvedValue(ok([avecCommitment(commitment)]));
     const [ad] = await mod.searchLever();
     expect(ad.engagementType).toBe(attendu);
+  });
+
+  it("ne SIGNALE pas « Full-time » : c'est une décision, pas une lacune", async () => {
+    // Mesuré en production le 2026-08-02 : ce seul libellé a produit plus de
+    // cent trente lignes « non cartographié » sur le seul tableau `palantir`.
+    // Le message appelait exactement le correctif qu'on refuse — mapper
+    // « Full-time » sur « permanent ». On se tait sur ce qui est tranché.
+    fetchMock.mockResolvedValue(ok([avecCommitment("Full-time")]));
+    const [ad] = await mod.searchLever();
+    expect(ad.engagementType).toBeNull();
   });
 
   it("laisse « Full-time » VIDE — ce n'est pas un type de contrat", async () => {
@@ -144,6 +167,43 @@ describe("le reste du mapping", () => {
       ok([{ ...POSTING, text: null, hostedUrl: null }]),
     );
     expect(await mod.searchLever()).toEqual([]);
+  });
+});
+
+describe("le journal apprend un vocabulaire, il ne le répète pas", () => {
+  it("ne signale un libellé inconnu QU'UNE FOIS par tableau", async () => {
+    // Un journal qui se répète cent fois ne se lit plus — et sur Vercel, il se
+    // paie. Ce que la ligne doit apprendre tient dans une occurrence.
+    //
+    // On espionne le VRAI journal, via le module mocké : vérifier seulement que
+    // les offres passent ne dirait rien de la déduplication, qui est tout le
+    // sujet du correctif.
+    fetchMock.mockResolvedValue(
+      ok([
+        avecCommitment("FR Executive/Cadre"),
+        avecCommitment("FR Executive/Cadre"),
+        avecCommitment("BE Employee"),
+      ]),
+    );
+    const ads = await mod.searchLever();
+
+    const lignes = infoMock.mock.calls.filter(
+      (c) => c[0] === "engagement lever non cartographié",
+    );
+    // Deux libellés distincts → deux lignes, pas trois.
+    expect(lignes).toHaveLength(2);
+    // Et les trois offres passent : la déduplication ne touche QUE le journal.
+    expect(ads).toHaveLength(3);
+  });
+
+  it("ne signale pas deux fois le même libellé entre deux recherches", async () => {
+    fetchMock.mockResolvedValue(ok([avecCommitment("Regular")]));
+    await mod.searchLever();
+    const apres = infoMock.mock.calls.length;
+    // Cache de résultats vidé n'est pas nécessaire : c'est le SIGNALEMENT
+    // qu'on mesure, et il doit rester unique pour la vie du processus.
+    await mod.searchLever();
+    expect(infoMock.mock.calls.length).toBe(apres);
   });
 });
 

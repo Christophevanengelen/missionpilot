@@ -93,13 +93,32 @@ export async function GET(requete: NextRequest) {
     return echec("invalide");
   }
 
+  /**
+   * CE POINT D'ENTRÉE SERT TROIS CHEMINS, et le journal n'en nommait qu'un.
+   *
+   * Constaté le 2026-08-02 dans les journaux de production : une connexion
+   * LinkedIn s'y inscrivait comme « connexion par lien magique ». C'est le
+   * genre de ligne qui coûte une demi-heure à la prochaine panne — on cherche
+   * un problème d'e-mail alors que le fournisseur est en cause.
+   *
+   * Le `code` PKCE est employé par les DEUX flux (lien magique par défaut ET
+   * OAuth) : il ne suffit donc pas à distinguer. Ce qui distingue, c'est
+   * `token_hash`, propre au gabarit personnalisé, et l'absence de `type` sur
+   * un retour de fournisseur.
+   */
+  const chemin = tokenHash
+    ? "lien-magique"
+    : type !== null
+      ? "lien-magique"
+      : "fournisseur";
+
   if (error) {
     // Le jeton n'est jamais journalisé — seulement la raison du refus, qui est
     // presque toujours « expiré » ou « déjà utilisé ».
-    log.warn("lien magique refusé", { raison: error.message });
+    log.warn("connexion refusée", { chemin, raison: error.message });
     return echec("expire");
   }
 
-  log.info("connexion par lien magique");
+  log.info("connexion établie", { chemin });
   return NextResponse.redirect(new URL(DESTINATION, env.NEXT_PUBLIC_APP_URL));
 }
