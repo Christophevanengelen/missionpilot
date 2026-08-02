@@ -82,6 +82,13 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
+    // Lever — troisième source ATS de même régime. Interrupteur séparé pour la
+    // même raison : allumer une source, c'est décider quels employeurs on
+    // interroge.
+    LEVER_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true" || v === "1"),
     // Remote OK — public, key-less feed. Opt-in like the others, and here for
     // one specific obligation: their terms make a FOLLOWED link back and a
     // named mention a condition of continued access.
