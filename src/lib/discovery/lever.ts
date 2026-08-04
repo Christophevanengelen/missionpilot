@@ -57,6 +57,20 @@ const log = createLogger({ module: "discovery-lever" });
 const resultCache = createTtlCache<DiscoveredAd[]>(CACHE_TTL_MS);
 const failureCache = createTtlCache<true>(FAILURE_TTL_MS);
 
+/**
+ * UNE LIGNE PAR LIBELLÉ INCONNU, PAS PAR OFFRE.
+ *
+ * Mesuré en production le 2026-08-02 : le connecteur a écrit plus de cent
+ * trente lignes identiques pour un seul libellé sur un seul tableau. Un
+ * journal qui se répète cent fois ne se lit plus — et sur Vercel, il se paie.
+ * Ce que la ligne doit apprendre (« ce libellé existe et n'est pas
+ * cartographié ») tient dans une occurrence.
+ *
+ * Volontairement à la durée du processus, sans expiration : le but n'est pas
+ * de suivre une fréquence, c'est de découvrir un vocabulaire.
+ */
+const dejaSignale = new Set<string>();
+
 export function leverConfigured(): boolean {
   return env.LEVER_ENABLED === true && activeLeverBoards().length > 0;
 }
@@ -110,20 +124,32 @@ function versEngagement(brut: string | null | undefined): {
     return { type: "interim", inconnu: null };
   if (t.includes("permanent")) return { type: "permanent", inconnu: null };
 
-  // Connus, volontairement NON traduits : un stage, une alternance ou une
-  // bourse ne sont aucun des quatre types du domaine. Les journaliser
-  // n'apprendrait rien — on sait déjà qu'ils n'ont pas d'équivalent.
+  // CONNUS, ET VOLONTAIREMENT NON TRADUITS — la nuance vaut mieux qu'un
+  // « inconnu », parce qu'un « inconnu » invite quelqu'un à le « corriger ».
+  //
+  // Deux familles :
+  // - stage, alternance, bourse : aucun équivalent parmi les quatre types du
+  //   domaine ;
+  // - « Full-time », « Full time » : une durée hebdomadaire, pas un type de
+  //   contrat. C'est une DÉCISION prise dans ce fichier, pas une lacune.
+  //
+  // Constaté en production le 2026-08-02 : `Full-time` représentait à lui seul
+  // plus de cent trente lignes de journal sur le seul tableau `palantir`, avec
+  // le message « non cartographié » — qui appelle exactement le correctif qu'on
+  // refuse. On se tait donc, sur ce qui est déjà tranché.
   if (
     t.includes("intern") ||
     t.includes("apprentice") ||
     t.includes("scholarship") ||
     t.includes("alternance") ||
-    t.includes("stage")
+    t.includes("stage") ||
+    t.includes("full-time") ||
+    t.includes("full time")
   )
     return { type: null, inconnu: null };
 
-  // « Full-time », « FR Executive/Cadre », « BE Employee »… : ces libellés ne
-  // disent rien d'EXPLICITE sur l'engagement. Vide, et signalé.
+  // « FR Executive/Cadre », « BE Employee », « Regular »… : ceux-là sont
+  // réellement inconnus. Vides, et signalés — une fois.
   return { type: null, inconnu: brut };
 }
 
@@ -138,10 +164,14 @@ function toAd(
 
   const { type, inconnu } = versEngagement(cat.commitment);
   if (inconnu !== null) {
-    log.info("engagement lever non cartographié", {
-      board: board.jeton,
-      code: inconnu,
-    });
+    const cle = `${board.jeton}:${inconnu}`;
+    if (!dejaSignale.has(cle)) {
+      dejaSignale.add(cle);
+      log.info("engagement lever non cartographié", {
+        board: board.jeton,
+        code: inconnu,
+      });
+    }
   }
 
   const description = posting.descriptionPlain?.trim() || null;
