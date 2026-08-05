@@ -47,6 +47,37 @@ describe("buildChangeSummary (French, deterministic)", () => {
       { kind: "role", value: { title: "Lead Designer" } },
     ]);
     expect(buildChangeSummary(before, after)).toBe("Rôle mis à jour.");
+    expect(buildChangeSummary(before, content([]))).toBe("Rôle retiré.");
+  });
+
+  it("agrees participles with a feminine singular label", () => {
+    const empty = content([]);
+    const senior = content([{ kind: "seniority", value: { level: "Senior" } }]);
+    const principal = content([
+      { kind: "seniority", value: { level: "Principal" } },
+    ]);
+    expect(buildChangeSummary(empty, senior)).toBe("Séniorité renseignée.");
+    expect(buildChangeSummary(senior, empty)).toBe("Séniorité retirée.");
+    expect(buildChangeSummary(senior, principal)).toBe(
+      "Séniorité mise à jour.",
+    );
+  });
+
+  it("agrees participles with a feminine plural label", () => {
+    const empty = content([]);
+    const eight = content([{ kind: "years_experience", value: { years: 8 } }]);
+    const twelve = content([
+      { kind: "years_experience", value: { years: 12 } },
+    ]);
+    expect(buildChangeSummary(empty, eight)).toBe(
+      "Années d'expérience renseignées.",
+    );
+    expect(buildChangeSummary(eight, empty)).toBe(
+      "Années d'expérience retirées.",
+    );
+    expect(buildChangeSummary(eight, twelve)).toBe(
+      "Années d'expérience mises à jour.",
+    );
   });
 
   it("counts skills added and removed with correct plurals", () => {
