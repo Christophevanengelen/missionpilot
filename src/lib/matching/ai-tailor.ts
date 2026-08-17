@@ -21,9 +21,18 @@ import { createLogger } from "@/lib/observability/logger";
  * the feature is simply unavailable — no error, no cost.
  */
 
-export const APPLICATION_TAILOR_PROMPT_VERSION = "application-tailor-1";
+export const APPLICATION_TAILOR_PROMPT_VERSION = "application-tailor-2";
 const MAX_DOSSIER_CHARS = 8_000;
 const MAX_OFFER_CHARS = 12_000;
+const MAX_VARIANTS = 12;
+
+/** A CV variant offered to the model — the name is the selection key the
+ *  model must echo back exactly. */
+export type OfferedCvVariant = {
+  name: string;
+  headline: string;
+  useWhen: string;
+};
 
 const tailorSchema = z
   .object({
@@ -32,6 +41,13 @@ const tailorSchema = z
     coverLetter: z.string().trim().min(1).max(4000),
     /** Ranked matching highlights (why this profile fits this offer). */
     highlights: z.array(z.string().trim().min(1).max(300)).max(8),
+    /** Exactly one of the offered CV variant names, or null when the offered
+     *  list was empty — never an invented name. */
+    cvVariantName: z.string().trim().min(1).max(120).nullable(),
+    /** One or two French sentences justifying the chosen variant against THIS
+     *  offer, from the variant's own "use when" rules; null whenever
+     *  cvVariantName is null. */
+    cvVariantRationale: z.string().trim().min(1).max(1000).nullable(),
   })
   .strict();
 
@@ -56,6 +72,7 @@ export function aiTailorConfigured(): boolean {
 export async function aiTailorApplication(
   dossier: string,
   offerText: string,
+  cvVariants: OfferedCvVariant[] = [],
 ): Promise<ApplicationDraft | null> {
   if (!aiTailorConfigured()) return null;
   try {
@@ -64,10 +81,15 @@ export async function aiTailorApplication(
       taskName: "application-tailor",
       promptVersion: APPLICATION_TAILOR_PROMPT_VERSION,
       taskInstruction:
-        "Prépare une candidature pour l'offre (inputData.offre) à partir du profil VALIDÉ du candidat (inputData.profil). (1) coverLetter — une lettre de motivation en français, à la première personne, prête à être relue et modifiée : accroche, adéquation profil/offre, valeur apportée, conclusion courtoise. Ancre-toi UNIQUEMENT sur des éléments présents dans le profil. N'invente JAMAIS d'expérience, de chiffre, de diplôme ni de compétence. Là où un résultat chiffré renforcerait la lettre, insère un marqueur explicite entre crochets à compléter par le candidat, ex. « [à compléter : ex. +30% de conversion / 5 clients grands comptes] » — jamais un chiffre inventé. Pas de bourrage de mots-clés. (2) highlights — 3 à 6 points de correspondance forts, chacun une phrase, justifiant l'adéquation, tirés du profil réel. Le résultat est un BROUILLON que le candidat relit, ajuste et envoie lui-même — ne prétends jamais qu'il est envoyé.",
+        "Prépare une candidature pour l'offre (inputData.offre) à partir du profil VALIDÉ du candidat (inputData.profil). (1) coverLetter — une lettre de motivation en français, à la première personne, prête à être relue et modifiée : accroche, adéquation profil/offre, valeur apportée, conclusion courtoise. Ancre-toi UNIQUEMENT sur des éléments présents dans le profil. N'invente JAMAIS d'expérience, de chiffre, de diplôme ni de compétence. Là où un résultat chiffré renforcerait la lettre, insère un marqueur explicite entre crochets à compléter par le candidat, ex. « [à compléter : ex. +30% de conversion / 5 clients grands comptes] » — jamais un chiffre inventé. Pas de bourrage de mots-clés. (2) highlights — 3 à 6 points de correspondance forts, chacun une phrase, justifiant l'adéquation, tirés du profil réel. (3) cvVariantName et cvVariantRationale — si inputData.variantes_cv contient des variantes de CV : choisis LA variante qui doit accompagner cette candidature, d'après leurs règles « quand » comparées à l'offre. cvVariantName = exactement l'un des noms listés, jamais un nom absent de la liste. cvVariantRationale = une à deux phrases en français qui justifient ce choix pour CETTE offre. Si inputData.variantes_cv est vide : cvVariantName = null et cvVariantRationale = null. Si aucune règle « quand » ne correspond réellement à l'offre, abstiens-toi : null pour les deux, plutôt qu'un choix forcé. Le résultat est un BROUILLON que le candidat relit, ajuste et envoie lui-même — ne prétends jamais qu'il est envoyé.",
       input: {
         profil: dossier.slice(0, MAX_DOSSIER_CHARS),
         offre: offerText.slice(0, MAX_OFFER_CHARS),
+        variantes_cv: cvVariants.slice(0, MAX_VARIANTS).map((v) => ({
+          nom: v.name.slice(0, 120),
+          titre: v.headline.slice(0, 200),
+          quand: v.useWhen.slice(0, 2000),
+        })),
       },
       dataSchema: tailorSchema,
     });

@@ -19,7 +19,12 @@ import {
   buildProfileDossier,
   insightInputHash,
 } from "./insight-logic";
-import { isDraftFresh, upsertDraft } from "./tailor-logic";
+import {
+  isDraftFresh,
+  loadCvVariants,
+  resolveChosenVariant,
+  upsertDraft,
+} from "./tailor-logic";
 
 const logger = createLogger({ module: "tailor-actions" });
 
@@ -59,9 +64,10 @@ export async function tailorApplicationAction(
       return { ok: false, error: "not_found" };
     }
 
-    const [living, preferences] = await Promise.all([
+    const [living, preferences, cvVariants] = await Promise.all([
       loadLivingProfile(client, profile.id),
       loadPreferences(client, profile.id),
+      loadCvVariants(client, profile.id),
     ]);
     const dossier = buildProfileDossier(living.claims, preferences);
     if (dossier === "") return { ok: false, error: "no_profile" };
@@ -75,15 +81,49 @@ export async function tailorApplicationAction(
     });
     if (offerText.trim() === "") return { ok: false, error: "not_found" };
 
-    const inputHash = insightInputHash(dossier, offerText);
+    // The CV variants are part of the freshness input: adding, renaming or
+    // rewording one must invalidate the stored draft. An empty list leaves
+    // the hash identical to pre-variant drafts (no mass refresh). The control
+    // separators assume no control characters in the user's variant fields
+    // (to be enforced at the variant write path); a collision would only
+    // misjudge freshness, never corrupt data.
+    const variantsText = cvVariants
+      .map((v) => `${v.name}\x00${v.headline}\x00${v.use_when}`)
+      .join("\x01");
+    const inputHash = insightInputHash(
+      dossier,
+      variantsText === "" ? offerText : `${offerText}\x02${variantsText}`,
+    );
     if (await isDraftFresh(client, profile.id, opportunityId, inputHash)) {
       return { ok: true, fresh: true };
     }
 
-    const draft = await aiTailorApplication(dossier, offerText);
+    const draft = await aiTailorApplication(
+      dossier,
+      offerText,
+      cvVariants.map((v) => ({
+        name: v.name,
+        headline: v.headline,
+        useWhen: v.use_when,
+      })),
+    );
     if (draft === null) return { ok: false, error: "generic" };
 
-    await upsertDraft(client, profile.id, opportunityId, draft, inputHash);
+    // An unknown name from the model counts as "no choice" — never a guess.
+    const chosen = resolveChosenVariant(cvVariants, draft.cvVariantName);
+    if (draft.cvVariantName !== null && chosen === null) {
+      logger.warn("model chose an unknown cv variant", {
+        offered: cvVariants.length,
+      });
+    }
+    await upsertDraft(
+      client,
+      profile.id,
+      opportunityId,
+      draft,
+      inputHash,
+      chosen?.id ?? null,
+    );
     try {
       revalidatePath(`/opportunities/${opportunityId}`);
     } catch (error) {

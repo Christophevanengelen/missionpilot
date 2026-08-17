@@ -22,7 +22,7 @@ When the user opens an opportunity, the product proposes which CV variant to sen
 ## Loops
 
 - **L1 — CV variants schema** (this loop): `cv_variants` table with owner-only RLS (same pattern as `ai_application_drafts`), plus `cv_variant_id` and `cv_variant_rationale` on the live draft. pgTAP suite. No UI.
-- **L2 — variant selection in tailoring**: the draft workflow picks a variant by quoting each variant's `use_when` rules; the rationale is stored and shown.
+- **L2 — variant selection in tailoring**: the draft workflow picks a variant by quoting each variant's `use_when` rules; the rationale is stored (shown by the L4 pack UI).
 - **L3 — tone contract and language**: per-profile, versioned voice rules; FR/EN chosen from the opportunity; subject line generation.
 - **L4 — ready-to-send pack UI**: draft + subject + chosen variant + copy/export, with approval wording aligned on the loop contract ("sending an application" is always the human's act).
 - **L5 — spontaneous outreach mode**: target a firm without a listing; the 2026-08-17 campaign corpus becomes few-shot material.
