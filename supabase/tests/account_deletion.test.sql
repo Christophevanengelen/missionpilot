@@ -138,6 +138,13 @@ select is(
    select coalesce(string_agg(t.tablename, ', ' order by t.tablename), '')
      from pg_tables t
     where t.schemaname = 'public'
+      -- EXCEPTION INSCRITE (17/08/2026) : billing_events est le journal brut
+      -- d'idempotence des webhooks Polar — aucune colonne utilisateur, donc
+      -- aucun chemin de cascade possible. Les données de facturation d'une
+      -- personne vivent chez Polar (Merchant of Record) ; si un payload doit
+      -- un jour être purgé nominativement, ce sera par un traitement dédié,
+      -- pas par cascade. Décision à confirmer par Christophe (RGPD).
+      and t.tablename <> 'billing_events'
       and t.tablename not in (select nom from relie)),
   '',
   'toute table de public atteint auth.users par une cascade — aucune orpheline'
