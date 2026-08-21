@@ -52,6 +52,10 @@ const log = createLogger({ module: "discovery-ashby" });
 const resultCache = createTtlCache<DiscoveredAd[]>(CACHE_TTL_MS);
 const failureCache = createTtlCache<true>(FAILURE_TTL_MS);
 
+/** Une ligne par type inconnu et par tableau, pas par offre — même raison que
+ *  dans `lever.ts` : un journal qui se répète cent fois ne se lit plus. */
+const dejaSignale = new Set<string>();
+
 export function ashbyConfigured(): boolean {
   return env.ASHBY_ENABLED === true && activeAshbyBoards().length > 0;
 }
@@ -110,11 +114,15 @@ function toAd(job: z.infer<typeof jobSchema>, board: AshbyBoard): DiscoveredAd {
   const { type, inconnu } = versEngagement(job.employmentType);
   if (inconnu !== null) {
     // Journalisé pour qu'un nouveau type soit cartographié EXPRÈS, au lieu
-    // d'être deviné ici par le prochain qui passe.
-    log.info("type d'engagement ashby non cartographié", {
-      board: board.jeton,
-      code: inconnu,
-    });
+    // d'être deviné ici par le prochain qui passe — une fois par type.
+    const cle = `${board.jeton}:${inconnu}`;
+    if (!dejaSignale.has(cle)) {
+      dejaSignale.add(cle);
+      log.info("type d'engagement ashby non cartographié", {
+        board: board.jeton,
+        code: inconnu,
+      });
+    }
   }
 
   const description = job.descriptionPlain?.trim() || null;
