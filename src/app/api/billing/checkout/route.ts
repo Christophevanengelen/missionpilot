@@ -21,7 +21,10 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!polarConfigured()) {
-    return NextResponse.json({ error: "paymentNotConfigured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "paymentNotConfigured" },
+      { status: 503 },
+    );
   }
 
   const supabase = await createClient();

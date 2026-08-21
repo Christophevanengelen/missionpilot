@@ -32,6 +32,10 @@ export const PERSONAL_TABLES = [
   "ai_match_insights",
   "ai_match_breakdowns",
   "ai_application_drafts",
+  /* Les variantes de CV : nommées, régies et libellées par la personne — ses
+     propres mots sur quand utiliser quel CV. Le brouillon de candidature les
+     référence ; la liste elle-même se rend aussi. */
+  "cv_variants",
   "ai_interview_briefs",
   "agent_runs",
   "agent_steps",

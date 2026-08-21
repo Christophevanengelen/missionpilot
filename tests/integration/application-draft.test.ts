@@ -58,7 +58,9 @@ const DRAFT: ApplicationDraft = {
   ],
   needsReview: false,
   model: "mock-v1",
-  promptVersion: "application-tailor-1",
+  promptVersion: "application-tailor-2",
+  cvVariantName: null,
+  cvVariantRationale: null,
 };
 
 beforeAll(async () => {
@@ -112,5 +114,49 @@ describe("application draft persistence (through the DB, RLS)", () => {
       .eq("opportunity_id", opportunityId);
     expect(error).toBeNull();
     expect(rows).toHaveLength(1);
+  });
+
+  it("records which CV variant the draft accompanies, and survives its deletion", async () => {
+    const { data: variant, error } = await session
+      .from("cv_variants")
+      .insert({
+        profile_id: profileId,
+        name: "Design Lead",
+        headline: "Design Lead / Lead Product Designer",
+        use_when: "Design leadership searches.",
+        file_name: "CV_Design_Lead.pdf",
+      })
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+
+    await upsertDraft(
+      session,
+      profileId,
+      opportunityId,
+      {
+        ...DRAFT,
+        cvVariantName: "Design Lead",
+        cvVariantRationale: "Recherche design leadership.",
+      },
+      "c".repeat(64),
+      variant!.id,
+    );
+    let stored = await loadDraft(session, profileId, opportunityId);
+    expect(stored?.cv_variant_id).toBe(variant!.id);
+    expect(stored?.cv_variant_rationale).toBe("Recherche design leadership.");
+
+    // Deleting the variant clears the reference AND the rationale (DB
+    // trigger), but never the draft itself.
+    const del = await session
+      .from("cv_variants")
+      .delete()
+      .eq("id", variant!.id);
+    expect(del.error).toBeNull();
+
+    stored = await loadDraft(session, profileId, opportunityId);
+    expect(stored?.cover_letter).toContain("Madame, Monsieur");
+    expect(stored?.cv_variant_id).toBeNull();
+    expect(stored?.cv_variant_rationale).toBeNull();
   });
 });

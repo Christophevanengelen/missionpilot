@@ -148,6 +148,8 @@ export type Database = {
         Row: {
           cover_letter: string
           created_at: string
+          cv_variant_id: string | null
+          cv_variant_rationale: string | null
           highlights: Json
           id: string
           input_hash: string
@@ -160,6 +162,8 @@ export type Database = {
         Insert: {
           cover_letter: string
           created_at?: string
+          cv_variant_id?: string | null
+          cv_variant_rationale?: string | null
           highlights?: Json
           id?: string
           input_hash: string
@@ -172,6 +176,8 @@ export type Database = {
         Update: {
           cover_letter?: string
           created_at?: string
+          cv_variant_id?: string | null
+          cv_variant_rationale?: string | null
           highlights?: Json
           id?: string
           input_hash?: string
@@ -194,6 +200,13 @@ export type Database = {
             columns: ["profile_id", "opportunity_id"]
             isOneToOne: true
             referencedRelation: "opportunities"
+            referencedColumns: ["profile_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_application_drafts_variant_same_profile"
+            columns: ["profile_id", "cv_variant_id"]
+            isOneToOne: false
+            referencedRelation: "cv_variants"
             referencedColumns: ["profile_id", "id"]
           },
         ]
@@ -366,6 +379,36 @@ export type Database = {
           },
         ]
       }
+      billing_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          event_timestamp: string
+          event_type: string
+          id: string
+          payload: Json
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          event_timestamp: string
+          event_type: string
+          id?: string
+          payload: Json
+          source: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          event_timestamp?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          source?: string
+        }
+        Relationships: []
+      }
       candidate_profiles: {
         Row: {
           allowed_work_regions: Json
@@ -478,6 +521,47 @@ export type Database = {
             columns: ["evidence_id"]
             isOneToOne: false
             referencedRelation: "evidence_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_variants: {
+        Row: {
+          created_at: string
+          file_name: string
+          headline: string
+          id: string
+          language: string
+          name: string
+          profile_id: string
+          use_when: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          headline: string
+          id?: string
+          language?: string
+          name: string
+          profile_id: string
+          use_when: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          headline?: string
+          id?: string
+          language?: string
+          name?: string
+          profile_id?: string
+          use_when?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_variants_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -982,6 +1066,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          current_period_end: string | null
+          plan: string
+          polar_customer_id: string | null
+          polar_subscription_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          version_timestamp: string
+        }
+        Insert: {
+          current_period_end?: string | null
+          plan?: string
+          polar_customer_id?: string | null
+          polar_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          version_timestamp?: string
+        }
+        Update: {
+          current_period_end?: string | null
+          plan?: string
+          polar_customer_id?: string | null
+          polar_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version_timestamp?: string
+        }
+        Relationships: []
       }
       system_health_results: {
         Row: {

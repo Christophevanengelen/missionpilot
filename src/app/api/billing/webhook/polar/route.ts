@@ -68,9 +68,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any;
 
-  const idEvenement = request.headers.get("webhook-id") ?? `polar_${crypto.randomUUID()}`;
+  const idEvenement =
+    request.headers.get("webhook-id") ?? `polar_${crypto.randomUUID()}`;
   const horodatage = new Date(
-    Number(request.headers.get("webhook-timestamp")) * 1000 || Date.now()
+    Number(request.headers.get("webhook-timestamp")) * 1000 || Date.now(),
   ).toISOString();
 
   // ── 2. Idempotence : claim ou no-op ──

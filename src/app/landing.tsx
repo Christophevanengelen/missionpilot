@@ -751,17 +751,17 @@ export function Landing() {
             </Link>
           </p>
         </div>
-      <p className="mx-auto mt-2 mb-8 text-center text-xs opacity-60">
-        Créé et géré par{" "}
-        <a
-          href="https://www.hi-def.be"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-2"
-        >
-          hi-def.be
-        </a>
-      </p>
+        <p className="mx-auto mt-2 mb-8 text-center text-xs opacity-60">
+          Créé et géré par{" "}
+          <a
+            href="https://www.hi-def.be"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2"
+          >
+            hi-def.be
+          </a>
+        </p>
       </section>
     </main>
   );
