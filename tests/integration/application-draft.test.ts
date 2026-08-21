@@ -148,7 +148,10 @@ describe("application draft persistence (through the DB, RLS)", () => {
 
     // Deleting the variant clears the reference AND the rationale (DB
     // trigger), but never the draft itself.
-    const del = await session.from("cv_variants").delete().eq("id", variant!.id);
+    const del = await session
+      .from("cv_variants")
+      .delete()
+      .eq("id", variant!.id);
     expect(del.error).toBeNull();
 
     stored = await loadDraft(session, profileId, opportunityId);
