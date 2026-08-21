@@ -34,13 +34,13 @@
 
 ## Checks
 
-| Check        | Command                 | Result                                                     |
-| ------------ | ----------------------- | ---------------------------------------------------------- |
-| Typecheck    | `pnpm typecheck`        | passed                                                     |
-| Unit         | `pnpm test`             | 771/772 — sole failure = pre-existing linkedin-zip load flake (7/7 isolated) |
-| Integration  | `pnpm test:integration` | 51/51 passed (after `scripts/create-dev-user.ts`)          |
-| RLS          | `pnpm test:rls`         | cv_variants suite green; 3 pre-existing billing failures → PR #106 |
-| Targeted rerun after repairs | `vitest run` (account-export, tailor-logic, ai-tailor, politique) | 23/23 passed |
+| Check                        | Command                                                           | Result                                                                       |
+| ---------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Typecheck                    | `pnpm typecheck`                                                  | passed                                                                       |
+| Unit                         | `pnpm test`                                                       | 771/772 — sole failure = pre-existing linkedin-zip load flake (7/7 isolated) |
+| Integration                  | `pnpm test:integration`                                           | 51/51 passed (after `scripts/create-dev-user.ts`)                            |
+| RLS                          | `pnpm test:rls`                                                   | cv_variants suite green; 3 pre-existing billing failures → PR #106           |
+| Targeted rerun after repairs | `vitest run` (account-export, tailor-logic, ai-tailor, politique) | 23/23 passed                                                                 |
 
 ## Evidence
 
@@ -50,16 +50,16 @@
 
 ## Review findings
 
-| Reviewer                | Severity | Finding                                                    | Resolution |
-| ----------------------- | -------- | ---------------------------------------------------------- | ---------- |
-| implementation-reviewer | major    | F1 cv_variants absent from PERSONAL_TABLES (export art. 20) | fixed (list + self-adjusting test green) |
-| implementation-reviewer | minor    | F2 separator-collision comment overstated                   | fixed (assumption stated; enforcement pinned to variant write path) |
-| implementation-reviewer | minor    | F3 echo key not byte-stable (trim/slice vs exact match)     | recorded — normalize names at the variant write path (L4) |
-| implementation-reviewer | minor    | F4 "null iff" enforced one-way only (rationale ⇒ variant)   | recorded — real invariant documented here; name-without-rationale tolerated |
-| implementation-reviewer | minor    | F5 abstain case unspecified in the instruction              | fixed (abstention explicite plutôt qu'un choix forcé) |
-| implementation-reviewer | info     | F6 MAX_VARIANTS truncation diverges from hash/resolver      | recorded — warn/comment when >12 variants (none possible today) |
-| implementation-reviewer | info     | F7 policy row tense; section 9 must gain the tailoring row at L4 | fixed (dormante) / pinned to L4 |
-| implementation-reviewer | info     | F8 loop record + task wording ("shown")                     | fixed (this record; task file reworded) |
+| Reviewer                | Severity | Finding                                                          | Resolution                                                                  |
+| ----------------------- | -------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| implementation-reviewer | major    | F1 cv_variants absent from PERSONAL_TABLES (export art. 20)      | fixed (list + self-adjusting test green)                                    |
+| implementation-reviewer | minor    | F2 separator-collision comment overstated                        | fixed (assumption stated; enforcement pinned to variant write path)         |
+| implementation-reviewer | minor    | F3 echo key not byte-stable (trim/slice vs exact match)          | recorded — normalize names at the variant write path (L4)                   |
+| implementation-reviewer | minor    | F4 "null iff" enforced one-way only (rationale ⇒ variant)        | recorded — real invariant documented here; name-without-rationale tolerated |
+| implementation-reviewer | minor    | F5 abstain case unspecified in the instruction                   | fixed (abstention explicite plutôt qu'un choix forcé)                       |
+| implementation-reviewer | info     | F6 MAX_VARIANTS truncation diverges from hash/resolver           | recorded — warn/comment when >12 variants (none possible today)             |
+| implementation-reviewer | info     | F7 policy row tense; section 9 must gain the tailoring row at L4 | fixed (dormante) / pinned to L4                                             |
+| implementation-reviewer | info     | F8 loop record + task wording ("shown")                          | fixed (this record; task file reworded)                                     |
 
 Verdict after gate fix: mergeable (reviewer's condition was F1, resolved as prescribed; F3/F4/F6 ride as recorded minors).
 
