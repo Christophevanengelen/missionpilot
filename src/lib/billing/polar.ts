@@ -27,7 +27,7 @@ const API_BASE =
 export function polarConfigured(): boolean {
   return Boolean(
     process.env.POLAR_ACCESS_TOKEN &&
-    (process.env.POLAR_PRODUCT_MONTHLY || process.env.POLAR_PRODUCT_ANNUAL)
+    (process.env.POLAR_PRODUCT_MONTHLY || process.env.POLAR_PRODUCT_ANNUAL),
   );
 }
 
@@ -57,9 +57,12 @@ interface CreateCheckoutArgs {
  * metadata.userId revient sur chaque webhook : c'est lui qui relie le
  * paiement Polar au compte Supabase, sans table de correspondance.
  */
-export async function createPolarCheckout(args: CreateCheckoutArgs): Promise<{ url: string }> {
+export async function createPolarCheckout(
+  args: CreateCheckoutArgs,
+): Promise<{ url: string }> {
   const productId = polarProductId(args.plan);
-  if (!productId) throw new Error(`polar product not configured for plan ${args.plan}`);
+  if (!productId)
+    throw new Error(`polar product not configured for plan ${args.plan}`);
 
   const res = await fetch(`${API_BASE}/checkouts`, {
     method: "POST",
@@ -77,7 +80,9 @@ export async function createPolarCheckout(args: CreateCheckoutArgs): Promise<{ u
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`polar checkout failed: ${res.status} ${text.slice(0, 300)}`);
+    throw new Error(
+      `polar checkout failed: ${res.status} ${text.slice(0, 300)}`,
+    );
   }
   const data = (await res.json()) as { url?: string };
   if (!data.url) throw new Error("polar checkout: no url in response");
@@ -93,14 +98,19 @@ export async function createPolarCheckout(args: CreateCheckoutArgs): Promise<{ u
  */
 export function verifyPolarWebhook(
   rawBody: string,
-  headers: { id?: string | null; timestamp?: string | null; signature?: string | null }
+  headers: {
+    id?: string | null;
+    timestamp?: string | null;
+    signature?: string | null;
+  },
 ): boolean {
   const secretRaw = process.env.POLAR_WEBHOOK_SECRET;
   const { id, timestamp, signature } = headers;
   if (!secretRaw || !id || !timestamp || !signature) return false;
 
   const ts = Number(timestamp);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300)
+    return false;
 
   const secret = Buffer.from(secretRaw.replace(/^whsec_/, ""), "base64");
   const expected = createHmac("sha256", secret)
@@ -124,11 +134,16 @@ export function verifyPolarWebhook(
 /** Statut Polar → vocabulaire interne. */
 export function mapPolarStatus(polarStatus: string | undefined): string {
   switch (polarStatus) {
-    case "active": return "active";
-    case "trialing": return "trialing";
-    case "past_due": return "past_due";
+    case "active":
+      return "active";
+    case "trialing":
+      return "trialing";
+    case "past_due":
+      return "past_due";
     case "canceled":
-    case "revoked": return "canceled";
-    default: return polarStatus ?? "none";
+    case "revoked":
+      return "canceled";
+    default:
+      return polarStatus ?? "none";
   }
 }
