@@ -36,6 +36,12 @@ export const PERSONAL_TABLES = [
      propres mots sur quand utiliser quel CV. Le brouillon de candidature les
      référence ; la liste elle-même se rend aussi. */
   "cv_variants",
+  /* Le contrat de ton : les règles de voix de la personne (registre, ce qu'il
+     faut éviter, formules d'appel et de politesse en français et en
+     anglais), en ajout seul — publier une version n'efface jamais la
+     précédente. Le brouillon de candidature enregistre exactement sous
+     quelle version il a été écrit. */
+  "tone_contracts",
   "ai_interview_briefs",
   "agent_runs",
   "agent_steps",
