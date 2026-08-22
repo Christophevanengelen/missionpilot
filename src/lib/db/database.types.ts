@@ -153,11 +153,14 @@ export type Database = {
           highlights: Json
           id: string
           input_hash: string
+          language: string
           model: string
           needs_review: boolean
           opportunity_id: string
           profile_id: string
           prompt_version: string
+          subject: string | null
+          tone_contract_id: string | null
         }
         Insert: {
           cover_letter: string
@@ -167,11 +170,14 @@ export type Database = {
           highlights?: Json
           id?: string
           input_hash: string
+          language?: string
           model: string
           needs_review?: boolean
           opportunity_id: string
           profile_id: string
           prompt_version: string
+          subject?: string | null
+          tone_contract_id?: string | null
         }
         Update: {
           cover_letter?: string
@@ -181,11 +187,14 @@ export type Database = {
           highlights?: Json
           id?: string
           input_hash?: string
+          language?: string
           model?: string
           needs_review?: boolean
           opportunity_id?: string
           profile_id?: string
           prompt_version?: string
+          subject?: string | null
+          tone_contract_id?: string | null
         }
         Relationships: [
           {
@@ -207,6 +216,13 @@ export type Database = {
             columns: ["profile_id", "cv_variant_id"]
             isOneToOne: false
             referencedRelation: "cv_variants"
+            referencedColumns: ["profile_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_application_drafts_tone_contract_same_profile"
+            columns: ["profile_id", "tone_contract_id"]
+            isOneToOne: false
+            referencedRelation: "tone_contracts"
             referencedColumns: ["profile_id", "id"]
           },
         ]
@@ -1137,6 +1153,59 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tone_contracts: {
+        Row: {
+          banned_phrases: Json
+          closing_en: string
+          closing_fr: string
+          created_at: string
+          id: string
+          notes: string | null
+          profile_id: string
+          salutation_en: string
+          salutation_fr: string
+          signature_name: string
+          version: number
+          voice_rules: string
+        }
+        Insert: {
+          banned_phrases?: Json
+          closing_en: string
+          closing_fr: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          profile_id: string
+          salutation_en: string
+          salutation_fr: string
+          signature_name: string
+          version: number
+          voice_rules: string
+        }
+        Update: {
+          banned_phrases?: Json
+          closing_en?: string
+          closing_fr?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          salutation_en?: string
+          salutation_fr?: string
+          signature_name?: string
+          version?: number
+          voice_rules?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tone_contracts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
             referencedColumns: ["id"]
           },
         ]

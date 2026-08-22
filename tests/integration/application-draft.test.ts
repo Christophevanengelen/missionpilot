@@ -49,6 +49,7 @@ const AD: DiscoveredAd = {
 };
 
 const DRAFT: ApplicationDraft = {
+  subject: "Candidature — Data Engineer chez Nova SA",
   coverLetter:
     "Madame, Monsieur,\nData engineer senior, j'ai conçu des pipelines Spark " +
     "[à compléter : ex. traitant N To/jour]. …\nCordialement.",
@@ -58,9 +59,10 @@ const DRAFT: ApplicationDraft = {
   ],
   needsReview: false,
   model: "mock-v1",
-  promptVersion: "application-tailor-2",
+  promptVersion: "application-tailor-3",
   cvVariantName: null,
   cvVariantRationale: null,
+  usage: { inputTokens: 100, outputTokens: 50, estimatedCost: 0.001 },
 };
 
 beforeAll(async () => {
@@ -158,5 +160,72 @@ describe("application draft persistence (through the DB, RLS)", () => {
     expect(stored?.cover_letter).toContain("Madame, Monsieur");
     expect(stored?.cv_variant_id).toBeNull();
     expect(stored?.cv_variant_rationale).toBeNull();
+  });
+
+  // Apply Pack L3: subject, language and the exact tone_contract VERSION a
+  // draft was generated under. Publishing version 2 must never repoint a
+  // draft that cites version 1 — the DB grants no update/delete to
+  // `authenticated` on tone_contracts, so this is a database guarantee, not
+  // just app discipline.
+  it("records subject, language and the exact tone_contract version it was generated under — never repointed by a later version", async () => {
+    const v1 = await session
+      .from("tone_contracts")
+      .insert({
+        profile_id: profileId,
+        version: 1,
+        voice_rules: "Ton direct, phrases courtes.",
+        signature_name: "A. Dupont",
+        salutation_fr: "Madame, Monsieur,",
+        salutation_en: "Dear Hiring Manager,",
+        closing_fr: "Cordialement,",
+        closing_en: "Best regards,",
+      })
+      .select("id")
+      .single();
+    expect(v1.error).toBeNull();
+
+    await upsertDraft(
+      session,
+      profileId,
+      opportunityId,
+      { ...DRAFT, subject: "Application — Data Engineer" },
+      "d".repeat(64),
+      null,
+      "en",
+      v1.data!.id,
+    );
+    let stored = await loadDraft(session, profileId, opportunityId);
+    expect(stored?.subject).toBe("Application — Data Engineer");
+    expect(stored?.language).toBe("en");
+    expect(stored?.tone_contract_id).toBe(v1.data!.id);
+
+    // Publishing version 2 for the SAME profile must not touch v1, and must
+    // not silently repoint the draft that already cites v1.
+    const v2 = await session
+      .from("tone_contracts")
+      .insert({
+        profile_id: profileId,
+        version: 2,
+        voice_rules: "Ton direct, plus court encore.",
+        signature_name: "A. Dupont",
+        salutation_fr: "Bonjour,",
+        salutation_en: "Hello,",
+        closing_fr: "Bien à vous,",
+        closing_en: "Regards,",
+      })
+      .select("id")
+      .single();
+    expect(v2.error).toBeNull();
+    expect(v2.data!.id).not.toBe(v1.data!.id);
+
+    stored = await loadDraft(session, profileId, opportunityId);
+    expect(stored?.tone_contract_id).toBe(v1.data!.id);
+
+    // Append-only at the DB layer: authenticated has no UPDATE grant.
+    const updateAttempt = await session
+      .from("tone_contracts")
+      .update({ voice_rules: "hijacked" })
+      .eq("id", v1.data!.id);
+    expect(updateAttempt.error?.code).toBe("42501");
   });
 });
