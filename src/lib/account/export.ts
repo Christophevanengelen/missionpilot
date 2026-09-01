@@ -165,6 +165,20 @@ export function lignesEmpreinte(empreinte: Empreinte): string[] {
       `${pluriel(analyses, "analyse écrite", "analyses écrites")} pour vous par l'IA`,
     );
   }
+  if (n("application_dispatches") > 0) {
+    lignes.push(
+      `${pluriel(n("application_dispatches"), "envoi enregistré", "envois enregistrés")} dans votre registre de candidatures`,
+    );
+  }
+  const modeles = n("cv_variants") + n("tone_contracts");
+  if (modeles > 0) {
+    lignes.push(
+      `${pluriel(modeles, "règle d'écriture", "règles d'écriture")} : vos variantes de CV et votre contrat de ton`,
+    );
+  }
+  if (n("profile_search_plans") > 0) {
+    lignes.push("le plan de recherche déduit de votre parcours");
+  }
   if (n("agent_runs") > 0) {
     lignes.push(
       `${pluriel(n("agent_runs"), "exécution d'agent", "exécutions d'agent")} et leurs traces techniques`,
@@ -173,3 +187,50 @@ export function lignesEmpreinte(empreinte: Empreinte): string[] {
 
   return lignes;
 }
+
+/**
+ * Quelle table est annoncée par quelle phrase — et pourquoi certaines ne le
+ * sont pas séparément.
+ *
+ * POURQUOI CETTE CARTE EXISTE. `lignesEmpreinte` est de la prose : elle groupe
+ * des tables en phrases lisibles, donc elle ne peut pas se dériver
+ * mécaniquement de `PERSONAL_TABLES`. C'est précisément ce qui l'a fait
+ * dériver : au 2026-09-01 elle ignorait `cv_variants`, `tone_contracts`,
+ * `profile_search_plans` et `application_dispatches` — quatre tables absentes
+ * de l'écran le plus irréversible du produit, alors que la politique promet
+ * « l'écran vous montre ce qui va disparaître ».
+ *
+ * Une liste écrite à la main ne se corrige pas en la corrigeant une fois. Le
+ * test `account-empreinte-couverture` compare cette carte à `PERSONAL_TABLES`
+ * et casse dès qu'une table neuve n'y est pas rangée. Ajouter une table oblige
+ * donc à décider — phrase propre, ou rattachement explicite — au lieu de
+ * l'oublier en silence.
+ */
+export const EMPREINTE_COUVERTURE: Record<PersonalTable, string> = {
+  candidate_profiles: "votre profil de travail",
+  profile_versions: "votre profil de travail",
+  profile_claims: "éléments confirmés et preuves",
+  evidence_items: "éléments confirmés et preuves",
+  // Un lien n'a pas d'existence sans ses deux extrémités : l'annoncer à part
+  // ferait compter deux fois la même chose aux yeux de la personne.
+  claim_evidence_links: "éléments confirmés et preuves",
+  profile_clarifications: "réponses à nos questions",
+  profile_search_plans: "le plan de recherche déduit",
+  opportunities: "offres importées",
+  // Une capture n'existe que sous son offre, et part avec elle.
+  opportunity_snapshots: "offres importées",
+  opportunity_tracking: "offres importées",
+  ai_match_insights: "analyses écrites par l'IA",
+  ai_match_breakdowns: "analyses écrites par l'IA",
+  ai_application_drafts: "analyses écrites par l'IA",
+  ai_interview_briefs: "analyses écrites par l'IA",
+  cv_variants: "règles d'écriture",
+  tone_contracts: "règles d'écriture",
+  application_dispatches: "envois enregistrés",
+  agent_runs: "exécutions d'agent et leurs traces",
+  // Une étape n'existe que sous son exécution.
+  agent_steps: "exécutions d'agent et leurs traces",
+  // Résultat d'un bouton de diagnostic, sans donnée de profil : le nommer sur
+  // cet écran ajouterait du bruit à une décision déjà lourde.
+  system_health_results: "exécutions d'agent et leurs traces",
+};

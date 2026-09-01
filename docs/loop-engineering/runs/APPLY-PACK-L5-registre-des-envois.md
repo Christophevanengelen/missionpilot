@@ -25,14 +25,14 @@ canal », ni « est-ce arrivé », ni « combien de fois ».
 
 ## Acceptance criteria
 
-- [ ] Une table d'événements `application_dispatches`, en ajout seul par usage : une ligne = un envoi réel.
-- [ ] Le doublon exact du 01/09 est refusé **par le schéma**, pas par du jugement : contrainte d'unicité sur (profil, opportunité, canal, jour).
-- [ ] Un renvoi légitime un autre jour, ou par un autre canal, reste possible : la contrainte refuse la répétition, pas le suivi.
-- [ ] Le statut de remise est un champ de première classe, `unknown` par défaut — un rebond doit pouvoir être enregistré et vu.
-- [ ] Le canal est contraint à une liste fermée, pour que « qu'est-ce qui marche » se réponde par un `group by`.
-- [ ] La variante de CV envoyée est référencée, et ne peut pas venir d'un autre profil (FK composite).
-- [ ] RLS propriétaire sur les quatre verbes ; `revoke all` avant les grants ; `service_role` sans droits.
-- [ ] La table entre dans `PERSONAL_TABLES` (export art. 20) et dans le décompte de la politique de confidentialité.
+- [x] Une table d'événements `application_dispatches` : une ligne = un envoi réel. **Pas en ajout seul** — `update` et `delete` sont accordés au propriétaire, parce qu'on corrige une date d'envoi et qu'on enregistre une réponse reçue après coup. Le dépôt sait faire de l'ajout seul quand il le veut (`tone_contracts` n'accorde que `select, insert`) ; ce n'est pas le cas ici, et le dire est plus honnête que de l'écrire.
+- [x] Le doublon exact du 01/09 est refusé **par le schéma**, pas par du jugement : contrainte d'unicité sur (profil, opportunité, canal, jour).
+- [x] Un renvoi légitime un autre jour, ou par un autre canal, reste possible : la contrainte refuse la répétition, pas le suivi.
+- [x] Le statut de remise est un champ de première classe, `unknown` par défaut — un rebond doit pouvoir être enregistré et vu.
+- [x] Le canal est contraint à une liste fermée, pour que « qu'est-ce qui marche » se réponde par un `group by`.
+- [x] La variante de CV envoyée est référencée, et ne peut pas venir d'un autre profil (FK composite).
+- [x] RLS propriétaire sur les quatre verbes ; `revoke all` avant les grants ; **`service_role` sans aucun grant** — écart assumé au motif maison, justifié dans la migration : aucun chemin serveur ne touche cette table, et elle contient les coordonnées de tiers.
+- [x] La table entre dans `PERSONAL_TABLES` (export art. 20) et dans le décompte de la politique de confidentialité.
 - [ ] La table atteint `auth.users` par cascade (test pgTAP `account_deletion`).
 - [ ] `pnpm verify` vert.
 
@@ -58,19 +58,19 @@ canal », ni « est-ce arrivé », ni « combien de fois ».
 
 ## Checks
 
-| Check  | Command             | Result  |
-| ------ | ------------------- | ------- |
-| Format | `pnpm format:check` | pending |
-| Lint   | `pnpm lint`         | pending |
-| Types  | `pnpm typecheck`    | pending |
-| Unit   | `pnpm test`         | pending |
-| RLS    | `pnpm test:rls`     | pending |
-| Build  | `pnpm build`        | pending |
+| Check  | Command             | Result                                                                                           |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------ |
+| Format | `pnpm format:check` | passed                                                                                           |
+| Lint   | `pnpm lint`         | passed                                                                                           |
+| Types  | `pnpm typecheck`    | passed                                                                                           |
+| Unit   | `pnpm test`         | passed                                                                                           |
+| RLS    | `pnpm test:rls`     | **NON EXÉCUTÉ ici** — ni Docker ni CLI Supabase sur cette machine. La CI (job `stack`) le lance. |
+| Build  | `pnpm build`        | passed                                                                                           |
 
 ## Review
 
 - implementation-reviewer : pending
-- security-reviewer : pending (tâche données + RLS)
+- security-reviewer : **fait** — aucun blocker. 3 MAJOR (données de tiers non couvertes en §7, « seize familles » art. 20 périmé, contradiction offres consultées/importées) et 4 MINOR, tous réparés dans le commit de réparation.
 
 ## Stop conditions
 

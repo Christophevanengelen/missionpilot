@@ -68,6 +68,10 @@ create table public.application_dispatches (
     check (reply_kind is null or replied_at is not null),
   constraint application_dispatches_reply_after_send
     check (replied_at is null or replied_at >= sent_at),
+  -- La seconde moitié de la phrase ci-dessus était annoncée et non tenue :
+  -- rien n'empêchait de vérifier une remise avant l'envoi.
+  constraint application_dispatches_check_after_send
+    check (delivery_checked_at is null or delivery_checked_at >= sent_at),
 
   foreign key (profile_id, opportunity_id)
     references public.opportunities (profile_id, id) on delete cascade
@@ -132,4 +136,12 @@ create policy "dispatches owner delete" on public.application_dispatches
 -- héritent notamment de TRUNCATE, que la RLS ne filtre pas.
 revoke all on public.application_dispatches from anon, authenticated;
 grant select, insert, update, delete on public.application_dispatches to authenticated;
-grant select, insert, update, delete on public.application_dispatches to service_role;
+
+-- PAS DE GRANT `service_role` ICI, et c'est délibéré — écart assumé au motif
+-- maison. Aucun chemin serveur ne touche cette table : la lecture du compte
+-- passe par le client de SESSION (`src/lib/account/logic.ts`), et rien d'autre
+-- ne la référence. Or elle contient les adresses des recruteurs approchés,
+-- c'est-à-dire de la donnée personnelle de TIERS. Accorder aujourd'hui un DML
+-- complet à un rôle `BYPASSRLS` pour un besoin qui n'existe pas, c'est offrir
+-- le carnet d'adresses de tout le monde à une fuite de `SUPABASE_SECRET_KEY`.
+-- Le jour où un chemin serveur le justifie, la ligne s'ajoute avec sa raison.
