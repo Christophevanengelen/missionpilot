@@ -51,6 +51,25 @@ describe("la politique de confidentialité compte juste", () => {
     expect(Number(annonce?.[1])).toBe(tablesDuSchema().length);
   });
 
+  it("compte juste PARTOUT, pas seulement dans la phrase surveillée", () => {
+    // Le 2026-09-01, la politique annonçait 23 tables en section 3 et 16 en
+    // section 18. Le test ne regardait que la première phrase, donc la seconde
+    // avait dérivé de sept tables sans rien casser — exactement le défaut que
+    // ce fichier existe pour empêcher, dans une formulation que sa regex
+    // n'atteignait pas. Un garde-fou qui ne couvre qu'une occurrence d'un fait
+    // répété ne garde que la moitié du fait.
+    const politique = readFileSync(
+      join(racine, "content/legal/politique-de-confidentialite.md"),
+      "utf8",
+    );
+    const reel = tablesDuSchema().length;
+    const occurrences = [...politique.matchAll(/les (\d+) tables du schéma/g)];
+    expect(occurrences.length).toBeGreaterThanOrEqual(2);
+    for (const occurrence of occurrences) {
+      expect(Number(occurrence[1])).toBe(reel);
+    }
+  });
+
   it("nomme Resend dès lors que l'application sait envoyer un e-mail", () => {
     // La politique affirmait « aucun autre service d'e-mail n'intervient » à
     // côté de Supabase. Dès qu'un module d'envoi existe dans le code, cette

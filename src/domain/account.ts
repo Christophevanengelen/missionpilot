@@ -42,6 +42,12 @@ export const PERSONAL_TABLES = [
      précédente. Le brouillon de candidature enregistre exactement sous
      quelle version il a été écrit. */
   "tone_contracts",
+  /* Le registre des envois : ce que la personne a réellement envoyé, quand, par
+     quel canal, avec quelle variante de CV, et si c'est arrivé. C'est SON
+     historique de candidature — la donnée la plus directement personnelle du
+     produit après le profil lui-même, et celle qu'on lui doit en premier si
+     elle demande son dossier. Le produit n'envoie rien : il enregistre. */
+  "application_dispatches",
   "ai_interview_briefs",
   "agent_runs",
   "agent_steps",

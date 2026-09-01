@@ -395,6 +395,77 @@ export type Database = {
           },
         ]
       }
+      application_dispatches: {
+        Row: {
+          channel: string
+          created_at: string
+          cv_variant_id: string | null
+          delivery: string
+          delivery_checked_at: string | null
+          id: string
+          note: string
+          opportunity_id: string
+          profile_id: string
+          recipient: string | null
+          replied_at: string | null
+          reply_kind: string | null
+          sent_at: string
+          sent_on: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          cv_variant_id?: string | null
+          delivery?: string
+          delivery_checked_at?: string | null
+          id?: string
+          note?: string
+          opportunity_id: string
+          profile_id: string
+          recipient?: string | null
+          replied_at?: string | null
+          reply_kind?: string | null
+          sent_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          cv_variant_id?: string | null
+          delivery?: string
+          delivery_checked_at?: string | null
+          id?: string
+          note?: string
+          opportunity_id?: string
+          profile_id?: string
+          recipient?: string | null
+          replied_at?: string | null
+          reply_kind?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_dispatches_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_dispatches_profile_id_opportunity_id_fkey"
+            columns: ["profile_id", "opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["profile_id", "id"]
+          },
+          {
+            foreignKeyName: "application_dispatches_variant_same_profile"
+            columns: ["profile_id", "cv_variant_id"]
+            isOneToOne: false
+            referencedRelation: "cv_variants"
+            referencedColumns: ["profile_id", "id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           created_at: string
