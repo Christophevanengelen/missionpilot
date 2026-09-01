@@ -33,6 +33,12 @@ create table public.application_dispatches (
   recipient text check (recipient is null
                         or char_length(recipient) between 1 and 320),
 
+  -- La forme comparable du destinataire, dérivée et immuable. `nullif(…, '')`
+  -- rabat un destinataire fait d'espaces sur NULL : sinon il échapperait à la
+  -- clé d'unicité tout en ne nommant personne.
+  recipient_key text
+    generated always as (nullif(lower(btrim(recipient)), '')) stored,
+
   sent_at timestamptz not null default now(),
 
   -- Le jour de l'envoi, en UTC, dérivé et immuable. C'est la clé du garde-fou
@@ -66,13 +72,26 @@ create table public.application_dispatches (
   -- lieu renvoie la personne à la supposition — l'incident du 01/09 par l'autre
   -- bout.
   --
-  -- `nulls not distinct` (PG15+) est load-bearing : `recipient` est nullable
+  -- `nulls not distinct` (PG15+) est load-bearing : `recipient_key` est nullable
   -- pour les dépôts sur portail, et la règle SQL par défaut rend deux NULL
   -- DISTINCTS, ce qui rouvrirait le trou pour exactement les envois qui n'ont
   -- pas de destinataire nommé. Deux dépôts le même jour sur la même offre sans
   -- destinataire distinct se ressemblent trop pour être comptés deux fois : si
   -- la personne les distingue, elle nomme le destinataire.
-  unique nulls not distinct (profile_id, opportunity_id, channel, sent_on, recipient),
+  --
+  -- C'est `recipient_key` et non `recipient` : sur du texte libre saisi à la
+  -- main, « T-Crew », « t-crew » et « T-Crew » avec une espace finale sont le
+  -- même cabinet, et une clé sensible à la casse laisserait passer le doublon
+  -- qu'elle est censée attraper. Le champ affiché garde la graphie de la
+  -- personne ; seule la clé est normalisée.
+  --
+  -- CE QUE CETTE CLÉ REFUSE VOLONTAIREMENT : un renvoi corrigé le même jour au
+  -- même destinataire (CV rectifié, coquille). C'est le même geste que
+  -- l'incident du 01/09 vu de l'extérieur, et aucune contrainte ne peut les
+  -- distinguer. Le bon geste produit n'est pas une seconde ligne mais la mise à
+  -- jour de la première — un envoi corrigé reste un envoi.
+  unique nulls not distinct
+    (profile_id, opportunity_id, channel, sent_on, recipient_key),
 
   -- Une réponse sans envoi n'existe pas, et une remise vérifiée non plus.
   constraint application_dispatches_reply_kind_needs_reply
@@ -145,14 +164,22 @@ create policy "dispatches owner delete" on public.application_dispatches
 -- LE `revoke all` D'ABORD (leçon d'effacement_prerequis, rejouée par
 -- offres_ecartees et facturation_polar) : sans lui, anon et authenticated
 -- héritent notamment de TRUNCATE, que la RLS ne filtre pas.
-revoke all on public.application_dispatches from anon, authenticated;
-grant select, insert, update, delete on public.application_dispatches to authenticated;
-
--- PAS DE GRANT `service_role` ICI, et c'est délibéré — écart assumé au motif
--- maison. Aucun chemin serveur ne touche cette table : la lecture du compte
--- passe par le client de SESSION (`src/lib/account/logic.ts`), et rien d'autre
--- ne la référence. Or elle contient les adresses des recruteurs approchés,
--- c'est-à-dire de la donnée personnelle de TIERS. Accorder aujourd'hui un DML
--- complet à un rôle `BYPASSRLS` pour un besoin qui n'existe pas, c'est offrir
+-- `service_role` EST RÉVOQUÉ EXPLICITEMENT, et c'est le point à ne pas rater :
+-- ne pas lui accorder de grant ne suffit pas. Sur un projet Supabase qui a
+-- gardé ses `ALTER DEFAULT PRIVILEGES` d'origine, le rôle reçoit ses droits
+-- AUTOMATIQUEMENT à la création de la table. Omettre le `grant` laisse donc un
+-- accès complet en place, sur un rôle `BYPASSRLS`, tout en donnant l'impression
+-- contraire. La première version de ce fichier omettait le grant ET affirmait
+-- en commentaire que le rôle n'avait pas accès : l'affirmation était fausse sur
+-- la base hébergée, vraie seulement sur la pile locale.
+--
+-- Pourquoi le révoquer plutôt que suivre le motif maison : aucun chemin serveur
+-- ne touche cette table (la lecture du compte passe par le client de SESSION,
+-- `src/lib/account/logic.ts`), et elle contient les adresses des recruteurs
+-- approchés, donc de la donnée personnelle de TIERS. Un DML complet accordé à
+-- un rôle qui contourne la RLS, pour un besoin qui n'existe pas, c'est offrir
 -- le carnet d'adresses de tout le monde à une fuite de `SUPABASE_SECRET_KEY`.
--- Le jour où un chemin serveur le justifie, la ligne s'ajoute avec sa raison.
+-- L'effacement du compte n'en dépend pas : il passe par `auth.admin.deleteUser`
+-- et la cascade s'exécute sous l'identité du propriétaire, hors grants.
+revoke all on public.application_dispatches from anon, authenticated, service_role;
+grant select, insert, update, delete on public.application_dispatches to authenticated;

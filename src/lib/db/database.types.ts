@@ -407,6 +407,7 @@ export type Database = {
           opportunity_id: string
           profile_id: string
           recipient: string | null
+          recipient_key: string | null
           replied_at: string | null
           reply_kind: string | null
           sent_at: string
@@ -423,6 +424,7 @@ export type Database = {
           opportunity_id: string
           profile_id: string
           recipient?: string | null
+          recipient_key?: never
           replied_at?: string | null
           reply_kind?: string | null
           sent_at?: string
@@ -439,6 +441,7 @@ export type Database = {
           opportunity_id?: string
           profile_id?: string
           recipient?: string | null
+          recipient_key?: never
           replied_at?: string | null
           reply_kind?: string | null
           sent_at?: string

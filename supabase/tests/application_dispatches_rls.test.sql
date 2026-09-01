@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(22);
+select plan(25);
 
 insert into auth.users
   (id, instance_id, aud, role, email, encrypted_password,
@@ -90,6 +90,18 @@ select throws_ok(
     current_setting('test.u_profile'), current_setting('test.u_opp')),
   '23505', null,
   'the same letter to the same recipient the same day is refused');
+
+-- Le destinataire est du texte libre saisi à la main : sans normalisation,
+-- « recruiter@agency.test » et « Recruiter@Agency.test  » seraient deux
+-- événements, et le doublon passerait sous la contrainte censée l'attraper.
+select throws_ok(
+  format(
+    $$insert into public.application_dispatches
+        (profile_id, opportunity_id, channel, recipient)
+      values ('%s', '%s', 'agency', '  Recruiter@Agency.TEST  ')$$,
+    current_setting('test.u_profile'), current_setting('test.u_opp')),
+  '23505', null,
+  'casing and padding do not create a second event');
 
 -- …and the guard must not block legitimate work. THE CASE THAT CAUGHT ME OUT:
 -- on 2026-09-01 two agencies chased the same Proximus seat. Without `recipient`
@@ -226,11 +238,28 @@ select throws_ok(
 
 select lives_ok(
   $$update public.application_dispatches set delivery = 'delivered'$$,
-  'V''s blanket update runs against zero visible rows');
+  'V''s blanket update raises no error');
 
 select lives_ok(
   $$delete from public.application_dispatches$$,
-  'V''s blanket delete removes zero visible rows');
+  'V''s blanket delete raises no error');
+
+-- LES DEUX ASSERTIONS PRÉCÉDENTES NE PROUVENT RIEN SEULES. `lives_ok` ne
+-- constate que l'absence d'erreur : elles passeraient à l'identique si une
+-- policy permissive avait laissé V écraser puis supprimer les lignes de U.
+-- C'est le contrôle qui manque, et il doit se faire hors RLS.
+reset role;
+
+select is(
+  (select count(*)::int from public.application_dispatches), 3,
+  'U''s dispatches survived V''s blanket delete');
+
+select is(
+  (select count(*)::int from public.application_dispatches
+    where delivery = 'delivered'), 0,
+  'U''s dispatches were not touched by V''s blanket update');
+
+set local role authenticated;
 
 -- …and cannot attach its own dispatch to U's opportunity.
 select throws_ok(
