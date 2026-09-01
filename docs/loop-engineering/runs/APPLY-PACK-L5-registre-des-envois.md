@@ -3,8 +3,8 @@
 - **schemaVersion**: 1.0
 - **taskId**: APPLY-PACK-L5
 - **goal**: donner au produit une mémoire de ce qui est réellement parti — quand, par quel canal, avec quel CV, et si c'est arrivé — pour que « est-ce que j'ai déjà postulé ici » soit une lecture et non une supposition.
-- **status**: in_progress
-- **stopReason**: —
+- **status**: completed
+- **stopReason**: boucle close avec preuves ; fusion en attente du gate humain (PR #108)
 - **attempt**: 1 / **maxAttempts**: 3
 - **startedAt**: 2026-09-01T20:40:00Z
 
@@ -62,18 +62,18 @@ canal », ni « est-ce arrivé », ni « combien de fois ».
 
 ## Checks
 
-| Check  | Command             | Result                                                                                           |
-| ------ | ------------------- | ------------------------------------------------------------------------------------------------ |
-| Format | `pnpm format:check` | passed                                                                                           |
-| Lint   | `pnpm lint`         | passed                                                                                           |
-| Types  | `pnpm typecheck`    | passed                                                                                           |
-| Unit   | `pnpm test`         | passed                                                                                           |
-| RLS    | `pnpm test:rls`     | **NON EXÉCUTÉ ici** — ni Docker ni CLI Supabase sur cette machine. La CI (job `stack`) le lance. |
-| Build  | `pnpm build`        | passed                                                                                           |
+| Check  | Command             | Result                                                                                                                                                 |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Format | `pnpm format:check` | passed                                                                                                                                                 |
+| Lint   | `pnpm lint`         | passed                                                                                                                                                 |
+| Types  | `pnpm typecheck`    | passed                                                                                                                                                 |
+| Unit   | `pnpm test`         | passed                                                                                                                                                 |
+| RLS    | `pnpm test:rls`     | **passed en CI** — `application_dispatches_rls.test.sql .. ok`, 16 fichiers / 303 assertions, Result: PASS. Non exécutable localement (Docker absent). |
+| Build  | `pnpm build`        | passed                                                                                                                                                 |
 
 ## Review
 
-- implementation-reviewer : pending
+- implementation-reviewer : **fait** — 1 BLOCKER (B1 : la contrainte refusait deux cabinets sur le même mandat le même jour, mesuré sur PG 17.7), 3 MAJOR, 5 mineurs. Tous réparés (`ab7d61d`), correction remesurée sur les huit cas.
 - security-reviewer : **fait** — aucun blocker. 3 MAJOR (données de tiers non couvertes en §7, « seize familles » art. 20 périmé, contradiction offres consultées/importées) et 4 MINOR, tous réparés dans le commit de réparation.
 
 ## Stop conditions
@@ -81,3 +81,24 @@ canal », ni « est-ce arrivé », ni « combien de fois ».
 - Trois tentatives échouées sur la même vérification.
 - Toute modification du tenet « prepare, don't send ».
 - Fusion vers `main` : gate humain, jamais automatique.
+
+## Ce que la boucle a réellement appris
+
+**Un test qui affirme une couverture qu'il n'a pas est pire qu'un test absent.**
+L'assertion « two agencies chased the same seat » insérait un autre canal. Elle
+passait, la CI passait, et le défaut B1 traversait tout — jusqu'à ce qu'un
+relecteur monte un PostgreSQL et rejoue le DDL au lieu de le lire. La première
+exécution CI de cette branche est verte sur le code fautif : c'est la preuve que
+le vert d'une CI ne vaut que ce que valent les assertions.
+
+**Prouver que ça marche n'est pas prouver que ça refuse.** Les dix-huit
+assertions d'origine couvraient les quatre verbes en positif et un seul en
+négatif. Un `with check (true)` sur la policy INSERT — la plus dangereuse de la
+table — n'en aurait fait tomber aucune.
+
+**La même dérive de comptage habitait trois endroits.** La politique disait 23
+tables en §3 et 16 en §21 ; la phrase de portabilité disait « seize familles »
+pour vingt ; `export.ts` et son test disaient « 16 sections ». Corriger un
+chiffre ne corrige rien : ce qui protège, c'est de lier l'affirmation à la
+constante du code, et d'accepter que deux comptes différents (24 tables, 20
+familles) ne se remplacent pas l'un l'autre.
