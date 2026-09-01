@@ -59,7 +59,7 @@ export const NON_INCLUS: readonly string[] = [
 /**
  * Assemble l'export.
  *
- * Les 16 sections sont TOUJOURS présentes, vides le cas échéant. Une section
+ * Les 20 sections sont TOUJOURS présentes, vides le cas échéant. Une section
  * absente et une section vide se ressemblent trop dans un fichier JSON : la
  * première veut dire « on n'a pas su lire », la seconde « vous n'avez rien
  * ici ». Les confondre, c'est laisser quelqu'un croire qu'il a tout reçu.

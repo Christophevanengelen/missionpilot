@@ -3,7 +3,7 @@
 -- POURQUOI CETTE TABLE EXISTE. Le 2026-09-01, une lettre d'acceptation partie à
 -- 15:27 a été renvoyée à 19:58 au même recruteur, en pleine négociation de TJM.
 -- L'état d'envoi avait été DÉDUIT de la présence d'un brouillon résiduel au lieu
--- d'être LU quelque part. Le même mois, un mail d'approche a échoué à la remise
+-- d'être LU quelque part. En août, un mail d'approche a échoué à la remise
 -- pendant quatre jours sans que rien ne le signale.
 --
 -- `opportunity_tracking` ne pouvait pas empêcher ça, et ce n'est pas un défaut :
@@ -55,13 +55,24 @@ create table public.application_dispatches (
   note text not null default '' check (char_length(note) <= 2000),
   created_at timestamptz not null default now(),
 
-  -- LA CONTRAINTE QUI REFUSE L'INCIDENT. Deux envois le même jour, sur la même
-  -- opportunité, par le même canal : c'est le doublon du 01/09 et rien d'autre.
-  -- La clé inclut le jour ET le canal, donc une relance une semaine plus tard
-  -- reste possible, et deux cabinets sur le même mandat aussi — le 01/09 chez
-  -- Proximus, T-Crew et Hays chassaient le même siège, le modèle doit le
-  -- permettre. On refuse la répétition, pas le suivi.
-  unique (profile_id, opportunity_id, channel, sent_on),
+  -- LA CONTRAINTE QUI REFUSE L'INCIDENT : même destinataire, même offre, même
+  -- canal, même jour. C'est le doublon du 01/09 (deux fois la même lettre à
+  -- Imane chez T-Crew) et rien d'autre.
+  --
+  -- `recipient` est dans la clé, et il a fallu une mesure pour s'en apercevoir.
+  -- Sans lui, la contrainte refusait aussi T-Crew ET Hays le même jour sur le
+  -- siège Proximus : deux cabinets, deux envois réels, un seul (profil, offre,
+  -- 'agency', jour). Un registre qui refuse d'enregistrer un envoi qui a eu
+  -- lieu renvoie la personne à la supposition — l'incident du 01/09 par l'autre
+  -- bout.
+  --
+  -- `nulls not distinct` (PG15+) est load-bearing : `recipient` est nullable
+  -- pour les dépôts sur portail, et la règle SQL par défaut rend deux NULL
+  -- DISTINCTS, ce qui rouvrirait le trou pour exactement les envois qui n'ont
+  -- pas de destinataire nommé. Deux dépôts le même jour sur la même offre sans
+  -- destinataire distinct se ressemblent trop pour être comptés deux fois : si
+  -- la personne les distingue, elle nomme le destinataire.
+  unique nulls not distinct (profile_id, opportunity_id, channel, sent_on, recipient),
 
   -- Une réponse sans envoi n'existe pas, et une remise vérifiée non plus.
   constraint application_dispatches_reply_kind_needs_reply

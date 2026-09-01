@@ -426,6 +426,7 @@ export type Database = {
           replied_at?: string | null
           reply_kind?: string | null
           sent_at?: string
+          sent_on?: never
         }
         Update: {
           channel?: string
@@ -441,6 +442,7 @@ export type Database = {
           replied_at?: string | null
           reply_kind?: string | null
           sent_at?: string
+          sent_on?: never
         }
         Relationships: [
           {

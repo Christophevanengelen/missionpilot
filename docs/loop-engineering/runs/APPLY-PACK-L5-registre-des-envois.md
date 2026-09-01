@@ -3,7 +3,8 @@
 - **schemaVersion**: 1.0
 - **taskId**: APPLY-PACK-L5
 - **goal**: donner au produit une mémoire de ce qui est réellement parti — quand, par quel canal, avec quel CV, et si c'est arrivé — pour que « est-ce que j'ai déjà postulé ici » soit une lecture et non une supposition.
-- **status**: in-progress
+- **status**: in_progress
+- **stopReason**: —
 - **attempt**: 1 / **maxAttempts**: 3
 - **startedAt**: 2026-09-01T20:40:00Z
 
@@ -41,10 +42,13 @@ canal », ni « est-ce arrivé », ni « combien de fois ».
 - **Le produit n'envoie rien.** Le tenet `prepare, don't send` tient : cette table
   enregistre ce que l'humain a envoyé lui-même, elle ne déclenche aucun envoi.
 - Aucune dépendance de production nouvelle.
-- Même motif RLS + grants que `cv_variants` et `ai_application_drafts`.
+- Même motif RLS que `cv_variants` et `ai_application_drafts`. **Écart assumé sur les grants** : pas de `service_role`, justifié dans la migration.
 - Pas de contrainte d'unicité sur (profil, opportunité) seul : plusieurs envois
   légitimes existent (relance, deuxième agence sur le même mandat). Le 01/09 chez
   Proximus, deux cabinets chassaient le même siège — le modèle doit le permettre.
+  **La première version l'affirmait et ne le tenait pas** : sans `recipient` dans
+  la clé, T-Crew et Hays étaient le même `(profil, offre, 'agency', jour)`. Le
+  relecteur d'implémentation l'a mesuré sur PG 17.7 ; corrigé et remesuré.
 
 ## Risks
 

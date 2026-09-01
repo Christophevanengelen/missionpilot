@@ -18,7 +18,7 @@ describe("buildAccountExport", () => {
   const compte = { email: "alice@test.local" };
   const date = new Date("2026-07-27T10:00:00Z");
 
-  it("rend TOUJOURS les 16 sections, même vides", () => {
+  it("rend TOUJOURS les 20 sections, même vides", () => {
     // Une section absente et une section vide se ressemblent trop dans un JSON.
     // La première veut dire « on n'a pas su lire », la seconde « vous n'avez
     // rien ici » — les confondre laisse croire qu'on a tout reçu.

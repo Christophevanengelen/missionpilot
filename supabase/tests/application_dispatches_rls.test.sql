@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(18);
+select plan(22);
 
 insert into auth.users
   (id, instance_id, aud, role, email, encrypted_password,
@@ -79,26 +79,46 @@ select is(
   (now() at time zone 'UTC')::date,
   'sent_on is derived from sent_at in UTC');
 
--- THE ASSERTION THIS TABLE EXISTS FOR. Same opportunity, same channel, same
--- day: that is the 2026-09-01 duplicate, and the schema refuses it.
+-- THE ASSERTION THIS TABLE EXISTS FOR. Same recipient, same opportunity, same
+-- channel, same day: that is the 2026-09-01 duplicate, and the schema refuses
+-- it.
 select throws_ok(
   format(
     $$insert into public.application_dispatches
-        (profile_id, opportunity_id, channel) values ('%s', '%s', 'agency')$$,
+        (profile_id, opportunity_id, channel, recipient)
+      values ('%s', '%s', 'agency', 'recruiter@agency.test')$$,
     current_setting('test.u_profile'), current_setting('test.u_opp')),
   '23505', null,
-  'a second dispatch the same day on the same channel is refused');
+  'the same letter to the same recipient the same day is refused');
 
--- …but the guard must not block legitimate work. Another channel, same day:
--- on 2026-09-01 two agencies chased the same Proximus seat.
+-- …and the guard must not block legitimate work. THE CASE THAT CAUGHT ME OUT:
+-- on 2026-09-01 two agencies chased the same Proximus seat. Without `recipient`
+-- in the key, this insert failed — the constraint refused an envoi that really
+-- happened, which is the original incident by the other end.
 insert into public.application_dispatches
-  (profile_id, opportunity_id, channel) values
+  (profile_id, opportunity_id, channel, recipient) values
   (current_setting('test.u_profile')::uuid,
-   current_setting('test.u_opp')::uuid, 'direct');
+   current_setting('test.u_opp')::uuid, 'agency', 'other@agency.test');
 
 select is(
   (select count(*)::int from public.application_dispatches), 2,
-  'another channel the same day is allowed');
+  'a second agency on the same mandate the same day is allowed');
+
+-- Two portal deposits with no named recipient are NOT two events: `nulls not
+-- distinct` treats them as the same. If the person can tell them apart, they
+-- name the recipient.
+insert into public.application_dispatches
+  (profile_id, opportunity_id, channel) values
+  (current_setting('test.u_profile')::uuid,
+   current_setting('test.u_opp')::uuid, 'portal');
+
+select throws_ok(
+  format(
+    $$insert into public.application_dispatches
+        (profile_id, opportunity_id, channel) values ('%s', '%s', 'portal')$$,
+    current_setting('test.u_profile'), current_setting('test.u_opp')),
+  '23505', null,
+  'two nameless deposits the same day count as one (nulls not distinct)');
 
 -- …and a follow-up on another day is allowed too.
 insert into public.application_dispatches
@@ -107,7 +127,7 @@ insert into public.application_dispatches
    current_setting('test.u_opp')::uuid, 'agency', now() + interval '8 days');
 
 select is(
-  (select count(*)::int from public.application_dispatches), 3,
+  (select count(*)::int from public.application_dispatches), 4,
   'a follow-up on another day is allowed');
 
 -- Closed channel list: prose cannot leak into the funnel dimension.
@@ -147,15 +167,15 @@ select throws_ok(
 -- Recording the bounce: the fact Orbis lacked for four days.
 update public.application_dispatches
    set delivery = 'bounced', delivery_checked_at = now()
- where channel = 'direct';
+ where channel = 'portal';
 
 select is(
-  (select delivery from public.application_dispatches where channel = 'direct'),
+  (select delivery from public.application_dispatches where channel = 'portal'),
   'bounced', 'owner can record a bounce');
 
 select is(
   (select count(*)::int from public.application_dispatches
-    where delivery = 'unknown'), 2,
+    where delivery = 'unknown'), 3,
   'the undelivered query still finds the unverified ones');
 
 -- Deleting the CV variant clears the reference, never the event: the dispatch
@@ -165,18 +185,18 @@ delete from public.cv_variants
 
 select is(
   (select cv_variant_id from public.application_dispatches
-    where channel = 'agency' and sent_on = (now() at time zone 'UTC')::date),
+    where recipient = 'recruiter@agency.test'),
   null::uuid, 'deleting a variant clears the reference');
 
 select is(
-  (select count(*)::int from public.application_dispatches), 3,
+  (select count(*)::int from public.application_dispatches), 4,
   'deleting a variant never deletes the dispatch');
 
 -- Owner U can delete its own row.
 delete from public.application_dispatches
- where channel = 'agency' and sent_on > (now() at time zone 'UTC')::date;
+ where sent_on > (now() at time zone 'UTC')::date;
 select is(
-  (select count(*)::int from public.application_dispatches), 2,
+  (select count(*)::int from public.application_dispatches), 3,
   'owner can delete its own dispatch');
 
 reset role;
@@ -190,6 +210,27 @@ set local role authenticated;
 select is(
   (select count(*)::int from public.application_dispatches), 0,
   'another user sees none of the register');
+
+-- LA POLICY LA PLUS DANGEREUSE DE LA TABLE. Sans cette assertion, un
+-- `with check (true)` sur l'INSERT ne ferait tomber AUCUN des autres tests :
+-- ils prouvent tous le chemin positif, et le seul chemin négatif couvert était
+-- la lecture. Un registre où n'importe qui peut écrire dans le profil d'un
+-- autre est pire qu'un registre absent.
+select throws_ok(
+  format(
+    $$insert into public.application_dispatches
+        (profile_id, opportunity_id, channel) values ('%s', '%s', 'direct')$$,
+    current_setting('test.u_profile'), current_setting('test.u_opp')),
+  '42501', null,
+  'V cannot write a dispatch inside U''s profile');
+
+select lives_ok(
+  $$update public.application_dispatches set delivery = 'delivered'$$,
+  'V''s blanket update runs against zero visible rows');
+
+select lives_ok(
+  $$delete from public.application_dispatches$$,
+  'V''s blanket delete removes zero visible rows');
 
 -- …and cannot attach its own dispatch to U's opportunity.
 select throws_ok(
