@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PERSONAL_TABLES } from "@/domain/account";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -49,6 +50,73 @@ describe("la politique de confidentialité compte juste", () => {
     );
     expect(annonce).not.toBeNull();
     expect(Number(annonce?.[1])).toBe(tablesDuSchema().length);
+  });
+
+  it("compte juste PARTOUT, pas seulement dans la phrase surveillée", () => {
+    // Le 2026-09-01, la politique annonçait 23 tables en section 3 et 16 en
+    // section 18. Le test ne regardait que la première phrase, donc la seconde
+    // avait dérivé de sept tables sans rien casser — exactement le défaut que
+    // ce fichier existe pour empêcher, dans une formulation que sa regex
+    // n'atteignait pas. Un garde-fou qui ne couvre qu'une occurrence d'un fait
+    // répété ne garde que la moitié du fait.
+    const politique = readFileSync(
+      join(racine, "content/legal/politique-de-confidentialite.md"),
+      "utf8",
+    );
+    const reel = tablesDuSchema().length;
+    const occurrences = [...politique.matchAll(/les (\d+) tables du schéma/g)];
+    expect(occurrences.length).toBeGreaterThanOrEqual(2);
+    for (const occurrence of occurrences) {
+      expect(Number(occurrence[1])).toBe(reel);
+    }
+  });
+
+  it("annonce le bon nombre de familles de données exportées", () => {
+    // Deux comptes différents cohabitent dans ce document et il ne faut pas les
+    // confondre : le SCHÉMA compte les tables (24 au 01/09), l'EXPORT art. 20
+    // compte les familles de données personnelles rendues (20). La phrase de
+    // portabilité annonçait « seize » — un chiffre resté sur place pendant que
+    // quatre tables entraient dans PERSONAL_TABLES. Elle échappait au garde-fou
+    // ci-dessus parce qu'elle dit « familles de données », pas « tables du
+    // schéma » : le test couvrait toutes les occurrences d'UNE formulation, pas
+    // toutes les occurrences du fait.
+    const politique = readFileSync(
+      join(racine, "content/legal/politique-de-confidentialite.md"),
+      "utf8",
+    );
+    const mots = [
+      "zéro",
+      "une",
+      "deux",
+      "trois",
+      "quatre",
+      "cinq",
+      "six",
+      "sept",
+      "huit",
+      "neuf",
+      "dix",
+      "onze",
+      "douze",
+      "treize",
+      "quatorze",
+      "quinze",
+      "seize",
+      "dix-sept",
+      "dix-huit",
+      "dix-neuf",
+      "vingt",
+      "vingt et une",
+      "vingt-deux",
+      "vingt-trois",
+      "vingt-quatre",
+      "vingt-cinq",
+    ];
+    const attendu = mots[PERSONAL_TABLES.length];
+    expect(attendu).toBeDefined();
+    expect(politique).toContain(
+      `contient les ${attendu} familles de données que nos bases détiennent sur vous`,
+    );
   });
 
   it("nomme Resend dès lors que l'application sait envoyer un e-mail", () => {
